@@ -1,4 +1,4 @@
-```markdown
+````markdown
 # 🚗 Smart Carwash Service System
 
 This project is a complete service system to connect customers with local carwash businesses. It manages the entire workflow, including customer orders, vehicle pickup and delivery, carwash service management, and admin validation.
@@ -12,7 +12,7 @@ This project is a complete service system to connect customers with local carwas
 
 ## Project Repository
 
-[https://git.kntu.ac.ir/system-design-analysis/4041/team8/smart\_carwash\_service\_system](https://git.kntu.ac.ir/system-design-analysis/4041/team8/smart_carwash_service_system)
+https://git.kntu.ac.ir/system-design-analysis/4041/team8/smart_carwash_service_system
 
 ---
 
