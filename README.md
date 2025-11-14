@@ -19,11 +19,13 @@ https://git.kntu.ac.ir/system-design-analysis/4041/team8/smart_carwash_service_s
 
 This guide is for setting up the backend project on a new computer.
 
-### 1. Clone the Repository
+### 1\. Clone the Repository
 First, get the project code from the repository.
 ```bash
 git clone [https://git.kntu.ac.ir/system-design-analysis/4041/team8/smart_carwash_service_system](https://git.kntu.ac.ir/system-design-analysis/4041/team8/smart_carwash_service_system)
 cd smart_carwash_service_system/Backend
+```
+
 
 ### 2\. Create and Activate Virtual Environment
 
