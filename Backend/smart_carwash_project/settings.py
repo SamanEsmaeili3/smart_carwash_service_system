@@ -35,6 +35,12 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    # Our project apps
+    'accounts.apps.AccountsConfig',
+    'carwash.apps.CarwashConfig',
+    'orders.apps.OrdersConfig',
+    
+    # Django built-in apps
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -128,3 +134,6 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+AUTH_USER_MODEL = 'accounts.User'
