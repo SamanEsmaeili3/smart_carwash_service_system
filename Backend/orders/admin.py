@@ -1,3 +1,7 @@
 from django.contrib import admin
+from .models import Order, OrderService, Rating, Payment
 
-# Register your models here.
+admin.site.register(Order)
+admin.site.register(OrderService)
+admin.site.register(Rating)
+admin.site.register(Payment)
