@@ -10,6 +10,7 @@ class CarwashApplicationSerializer(serializers.ModelSerializer):
             'business_name', 
             'address', 
             'phone_number',
+            'contact_email',
             'working_hours',
             'license_photo_url', 
         ]

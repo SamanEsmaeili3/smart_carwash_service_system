@@ -19,6 +19,11 @@ class CarwashProfile(models.Model):
     license_photo_url = models.URLField(max_length=1024, blank=True) # Use URLField to store path
     gallery_photos = models.JSONField(default=list) # To store a list of photo URLs
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
+    contact_email = models.EmailField(
+        max_length=255, 
+        unique=True, 
+        help_text="The email for the carwash owner, will be used to create their user account upon approval."
+    )
 
     def __str__(self):
         return self.business_name
