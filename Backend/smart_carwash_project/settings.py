@@ -39,6 +39,10 @@ INSTALLED_APPS = [
     'accounts.apps.AccountsConfig',
     'carwash.apps.CarwashConfig',
     'orders.apps.OrdersConfig',
+
+    # Third-party apps
+    'rest_framework',  
+    'rest_framework_simplejwt', 
     
     # Django built-in apps
     'django.contrib.admin',
