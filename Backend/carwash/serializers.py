@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CarwashProfile
+from .models import CarwashProfile, Driver, CarwashService
 
 # Task-B6: Create CarwashApplicationSerializer
 class CarwashApplicationSerializer(serializers.ModelSerializer):
@@ -19,3 +19,12 @@ class CarwashApplicationSerializer(serializers.ModelSerializer):
         validated_data['status'] = CarwashProfile.Status.PENDING
         carwash_profile = CarwashProfile.objects.create(**validated_data)
         return carwash_profile
+    
+class CarwashProfileAdminSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Admins to see the full carwash profile.
+    """
+    class Meta:
+        model = CarwashProfile
+        fields = '__all__' 
+        read_only_fields = fields 
