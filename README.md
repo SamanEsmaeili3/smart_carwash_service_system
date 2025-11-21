@@ -6,7 +6,7 @@ This project is a complete service system to connect customers with local carwas
 
 * Mohammadsadegh Bayati
 * Hamidreza Khodabandehlou
-* Saman Esmaeily
+* Saman Esmaeili
 * Reza Abdollahi
 
 ## Project Repository
