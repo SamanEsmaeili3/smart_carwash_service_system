@@ -13,6 +13,8 @@ class CarwashApplicationSerializer(serializers.ModelSerializer):
             'contact_email',
             'working_hours',
             'license_photo_url', 
+            'latitude',
+            'longitude',
         ]
         
     def create(self, validated_data):
