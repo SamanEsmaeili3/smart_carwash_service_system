@@ -31,8 +31,10 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
       bool success = await auth.registerCustomer(
         _emailCtrl.text.trim(),
         _passCtrl.text.trim(),
+        _nameController.text.trim(), // <--- Added Name
+        _phoneController.text.trim(), // <--- Added Phone
       );
-
+      
       if (success && mounted) {
         // [Task-F4] & [Task-F5] Login & Navigate
         await auth.login(_emailCtrl.text.trim(), _passCtrl.text.trim());
