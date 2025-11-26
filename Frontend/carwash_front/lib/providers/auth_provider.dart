@@ -50,7 +50,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   // [Task-F3]
-  Future<bool> registerCustomer(String email, String password) async {
+  Future<bool> registerCustomer(String email, String password, String fullName, String phone) async {
     _setLoading(true);
     try {
       await _api.post(ApiConstants.register, {
