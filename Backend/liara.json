@@ -1,0 +1,5 @@
+{
+  "platform": "docker",
+  "app": "my-project-api",
+  "port": 8000
+}
