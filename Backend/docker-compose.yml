@@ -11,7 +11,7 @@ services:
       - POSTGRES_USER=smart_carwash_user
       - POSTGRES_PASSWORD=carwash12user13@10
     ports:
-      - "5433:5432" # Maps container port 5432 to host 5433 (to avoid conflict with your local Postgres)
+      - "5435:5432" # Maps container port 5432 to host 5435 (to avoid conflict with your local Postgres)
 
   # 2. The Backend (Django)
   backend:
