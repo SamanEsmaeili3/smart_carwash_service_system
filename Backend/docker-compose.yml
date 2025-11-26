@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  # 1. The Database (PostgreSQL)
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=smart_carwash_db
+      - POSTGRES_USER=smart_carwash_user
+      - POSTGRES_PASSWORD=carwash12user13@10
+    ports:
+      - "5433:5432" # Maps container port 5432 to host 5433 (to avoid conflict with your local Postgres)
+
+  # 2. The Backend (Django)
+  backend:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    # This tells Django to look for the 'db' service, not localhost
+    environment:
+      - DB_HOST=db 
+      - DB_NAME=smart_carwash_db
+      - DB_USER=smart_carwash_user
+      - DB_PASSWORD=carwash12user13@10
+      - SECRET_KEY=django-insecure--=4vnba!s+jv!xy4mo0&bgw3t96#t-+7x*-uc)=c$)98^%9zr#
+      - ALLOWED_HOSTS=127.0.0.1,localhost,backend,0.0.0.0
+
+  # 3. The Frontend (Flutter Web)
+  frontend:
+    image: flutter-carwash-front:latest # Uses the image you just built
+    ports:
+      - "80:80" # Maps port 80 (web) to your computer's port 80
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
