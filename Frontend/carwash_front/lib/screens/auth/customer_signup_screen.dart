@@ -13,9 +13,13 @@ class CustomerSignupScreen extends StatefulWidget {
 
 class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailCtrl = TextEditingController();
-  final _passCtrl = TextEditingController();
-  final _confirmPassCtrl = TextEditingController();
+
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _addressController = TextEditingController(); // Optional, backend doesn't require it yet
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   void _signup() async {
     if (_formKey.currentState!.validate()) {
@@ -34,7 +38,7 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
         _nameController.text.trim(), // <--- Added Name
         _phoneController.text.trim(), // <--- Added Phone
       );
-      
+
       if (success && mounted) {
         // [Task-F4] & [Task-F5] Login & Navigate
         await auth.login(_emailCtrl.text.trim(), _passCtrl.text.trim());
