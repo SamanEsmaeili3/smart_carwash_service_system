@@ -1,16 +1,19 @@
 # Stage 1: Build the Flutter Web application
 FROM ghcr.io/cirruslabs/flutter:stable AS build
 
+# --- CRITICAL FIX: Use Mirrors to bypass sanctions/blocking ---
+ENV PUB_HOSTED_URL=https://pub.flutter-io.cn
+ENV FLUTTER_STORAGE_BASE_URL=https://storage.flutter-io.cn
+# --------------------------------------------------------------
+
 # Set the working directory
 WORKDIR /app
 
-# Copy dependency files to leverage Docker layer caching
+# Copy dependency files
 COPY pubspec.yaml pubspec.lock ./
 
-# --- FIX: Force update intl to match the latest Flutter SDK requirement ---
-RUN flutter pub add intl:^0.20.2
-
 # Install dependencies
+# (We removed the 'flutter pub add' line because we fixed pubspec.yaml manually)
 RUN flutter pub get
 
 # Copy the rest of the application code
