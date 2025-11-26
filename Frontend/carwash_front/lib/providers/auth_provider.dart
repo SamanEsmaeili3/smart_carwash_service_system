@@ -56,6 +56,8 @@ class AuthProvider with ChangeNotifier {
       await _api.post(ApiConstants.register, {
         "email": email,
         "password": password,
+        "full_name": fullName, // must match Django serializer
+        "phone_number": phone, // must match Django serializer
       });
       _setLoading(false);
       return true;

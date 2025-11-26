@@ -20,7 +20,7 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
 
   bool _acceptedTerms = false;
 
-  void _handleSignup() {
+  void _handleSignup() async {
     if (_formKey.currentState!.validate()) {
       if (!_acceptedTerms) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -34,12 +34,35 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
         );
         return;
       }
-      //TODO: place server connection logic(Provider)
-      //for now we just show a message and return
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ثبت‌نام با موفقیت انجام شد')),
+
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      
+      // Call the provider with ALL 4 fields
+      bool success = await auth.registerCustomer(
+        _emailController.text.trim(),
+        _passwordController.text.trim(),
+        _nameController.text.trim(),   // <--- Passing Name
+        _phoneController.text.trim(),  // <--- Passing Phone
       );
-      Navigator.pop(context);
+
+      if (success && mounted) {
+        // Optional: Auto-login after signup
+        await auth.login(
+            _emailController.text.trim(), 
+            _passwordController.text.trim()
+        );
+        
+        if (mounted) {
+           Navigator.pushNamedAndRemoveUntil(context, '/customer', (route) => false);
+        }
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(auth.errorMessage ?? 'خطا در ثبت‌نام'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
