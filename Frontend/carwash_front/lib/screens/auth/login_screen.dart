@@ -49,73 +49,75 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final isLoading = context.watch<AuthProvider>().status == AuthStatus.loading;
-    
-    // Check screen size
-    final isDesktop = MediaQuery.of(context).size.width > 600;
+    final size = MediaQuery.of(context).size;
+    final isDesktop = size.width > 650;
 
     return Scaffold(
-      backgroundColor: AppColors.primaryLight, // Light blue background
+      backgroundColor: AppColors.primaryLight,
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 450), // Stop stretching!
+              // FIX 1: Made it wider (550 instead of 450)
+              constraints: const BoxConstraints(maxWidth: 550), 
               child: Container(
-                // Add Card styling for Desktop feel
-                padding: isDesktop ? const EdgeInsets.all(40) : const EdgeInsets.all(0),
+                padding: isDesktop 
+                    ? const EdgeInsets.symmetric(horizontal: 50, vertical: 40) // FIX 2: Better padding
+                    : const EdgeInsets.all(0),
                 decoration: isDesktop 
                   ? BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
+                          color: Colors.blue.shade900.withOpacity(0.1),
+                          blurRadius: 30,
+                          offset: const Offset(0, 15),
                         )
                       ]
                     )
-                  : null, // No decoration on mobile (clean look)
+                  : null,
                 
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Logo Container
+                    // Logo
                     Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
+                      padding: const EdgeInsets.all(12),
+                      decoration: const BoxDecoration(
                         color: AppColors.primaryLight,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.water_drop_rounded, 
-                        size: 60, 
+                        size: 48, // Slightly smaller to save space
                         color: AppColors.primary
                       ),
                     ),
                     
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16), // Reduced from 24
                     
                     const Text(
                       "کارواش پرو",
                       style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900, // Extra Bold
+                        fontSize: 26, // Slightly smaller text
+                        fontWeight: FontWeight.w900,
                         color: AppColors.textMain,
                         letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                     Text(
                       "به حساب کاربری خود وارد شوید",
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 13,
                         color: Colors.grey.shade500,
                       ),
                     ),
                     
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 30), // Reduced from 40
 
                     CustomInput(
                       label: "ایمیل",
@@ -133,10 +135,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 8),
                     
-                    // Forget Password Link (Placeholder)
                     Align(
                       alignment: Alignment.centerLeft,
                       child: TextButton(
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: const Size(0, 0),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
                         onPressed: () {},
                         child: const Text(
                           "رمز عبور را فراموش کردید؟",
@@ -153,25 +159,26 @@ class _LoginScreenState extends State<LoginScreen> {
                       isLoading: isLoading,
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                     
-                    // Divider for aesthetics
                     Row(
                       children: [
                         Expanded(child: Divider(color: Colors.grey.shade300)),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text("یا", style: TextStyle(color: Colors.grey.shade400)),
+                          child: Text("یا", style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
                         ),
                         Expanded(child: Divider(color: Colors.grey.shade300)),
                       ],
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                     
-                    // Action Buttons Row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    // FIX 3: Using Wrap to prevent overflow/breaking text
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 20, // Horizontal space
+                      runSpacing: 10, // Vertical space if it wraps
                       children: [
                         TextButton(
                           onPressed: () => Navigator.pushNamed(context, '/signup'),
@@ -180,7 +187,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
                           ),
                         ),
-                        Container(height: 20, width: 1, color: Colors.grey.shade300),
+                        // Only show divider if there is enough width (optional visual trick)
+                        // But Wrap handles layout better without a vertical divider
                         TextButton(
                           onPressed: () => Navigator.pushNamed(context, '/apply'),
                           child: const Text(
