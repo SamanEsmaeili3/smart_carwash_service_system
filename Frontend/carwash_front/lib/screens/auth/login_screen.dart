@@ -54,16 +54,24 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.primaryLight,
+      
+      // --- NEW: ADDING THE BACK BUTTON HERE ---
+      appBar: AppBar(
+        backgroundColor: Colors.transparent, // Invisible background
+        elevation: 0, // No shadow
+        iconTheme: const IconThemeData(color: AppColors.primary), // Blue Arrow
+      ),
+      // ----------------------------------------
+
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
           child: Center(
             child: ConstrainedBox(
-              // FIX 1: Made it wider (550 instead of 450)
               constraints: const BoxConstraints(maxWidth: 550), 
               child: Container(
                 padding: isDesktop 
-                    ? const EdgeInsets.symmetric(horizontal: 50, vertical: 40) // FIX 2: Better padding
+                    ? const EdgeInsets.symmetric(horizontal: 50, vertical: 40)
                     : const EdgeInsets.all(0),
                 decoration: isDesktop 
                   ? BoxDecoration(
@@ -83,7 +91,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Logo
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: const BoxDecoration(
@@ -92,17 +99,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       child: const Icon(
                         Icons.water_drop_rounded, 
-                        size: 48, // Slightly smaller to save space
+                        size: 48,
                         color: AppColors.primary
                       ),
                     ),
                     
-                    const SizedBox(height: 16), // Reduced from 24
+                    const SizedBox(height: 16),
                     
                     const Text(
                       "کارواش پرو",
                       style: TextStyle(
-                        fontSize: 26, // Slightly smaller text
+                        fontSize: 26,
                         fontWeight: FontWeight.w900,
                         color: AppColors.textMain,
                         letterSpacing: -0.5,
@@ -117,7 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     
-                    const SizedBox(height: 30), // Reduced from 40
+                    const SizedBox(height: 30),
 
                     CustomInput(
                       label: "ایمیل",
@@ -174,11 +181,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 20),
                     
-                    // FIX 3: Using Wrap to prevent overflow/breaking text
                     Wrap(
                       alignment: WrapAlignment.center,
-                      spacing: 20, // Horizontal space
-                      runSpacing: 10, // Vertical space if it wraps
+                      spacing: 20,
+                      runSpacing: 10,
                       children: [
                         TextButton(
                           onPressed: () => Navigator.pushNamed(context, '/signup'),
@@ -187,8 +193,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
                           ),
                         ),
-                        // Only show divider if there is enough width (optional visual trick)
-                        // But Wrap handles layout better without a vertical divider
                         TextButton(
                           onPressed: () => Navigator.pushNamed(context, '/apply'),
                           child: const Text(
