@@ -107,3 +107,18 @@ Then, commit the updated `requirements.txt` file to git.
 
 ```
 ```
+
+
+
+## link of site
+https://my-project-web.liara.run/
+
+
+
+## backend deploy
+liara deploy --app my-project-api --platform docker --port 8000
+
+
+
+## frontend deploy
+liara deploy --app my-project-web --platform docker --port 80
