@@ -46,9 +46,9 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
               initialCenter: _currentCenter,
               initialZoom: 14.0,
               onPositionChanged: (camera, hasGesture) {
-                if (hasGesture) {
+                if (hasGesture && camera.center != null) { // Check for null
                   setState(() {
-                    _currentCenter = camera.center;
+                    _currentCenter = camera.center!; // Force unwrap
                   });
                 }
               },
