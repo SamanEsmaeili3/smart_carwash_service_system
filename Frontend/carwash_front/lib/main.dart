@@ -6,6 +6,7 @@ import 'constants/app_colors.dart';
 import 'providers/auth_provider.dart';
 import 'providers/admin_provider.dart';
 
+import 'screens/landing_page.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/customer_signup_screen.dart';
 import 'screens/auth/carwash_application_screen.dart';
@@ -55,6 +56,7 @@ class MyApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const SplashScreen(),
+        '/landing': (context) => const LandingPage(),
         '/login': (context) => const LoginScreen(),
         '/signup': (context) => const CustomerSignupScreen(),
         '/apply': (context) => const CarwashApplicationScreen(),
