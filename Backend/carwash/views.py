@@ -43,6 +43,7 @@ class AdminPendingCarwashListView(generics.ListAPIView):
     
 # User Story 4.1: Admin Approves Carwash
 # Task-B9 & B10: Approval/Rejection Logic
+# Task-B2.1 (Sprint 2): Return generated password in response
 class AdminCarwashApprovalView(views.APIView):
     """
     API view for Admins to Approve or Reject a pending carwash application.
@@ -83,7 +84,11 @@ class AdminCarwashApprovalView(views.APIView):
             profile.save()
             
             return Response(
-                {"message": f"Carwash {profile.business_name} approved.", "created_user_email": new_user.email}, 
+                {
+                    "message": f"Carwash {profile.business_name} approved.",
+                    "created_user_email": new_user.email,
+                    "generated_password": password  
+                }, 
                 status=status.HTTP_200_OK
             )
 
