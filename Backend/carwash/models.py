@@ -8,16 +8,19 @@ class CarwashProfile(models.Model):
         APPROVED = 'APPROVED', 'Approved'
         REJECTED = 'REJECTED', 'Rejected'
 
-    # user field can be null until the admin approves and creates the login
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
     business_name = models.CharField(max_length=255)
     address = models.CharField(max_length=255)
-    latitude = models.DecimalField(max_digits=9, decimal_places=6)
-    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    
+    # --- FIX: Increased digits to handle high-precision GPS coordinates ---
+    latitude = models.DecimalField(max_digits=20, decimal_places=15)
+    longitude = models.DecimalField(max_digits=20, decimal_places=15)
+    # ----------------------------------------------------------------------
+    
     phone_number = models.CharField(max_length=20)
-    working_hours = models.JSONField(default=dict) # e.g., {"Mon": "09:00-18:00", ...}
-    license_photo_url = models.URLField(max_length=1024, blank=True) # Use URLField to store path
-    gallery_photos = models.JSONField(default=list) # To store a list of photo URLs
+    working_hours = models.JSONField(default=dict) 
+    license_photo_url = models.URLField(max_length=1024, blank=True)
+    gallery_photos = models.JSONField(default=list)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
     contact_email = models.EmailField(
         max_length=255, 
@@ -37,7 +40,7 @@ class Driver(models.Model):
 
     carwash = models.ForeignKey(CarwashProfile, on_delete=models.CASCADE, related_name='drivers')
     full_name = models.CharField(max_length=255)
-    license_scan_url = models.URLField(max_length=1024, blank=True) # Use URLField to store path
+    license_scan_url = models.URLField(max_length=1024, blank=True) 
     validation_status = models.CharField(max_length=10, choices=ValidationStatus.choices, default=ValidationStatus.PENDING)
 
     def __str__(self):

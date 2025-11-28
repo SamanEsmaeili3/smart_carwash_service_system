@@ -106,7 +106,17 @@ DATABASES = {
         conn_max_age=600
     )
 }
-
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'smart_carwash_db',
+#         'USER': 'smart_carwash_user',
+#         'PASSWORD': '123456', # پسورد خودت رو چک کن
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#     }
+# }
+# ---------------------------------------------
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
