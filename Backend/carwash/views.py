@@ -8,9 +8,10 @@ from .serializers import (
     CarwashApplicationSerializer, 
     CarwashProfileAdminSerializer, 
     CarwashProfileUpdateSerializer,
-    CarwashServiceSerializer  
+    CarwashServiceSerializer,
+    CarwashListSerializer  # <-- این سریالایزر جدید اضافه شد
 )
-from .models import CarwashProfile, CarwashService 
+from .models import CarwashProfile, CarwashService
 
 # User Story 1.2: Carwash Registration Application
 class CarwashApplicationView(generics.CreateAPIView):
@@ -106,12 +107,8 @@ class CarwashProfileUpdateView(generics.RetrieveUpdateAPIView):
         except AttributeError:
             raise NotFound("You do not have a carwash profile.")
 
-# --- NEW: Sprint 2 Task-B2.5 & B2.6 (List & Create Services) ---
+# User Story 2.4: Manage Services
 class CarwashServiceListCreateView(generics.ListCreateAPIView):
-    """
-    GET: List all services for the logged-in carwash.
-    POST: Add a new service to the logged-in carwash.
-    """
     serializer_class = CarwashServiceSerializer
     permission_classes = [IsAuthenticated]
 
@@ -127,11 +124,7 @@ class CarwashServiceListCreateView(generics.ListCreateAPIView):
         except AttributeError:
              raise NotFound("You do not have a carwash profile to add services to.")
 
-# --- NEW: Sprint 2 Task-B2.7 (Delete Service) ---
 class CarwashServiceDeleteView(generics.DestroyAPIView):
-    """
-    DELETE: Remove a specific service by ID.
-    """
     serializer_class = CarwashServiceSerializer
     permission_classes = [IsAuthenticated]
 
@@ -140,3 +133,14 @@ class CarwashServiceDeleteView(generics.DestroyAPIView):
             return CarwashService.objects.filter(carwash=self.request.user.carwashprofile)
         except AttributeError:
             return CarwashService.objects.none()
+
+# --- NEW: Sprint 2 Task-B2.9 (Customer sees Approved Carwashes) ---
+class CustomerCarwashListView(generics.ListAPIView):
+    """
+    API view for Customers to see a list of ALL Approved carwashes.
+    """
+    serializer_class = CarwashListSerializer
+    permission_classes = [IsAuthenticated] 
+
+    def get_queryset(self):
+        return CarwashProfile.objects.filter(status=CarwashProfile.Status.APPROVED)
