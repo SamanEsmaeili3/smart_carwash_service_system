@@ -1,22 +1,19 @@
 from django.shortcuts import render
 from rest_framework import generics, status, views
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated 
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.exceptions import NotFound
 from accounts.models import User
 from .serializers import (
     CarwashApplicationSerializer, 
     CarwashProfileAdminSerializer, 
-    CarwashProfileUpdateSerializer 
+    CarwashProfileUpdateSerializer,
+    CarwashServiceSerializer  
 )
-from .models import CarwashProfile
+from .models import CarwashProfile, CarwashService 
 
 # User Story 1.2: Carwash Registration Application
 class CarwashApplicationView(generics.CreateAPIView):
-    """
-    API view for a new Carwash Owner to submit their application.
-    This is public (no auth required).
-    """
     serializer_class = CarwashApplicationSerializer
     permission_classes = [AllowAny] 
 
@@ -25,7 +22,6 @@ class CarwashApplicationView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         headers = self.get_success_headers(serializer.data)
-        
         return Response(
             {"message": "Thank you for applying, we will review your application."}, 
             status=status.HTTP_201_CREATED, 
@@ -34,10 +30,6 @@ class CarwashApplicationView(generics.CreateAPIView):
     
 # User Story 4.1: Admin sees pending carwashes
 class AdminPendingCarwashListView(generics.ListAPIView):
-    """
-    API view for Admins to list all carwash applications
-    with 'Pending' status.
-    """
     serializer_class = CarwashProfileAdminSerializer
     permission_classes = [IsAdminUser]
 
@@ -46,9 +38,6 @@ class AdminPendingCarwashListView(generics.ListAPIView):
     
 # User Story 4.1: Admin Approves Carwash
 class AdminCarwashApprovalView(views.APIView):
-    """
-    API view for Admins to Approve or Reject a pending carwash application.
-    """
     permission_classes = [IsAdminUser]
 
     def post(self, request, pk, *args, **kwargs):
@@ -66,7 +55,6 @@ class AdminCarwashApprovalView(views.APIView):
         action = request.data.get('action')
 
         if action == "approve":
-            
             if User.objects.filter(email=profile.contact_email).exists():
                 return Response(
                     {"error": "A user with this email already exists."}, 
@@ -107,13 +95,8 @@ class AdminCarwashApprovalView(views.APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-# --- NEW: Sprint 2 Task-B2.3 ---
 # User Story 2.1: Carwash Owner updates profile
 class CarwashProfileUpdateView(generics.RetrieveUpdateAPIView):
-    """
-    API view for logged-in Carwash Owners to retrieve and update 
-    their OWN profile (address, working hours, etc.).
-    """
     serializer_class = CarwashProfileUpdateSerializer
     permission_classes = [IsAuthenticated]
 
@@ -122,3 +105,38 @@ class CarwashProfileUpdateView(generics.RetrieveUpdateAPIView):
             return self.request.user.carwashprofile
         except AttributeError:
             raise NotFound("You do not have a carwash profile.")
+
+# --- NEW: Sprint 2 Task-B2.5 & B2.6 (List & Create Services) ---
+class CarwashServiceListCreateView(generics.ListCreateAPIView):
+    """
+    GET: List all services for the logged-in carwash.
+    POST: Add a new service to the logged-in carwash.
+    """
+    serializer_class = CarwashServiceSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        try:
+            return CarwashService.objects.filter(carwash=self.request.user.carwashprofile)
+        except AttributeError:
+            return CarwashService.objects.none()
+
+    def perform_create(self, serializer):
+        try:
+            serializer.save(carwash=self.request.user.carwashprofile)
+        except AttributeError:
+             raise NotFound("You do not have a carwash profile to add services to.")
+
+# --- NEW: Sprint 2 Task-B2.7 (Delete Service) ---
+class CarwashServiceDeleteView(generics.DestroyAPIView):
+    """
+    DELETE: Remove a specific service by ID.
+    """
+    serializer_class = CarwashServiceSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        try:
+            return CarwashService.objects.filter(carwash=self.request.user.carwashprofile)
+        except AttributeError:
+            return CarwashService.objects.none()
