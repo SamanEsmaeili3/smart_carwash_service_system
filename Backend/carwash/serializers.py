@@ -29,6 +29,12 @@ class CarwashProfileAdminSerializer(serializers.ModelSerializer):
 
 # Sprint 2 Task-B2.2: Carwash Owner Profile Update
 class CarwashProfileUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Carwash Owners to update their own profile info.
+    Also allows changing the password.
+    """
+    new_password = serializers.CharField(write_only=True, required=False, style={'input_type': 'password'})
+
     class Meta:
         model = CarwashProfile
         fields = [
@@ -40,7 +46,22 @@ class CarwashProfileUpdateSerializer(serializers.ModelSerializer):
             'longitude',
             'license_photo_url',
             'gallery_photos',
+            'new_password', 
         ]
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('new_password', None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        if password:
+            user = instance.user
+            user.set_password(password) 
+            user.save()
+
+        return instance
 
 # Sprint 2 Task-B2.4: Service Serializer
 class CarwashServiceSerializer(serializers.ModelSerializer):
