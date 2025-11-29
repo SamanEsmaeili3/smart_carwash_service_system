@@ -30,7 +30,6 @@ class CarwashProfileAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = CarwashProfile
         fields = '__all__' 
-        read_only_fields = fields
 
 # --- NEW: Sprint 2 Task-B2.2 ---
 class CarwashProfileUpdateSerializer(serializers.ModelSerializer):
