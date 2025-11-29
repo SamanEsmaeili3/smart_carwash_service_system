@@ -29,9 +29,9 @@ class CarwashProfileAdminSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = CarwashProfile
-        fields = '__all__' 
+        fields = '__all__'
 
-# --- NEW: Sprint 2 Task-B2.2 ---
+# Sprint 2 Task-B2.2: Carwash Owner Profile Update
 class CarwashProfileUpdateSerializer(serializers.ModelSerializer):
     """
     Serializer for Carwash Owners to update their own profile info.
@@ -49,3 +49,12 @@ class CarwashProfileUpdateSerializer(serializers.ModelSerializer):
             'license_photo_url',
             'gallery_photos',
         ]
+
+# --- NEW: Sprint 2 Task-B2.4 ---
+class CarwashServiceSerializer(serializers.ModelSerializer):
+    """
+    Serializer for listing and creating services (The Menu).
+    """
+    class Meta:
+        model = CarwashService
+        fields = ['id', 'service_name', 'description', 'price']
