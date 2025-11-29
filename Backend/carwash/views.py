@@ -1,13 +1,17 @@
 from django.shortcuts import render
 from rest_framework import generics, status, views
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny, IsAdminUser
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated 
+from rest_framework.exceptions import NotFound
 from accounts.models import User
-from .serializers import CarwashApplicationSerializer, CarwashProfileAdminSerializer
+from .serializers import (
+    CarwashApplicationSerializer, 
+    CarwashProfileAdminSerializer, 
+    CarwashProfileUpdateSerializer 
+)
 from .models import CarwashProfile
 
 # User Story 1.2: Carwash Registration Application
-# Task-B7: Create a public API View
 class CarwashApplicationView(generics.CreateAPIView):
     """
     API view for a new Carwash Owner to submit their application.
@@ -29,7 +33,6 @@ class CarwashApplicationView(generics.CreateAPIView):
         )
     
 # User Story 4.1: Admin sees pending carwashes
-# Task-B8: Create Admin-only API View
 class AdminPendingCarwashListView(generics.ListAPIView):
     """
     API view for Admins to list all carwash applications
@@ -42,8 +45,6 @@ class AdminPendingCarwashListView(generics.ListAPIView):
         return CarwashProfile.objects.filter(status=CarwashProfile.Status.PENDING)
     
 # User Story 4.1: Admin Approves Carwash
-# Task-B9 & B10: Approval/Rejection Logic
-# Task-B2.1 (Sprint 2): Return generated password in response
 class AdminCarwashApprovalView(views.APIView):
     """
     API view for Admins to Approve or Reject a pending carwash application.
@@ -62,7 +63,7 @@ class AdminCarwashApprovalView(views.APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        action = request.data.get('action') # e.g., {"action": "approve"}
+        action = request.data.get('action')
 
         if action == "approve":
             
@@ -87,7 +88,7 @@ class AdminCarwashApprovalView(views.APIView):
                 {
                     "message": f"Carwash {profile.business_name} approved.",
                     "created_user_email": new_user.email,
-                    "generated_password": password  
+                    "generated_password": password 
                 }, 
                 status=status.HTTP_200_OK
             )
@@ -105,3 +106,19 @@ class AdminCarwashApprovalView(views.APIView):
                 {"error": "Action 'approve' or 'reject' required."}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+# --- NEW: Sprint 2 Task-B2.3 ---
+# User Story 2.1: Carwash Owner updates profile
+class CarwashProfileUpdateView(generics.RetrieveUpdateAPIView):
+    """
+    API view for logged-in Carwash Owners to retrieve and update 
+    their OWN profile (address, working hours, etc.).
+    """
+    serializer_class = CarwashProfileUpdateSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        try:
+            return self.request.user.carwashprofile
+        except AttributeError:
+            raise NotFound("You do not have a carwash profile.")

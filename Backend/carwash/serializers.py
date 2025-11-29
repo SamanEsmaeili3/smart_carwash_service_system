@@ -21,7 +21,8 @@ class CarwashApplicationSerializer(serializers.ModelSerializer):
         validated_data['status'] = CarwashProfile.Status.PENDING
         carwash_profile = CarwashProfile.objects.create(**validated_data)
         return carwash_profile
-    
+
+# Task-B8: Admin Serializer
 class CarwashProfileAdminSerializer(serializers.ModelSerializer):
     """
     Serializer for Admins to see the full carwash profile.
@@ -29,4 +30,23 @@ class CarwashProfileAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = CarwashProfile
         fields = '__all__' 
-        read_only_fields = fields 
+        read_only_fields = fields
+
+# --- NEW: Sprint 2 Task-B2.2 ---
+class CarwashProfileUpdateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Carwash Owners to update their own profile info.
+    Restricted to editable fields only.
+    """
+    class Meta:
+        model = CarwashProfile
+        fields = [
+            'business_name', 
+            'address', 
+            'phone_number',
+            'working_hours',
+            'latitude',
+            'longitude',
+            'license_photo_url',
+            'gallery_photos',
+        ]
