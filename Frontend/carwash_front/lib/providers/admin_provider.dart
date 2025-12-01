@@ -24,7 +24,7 @@ class AdminProvider with ChangeNotifier {
       final List<dynamic> data = response;
       _pendingList = data.map((json) => CarwashModel.fromJson(json)).toList();
     } catch (e) {
-      _error = e.toString().replaceAll('Exception:', '').trim();
+      _error = _error = "خطا در بارگذاری اطلاعات";
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -43,7 +43,7 @@ class AdminProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = _error = "خطا در بارگذاری اطلاعات";
       notifyListeners();
       return false;
     }

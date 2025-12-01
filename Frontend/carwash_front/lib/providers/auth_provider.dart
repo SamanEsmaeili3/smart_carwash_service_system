@@ -44,13 +44,20 @@ class AuthProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _setError(e.toString());
+      _setError(
+        "نام کاربری یا رمز عبور اشتباه است و یا کاربری با این مشخصات موجود نمی باشد",
+      );
       return false;
     }
   }
 
   // [Task-F3]
-  Future<bool> registerCustomer(String email, String password, String fullName, String phone) async {
+  Future<bool> registerCustomer(
+    String email,
+    String password,
+    String fullName,
+    String phone,
+  ) async {
     _setLoading(true);
     try {
       await _api.post(ApiConstants.register, {
@@ -75,7 +82,7 @@ class AuthProvider with ChangeNotifier {
       _setLoading(false);
       return true;
     } catch (e) {
-      _setError(e.toString());
+      _setError("کارواش با این مشخصات موجود است، ورورد را امتحان کنید");
       return false;
     }
   }
