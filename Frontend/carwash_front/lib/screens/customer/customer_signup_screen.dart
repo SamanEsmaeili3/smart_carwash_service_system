@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../../providers/auth_provider.dart';
 
 class CustomerSignupScreen extends StatefulWidget {
   const CustomerSignupScreen({super.key});
@@ -36,24 +39,28 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
       }
 
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      
+
       // Call the provider with ALL 4 fields
       bool success = await auth.registerCustomer(
         _emailController.text.trim(),
         _passwordController.text.trim(),
-        _nameController.text.trim(),   // <--- Passing Name
-        _phoneController.text.trim(),  // <--- Passing Phone
+        _nameController.text.trim(), // <--- Passing Name
+        _phoneController.text.trim(), // <--- Passing Phone
       );
 
       if (success && mounted) {
         // Optional: Auto-login after signup
         await auth.login(
-            _emailController.text.trim(), 
-            _passwordController.text.trim()
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
         );
-        
+
         if (mounted) {
-           Navigator.pushNamedAndRemoveUntil(context, '/customer', (route) => false);
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/customer',
+            (route) => false,
+          );
         }
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

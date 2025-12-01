@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'constants/app_colors.dart';
 import 'providers/auth_provider.dart';
 import 'providers/admin_provider.dart';
+import 'package:carwash_front/providers/carwash_profile_provider.dart';
+import 'package:carwash_front/providers/carwash_service_provider.dart';
 
 import 'screens/landing_page.dart';
 import 'screens/auth/login_screen.dart';
@@ -12,7 +14,7 @@ import 'screens/auth/customer_signup_screen.dart';
 import 'screens/auth/carwash_application_screen.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/customer/customer_home.dart';
-import 'screens/carwash/carwash_home.dart';
+import 'screens/carwash/carwash_home_screen.dart';
 import 'screens/splash_screen.dart';
 
 void main() {
@@ -21,6 +23,8 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => AdminProvider()),
+        ChangeNotifierProvider(create: (_) => CarwashServiceProvider()),
+        ChangeNotifierProvider(create: (_) => CarwashProfileProvider()),
       ],
       child: const MyApp(),
     ),
@@ -62,7 +66,7 @@ class MyApp extends StatelessWidget {
         '/apply': (context) => const CarwashApplicationScreen(),
         '/admin': (context) => const AdminDashboard(),
         '/customer': (context) => const CustomerHome(),
-        '/carwash': (context) => const CarwashHome(),
+        '/carwash': (context) => const CarwashHomeScreen(),
       },
     );
   }

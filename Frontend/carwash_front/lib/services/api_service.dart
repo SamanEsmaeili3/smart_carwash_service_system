@@ -65,4 +65,48 @@ class ApiService {
       }
     }
   }
+
+  Future<dynamic> patch(
+    String endpoint,
+    Map<String, dynamic> data, {
+    bool auth = false,
+  }) async {
+    final url = Uri.parse('${ApiConstants.baseUrl}$endpoint');
+    final headers = await _getHeaders(auth: auth);
+
+    try {
+      final response = await http.patch(
+        url,
+        headers: headers,
+        body: jsonEncode(data),
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      throw Exception('Connection Error: $e');
+    }
+  }
+
+  Future<dynamic> delete(String endpoint, {bool auth = false}) async {
+    final url = Uri.parse('${ApiConstants.baseUrl}$endpoint');
+    final headers = await _getHeaders(auth: auth);
+
+    try {
+      final response = await http.delete(url, headers: headers);
+
+      // 204 No Content is common for DELETE, but 200 is also possible
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        if (response.body.isEmpty) return true; // Handle empty body
+        return jsonDecode(utf8.decode(response.bodyBytes));
+      } else {
+        try {
+          final body = jsonDecode(utf8.decode(response.bodyBytes));
+          throw Exception(body['detail'] ?? body['message'] ?? body.toString());
+        } catch (_) {
+          throw Exception('Error ${response.statusCode}: ${response.body}');
+        }
+      }
+    } catch (e) {
+      throw Exception('Connection Error: $e');
+    }
+  }
 }

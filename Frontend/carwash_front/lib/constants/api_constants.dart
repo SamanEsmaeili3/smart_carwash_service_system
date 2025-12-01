@@ -34,12 +34,8 @@ import 'package:flutter/foundation.dart';
 //   static const String adminManage = '/api/carwash/admin/manage/'; // + <id>/
 // }
 
-
-import 'package:flutter/foundation.dart';
-
 class ApiConstants {
   static const String baseUrl = 'https://my-project-api.liara.run';
-
 
   // Auth Endpoints
   static const String login = '/api/token/';
@@ -48,6 +44,10 @@ class ApiConstants {
 
   // Carwash Endpoints
   static const String apply = '/api/carwash/apply/';
+  // Sprint 2: Carwash Services (Owner Panel)
+  static const String services = '/api/carwash/services/';
+  // Sprint 2: Carwash edit info
+  static const String profileMe = '/api/carwash/profile/me/';
 
   // Admin Endpoints
   static const String adminPending = '/api/carwash/admin/pending/';

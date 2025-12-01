@@ -11,6 +11,10 @@ class CustomInput extends StatelessWidget {
   final int maxLines;
   final String? Function(String?)? validator;
 
+  // --- New Properties ---
+  final bool readOnly; // To prevent keyboard from opening
+  final VoidCallback? onTap; // To handle clicks (like opening TimePicker)
+
   const CustomInput({
     super.key,
     required this.label,
@@ -21,6 +25,9 @@ class CustomInput extends StatelessWidget {
     this.keyboardType,
     this.maxLines = 1,
     this.validator,
+    // --- Initialize them ---
+    this.readOnly = false,
+    this.onTap,
   });
 
   @override
@@ -45,6 +52,11 @@ class CustomInput extends StatelessWidget {
           obscureText: isPassword,
           keyboardType: keyboardType,
           maxLines: maxLines,
+
+          // --- Pass them to TextFormField ---
+          readOnly: readOnly,
+          onTap: onTap,
+
           decoration: InputDecoration(
             labelText: label,
             labelStyle: const TextStyle(color: AppColors.textSub),
