@@ -23,19 +23,46 @@ class CarwashModel {
     this.longitude = 51.410376,
   });
 
+  // helper method to parse double
+  static double _parseDouble(dynamic v, {double fallback = 0.0}) {
+    if (v == null) return fallback;
+    if (v is double) return v;
+    if (v is int) return v.toDouble();
+    if (v is num) return v.toDouble();
+    if (v is String) {
+      return double.tryParse(v) ?? fallback;
+    }
+    return fallback;
+  }
+
   // To receive from API (admin)
   factory CarwashModel.fromJson(Map<String, dynamic> json) {
+    final rawWorking = json['working_hours'];
+    Map<String, String> workingHoursParsed = {};
+
+    if (rawWorking is Map) {
+      rawWorking.forEach((k, v) {
+        final key = k?.toString() ?? '';
+        if (key.isNotEmpty) {
+          workingHoursParsed[key] = v?.toString() ?? '';
+        }
+      });
+    }
+
     return CarwashModel(
-      id: json['id'],
-      businessName: json['business_name'] ?? '',
-      address: json['address'] ?? '',
-      phoneNumber: json['phone_number'] ?? '',
-      contactEmail: json['contact_email'] ?? '',
-      workingHours: json['working_hours'] ?? '',
-      licensePhotoUrl: json['license_photo_url'] ?? '',
-      status: json['status'],
-      latitude: (json['latitude'] as num?)?.toDouble() ?? 0.0,
-      longitude: (json['longitude'] as num?)?.toDouble() ?? 0.0,
+      id:
+          json['id'] is int
+              ? json['id'] as int
+              : (json['id'] is String ? int.tryParse(json['id']) : null),
+      businessName: (json['business_name'] ?? '') as String,
+      address: (json['address'] ?? '') as String,
+      phoneNumber: (json['phone_number'] ?? '') as String,
+      contactEmail: (json['contact_email'] ?? '') as String,
+      workingHours: workingHoursParsed,
+      licensePhotoUrl: (json['license_photo_url'] ?? '') as String,
+      status: json['status']?.toString(),
+      latitude: _parseDouble(json['latitude'], fallback: 35.759432),
+      longitude: _parseDouble(json['longitude'], fallback: 51.410376),
     );
   }
 
@@ -48,8 +75,8 @@ class CarwashModel {
       "contact_email": contactEmail,
       "working_hours": workingHours,
       "license_photo_url": licensePhotoUrl,
-      "latitude": latitude,
-      "longitude": longitude,
+      "latitude": latitude.toString(),
+      "longitude": longitude.toString(),
     };
   }
 }

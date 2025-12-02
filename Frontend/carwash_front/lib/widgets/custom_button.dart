@@ -6,6 +6,7 @@ class CustomButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool isLoading;
   final Color color;
+  final double? width;
 
   const CustomButton({
     super.key,
@@ -13,12 +14,13 @@ class CustomButton extends StatelessWidget {
     required this.onPressed,
     this.isLoading = false,
     this.color = AppColors.primary,
+    this.width,
   });
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: double.infinity,
+      width: width,
       height: 56,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,

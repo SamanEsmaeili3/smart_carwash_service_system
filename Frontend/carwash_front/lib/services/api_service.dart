@@ -1,18 +1,17 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/api_constants.dart';
 
 class ApiService {
-  final _storage = const FlutterSecureStorage();
-
   Future<Map<String, String>> _getHeaders({bool auth = false}) async {
     Map<String, String> headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
     if (auth) {
-      String? token = await _storage.read(key: 'access_token');
+      final prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('access_token');
       if (token != null) {
         headers['Authorization'] = 'Bearer $token';
       }

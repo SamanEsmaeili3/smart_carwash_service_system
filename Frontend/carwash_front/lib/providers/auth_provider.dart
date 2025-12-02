@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import '../services/api_service.dart';
 import '../constants/api_constants.dart';
@@ -9,7 +9,6 @@ enum AuthStatus { initial, loading, authenticated, error }
 
 class AuthProvider with ChangeNotifier {
   final ApiService _api = ApiService();
-  final _storage = const FlutterSecureStorage();
 
   AuthStatus _status = AuthStatus.initial;
   String? _errorMessage;
@@ -29,9 +28,10 @@ class AuthProvider with ChangeNotifier {
         "password": password,
       });
 
+      final prefs = await SharedPreferences.getInstance();
       String accessToken = response['access'];
-      await _storage.write(key: 'access_token', value: accessToken);
-      await _storage.write(key: 'refresh_token', value: response['refresh']);
+      await prefs.setString('access_token', accessToken);
+      await prefs.setString('refresh_token', response['refresh']);
 
       // Decode token to get role
       Map<String, dynamic> decodedToken = JwtDecoder.decode(accessToken);
@@ -88,7 +88,8 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await _storage.deleteAll();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
     _user = null;
     _status = AuthStatus.initial;
     notifyListeners();
@@ -96,7 +97,8 @@ class AuthProvider with ChangeNotifier {
 
   // Checking the token when starting the app (Splash Screen)
   Future<bool> tryAutoLogin() async {
-    String? token = await _storage.read(key: 'access_token');
+    final prefs = await SharedPreferences.getInstance();
+    String? token = prefs.getString('access_token');
     if (token == null || JwtDecoder.isExpired(token)) {
       return false;
     }

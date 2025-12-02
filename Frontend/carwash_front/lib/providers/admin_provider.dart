@@ -22,8 +22,12 @@ class AdminProvider with ChangeNotifier {
     try {
       final response = await _api.get(ApiConstants.adminPending, auth: true);
       final List<dynamic> data = response;
-      _pendingList = data.map((json) => CarwashModel.fromJson(json)).toList();
+      _pendingList =
+          data
+              .map((e) => CarwashModel.fromJson(e as Map<String, dynamic>))
+              .toList();
     } catch (e) {
+      print("Error happened fetching carwashes: $e");
       _error = _error = "خطا در بارگذاری اطلاعات";
     } finally {
       _isLoading = false;
