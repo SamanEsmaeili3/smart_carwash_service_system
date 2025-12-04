@@ -38,7 +38,12 @@ class AdminPendingCarwashListView(generics.ListAPIView):
         return CarwashProfile.objects.filter(status=CarwashProfile.Status.PENDING)
     
 # User Story 4.1: Admin Approves Carwash
+# Task-B9 & B10: Approval/Rejection Logic (UPDATED Sprint 2)
 class AdminCarwashApprovalView(views.APIView):
+    """
+    API view for Admins to Approve or Reject a pending carwash application.
+    Now activates the existing user instead of creating a new one.
+    """
     permission_classes = [IsAdminUser]
 
     def post(self, request, pk, *args, **kwargs):
@@ -53,31 +58,27 @@ class AdminCarwashApprovalView(views.APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        action = request.data.get('action')
+        action = request.data.get('action') # e.g., {"action": "approve"}
 
         if action == "approve":
-            if User.objects.filter(email=profile.contact_email).exists():
-                return Response(
-                    {"error": "A user with this email already exists."}, 
+            user = profile.user
+            
+            if not user:
+                 return Response(
+                    {"error": "This application has no linked user. Cannot approve automatically."}, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            password = User.objects.make_random_password()
-            new_user = User.objects.create_user(
-                email=profile.contact_email,
-                password=password,
-                is_carwash_owner=True 
-            )
+            user.is_active = True
+            user.save()
             
-            profile.user = new_user
             profile.status = CarwashProfile.Status.APPROVED
             profile.save()
             
             return Response(
                 {
-                    "message": f"Carwash {profile.business_name} approved.",
-                    "created_user_email": new_user.email,
-                    "generated_password": password 
+                    "message": f"Carwash {profile.business_name} approved and user activated.",
+                    "created_user_email": user.email
                 }, 
                 status=status.HTTP_200_OK
             )
@@ -85,6 +86,7 @@ class AdminCarwashApprovalView(views.APIView):
         elif action == "reject":
             profile.status = CarwashProfile.Status.REJECTED
             profile.save()
+            
             return Response(
                 {"message": f"Carwash {profile.business_name} rejected."}, 
                 status=status.HTTP_200_OK

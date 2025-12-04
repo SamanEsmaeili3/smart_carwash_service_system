@@ -1,8 +1,11 @@
 from rest_framework import serializers
 from .models import CarwashProfile, Driver, CarwashService
+from accounts.models import User
 
 # Task-B6: Create CarwashApplicationSerializer
 class CarwashApplicationSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+
     class Meta:
         model = CarwashProfile
         fields = [
@@ -14,11 +17,26 @@ class CarwashApplicationSerializer(serializers.ModelSerializer):
             'license_photo_url', 
             'latitude',
             'longitude',
+            'password', 
         ]
         
     def create(self, validated_data):
+        password = validated_data.pop('password')
+        email = validated_data.get('contact_email')
+
+        if User.objects.filter(email=email).exists():
+            raise serializers.ValidationError({"contact_email": "User with this email already exists."})
+
+        user = User.objects.create_user(
+            email=email,
+            password=password,
+            is_carwash_owner=True,
+            is_active=False 
+        )
+
         validated_data['status'] = CarwashProfile.Status.PENDING
-        carwash_profile = CarwashProfile.objects.create(**validated_data)
+        carwash_profile = CarwashProfile.objects.create(user=user, **validated_data)
+        
         return carwash_profile
 
 # Task-B8: Admin Serializer
