@@ -116,9 +116,13 @@ https://my-project-web.liara.run/
 
 
 ## backend deploy
+cd Backend
+
 liara deploy --app my-project-api --platform docker --port 8000
 
 
 
 ## frontend deploy
+cd Frontend/carwash_front
+
 liara deploy --app my-project-web --platform docker --port 80
