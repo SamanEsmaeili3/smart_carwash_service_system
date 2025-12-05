@@ -1,5 +1,4 @@
 //import 'dart:io';
-import 'package:flutter/foundation.dart';
 
 // class ApiConstants {
 //   // Automatic detection of server address (for Android emulator 10.0.2.2 and other locales 127.0.0.1)
@@ -35,7 +34,7 @@ import 'package:flutter/foundation.dart';
 // }
 
 class ApiConstants {
-  static const String baseUrl = 'https://my-project-api.liara.run';
+  static const String baseUrl = 'http://127.0.0.1:8000';
 
   // Auth Endpoints
   static const String login = '/api/token/';

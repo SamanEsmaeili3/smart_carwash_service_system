@@ -14,4 +14,5 @@ class AppColors {
 
   static const success = Color(0xFF16A34A); // green-600
   static const error = Color(0xFFDC2626); // red-600
+  static const adminAppBar = Color(0xFFF64A00); // orange-red
 }

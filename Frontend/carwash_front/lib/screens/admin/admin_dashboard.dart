@@ -16,7 +16,7 @@ class AdminDashboard extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('داشبورد ادمین'),
-          backgroundColor: AppColors.primary,
+          backgroundColor: AppColors.adminAppBar,
           actions: [
             IconButton(
               icon: const Icon(Icons.logout),
@@ -53,15 +53,29 @@ class AdminDashboard extends StatelessWidget {
               return const Center(child: Text('هیچ کارواشی در انتظار نیست.'));
             }
 
-            return RefreshIndicator(
-              onRefresh: () => provider.fetchPendingCarwashes(),
-              child: ListView.builder(
-                itemCount: provider.pendingList.length,
-                itemBuilder: (context, index) {
-                  final carwash = provider.pendingList[index];
-                  return CarwashApplicationCard(carwash: carwash);
-                },
-              ),
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.all(8.0),
+                  child: Text(
+                    'درخواست های در انتظار',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () => provider.fetchPendingCarwashes(),
+                    child: ListView.builder(
+                      itemCount: provider.pendingList.length,
+                      itemBuilder: (context, index) {
+                        final carwash = provider.pendingList[index];
+                        return CarwashApplicationCard(carwash: carwash);
+                      },
+                    ),
+                  ),
+                ),
+              ],
             );
           },
         ),
@@ -91,30 +105,36 @@ class CarwashApplicationCard extends StatelessWidget {
               carwash.businessName,
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 2),
             Text('آدرس: ${carwash.address}'),
-            const SizedBox(height: 8),
-            Text('ایمیل: ${carwash.contactEmail}'),
-            const SizedBox(height: 8),
+            const SizedBox(height: 2),
             Text('تلفن: ${carwash.phoneNumber}'),
-            const SizedBox(height: 16),
+            const SizedBox(height: 4),
+            const Divider(), // Horizontal line
+            const SizedBox(height: 4),
             Row(
-              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                CustomButton(
-                  width: 120,
-                  text: 'رد',
-                  onPressed:
-                      () => provider.manageRequest(carwash.id!, "reject"),
-                  color: Colors.red,
+                Expanded(
+                  child: CustomButton(
+                    text: 'رد',
+                    onPressed:
+                        () => provider.manageRequest(carwash.id!, "reject"),
+                    color: Colors.white,
+                    textColor: AppColors.error,
+                    borderColor: AppColors.error,
+                    height: 32,
+                  ),
                 ),
                 const SizedBox(width: 8),
-                CustomButton(
-                  width: 120,
-                  text: 'تایید',
-                  onPressed:
-                      () => provider.manageRequest(carwash.id!, "approve"),
-                  color: AppColors.primary,
+                Expanded(
+                  child: CustomButton(
+                    text: 'تایید',
+                    onPressed:
+                        () => provider.manageRequest(carwash.id!, "approve"),
+                    color: AppColors.success,
+                    textColor: Colors.white,
+                    height: 32,
+                  ),
                 ),
               ],
             ),
