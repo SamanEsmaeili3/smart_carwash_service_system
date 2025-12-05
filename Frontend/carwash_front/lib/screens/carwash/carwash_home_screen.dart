@@ -1,3 +1,4 @@
+import 'package:carwash_front/services/utiles.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/carwash_service_provider.dart';
@@ -133,8 +134,9 @@ class _ServicesTab extends StatelessWidget {
                         style: TextStyle(color: Colors.grey[600]),
                       ),
                       const SizedBox(height: 8),
+
                       Text(
-                        "${service.price} تومان",
+                        "${formatMoney(service.price)} تومان", //like 150,000
                         style: const TextStyle(
                           color: AppColors.success,
                           fontWeight: FontWeight.bold,
@@ -172,16 +174,16 @@ class _ServicesTab extends StatelessWidget {
             content: const Text("آیا از حذف این سرویس مطمئن هستید؟"),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text("انصراف"),
-              ),
-              TextButton(
                 onPressed: () async {
                   Navigator.pop(ctx);
                   // API: DELETE /api/carwash/services/<id>/
                   await provider.deleteService(id);
                 },
                 child: const Text("حذف", style: TextStyle(color: Colors.red)),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("انصراف"),
               ),
             ],
           ),
@@ -334,26 +336,49 @@ class _AddServiceFormState extends State<_AddServiceForm> {
   final _formKey = GlobalKey<FormState>();
 
   void _submit() async {
+    print("--------------------------------------------------");
+    print("Raw Input Price: '${_priceCtrl.text}'");
+
     if (_formKey.currentState!.validate()) {
       final provider = Provider.of<CarwashServiceProvider>(
         context,
         listen: false,
       );
 
+      // ۱. تمیز کردن ورودی (حذف ویرگول و فاصله، اما نگه داشتن نقطه)
+      // این دستور فقط اعداد 0-9 و نقطه (.) را نگه می‌دارد
+      String cleanPriceStr = _priceCtrl.text.replaceAll(RegExp(r'[^0-9.]'), '');
+
+      // ۲. تبدیل به double
+      double finalPrice = double.tryParse(cleanPriceStr) ?? 0.0;
+
+      print("Final Double Price: $finalPrice");
+
+      if (finalPrice <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("قیمت نامعتبر است"),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
       final newService = CarwashServiceModel(
-        serviceName: _nameCtrl.text,
-        description: _descCtrl.text,
-        price: int.parse(_priceCtrl.text),
+        serviceName: _nameCtrl.text.trim(),
+        description: _descCtrl.text.trim(),
+        price: finalPrice, // مقدار double
       );
 
-      // API: POST /api/carwash/services/
+      print("Sending JSON: ${newService.toJson()}");
+
       final success = await provider.addService(newService);
 
       if (success && mounted) {
-        Navigator.pop(context); // Close sheet
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("سرویس جدید اضافه شد"),
+            content: Text("سرویس با موفقیت ثبت شد"),
             backgroundColor: AppColors.success,
           ),
         );
@@ -375,31 +400,36 @@ class _AddServiceFormState extends State<_AddServiceForm> {
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           const SizedBox(height: 20),
+
           CustomInput(
             label: "نام سرویس",
-            hint: "مثال: روشویی نانو",
+            hint: "مثال: روشویی",
             icon: Icons.cleaning_services,
             controller: _nameCtrl,
           ),
+
           CustomInput(
             label: "توضیحات",
-            hint: "توضیحات کوتاه",
+            hint: "توضیحات...",
             icon: Icons.description,
             controller: _descCtrl,
           ),
+
           CustomInput(
-            label: "قیمت (تومان)",
+            label: "قیمت",
             hint: "150000",
             icon: Icons.attach_money,
             controller: _priceCtrl,
-            keyboardType: TextInputType.number,
-            validator:
-                (v) =>
-                    (v == null || int.tryParse(v) == null)
-                        ? "قیمت معتبر وارد کنید"
-                        : null,
+
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            validator: (v) {
+              if (v == null || v.isEmpty) return "قیمت الزامی است";
+              return null;
+            },
           ),
+
           const SizedBox(height: 20),
+
           CustomButton(
             text: "افزودن",
             onPressed: _submit,
