@@ -2,25 +2,27 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 
 class CustomButton extends StatelessWidget {
-  final String text;
+  final String? text; // Make text optional
   final VoidCallback? onPressed;
   final bool isLoading;
   final Color color;
   final double? width;
-  final double height; // New parameter for height
+  final double height;
   final Color? textColor;
   final Color? borderColor;
+  final Widget? child; // New parameter for child widget
 
   const CustomButton({
     super.key,
-    required this.text,
+    this.text, // Make text optional
     required this.onPressed,
     this.isLoading = false,
     this.color = AppColors.primary,
     this.width,
-    this.height = 56, // Default height to 56
+    this.height = 56,
     this.textColor,
     this.borderColor,
+    this.child, // Initialize new parameter
   });
 
   @override
@@ -34,19 +36,19 @@ class CustomButton extends StatelessWidget {
           backgroundColor: color,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: borderColor != null ? BorderSide(color: borderColor!) : BorderSide.none, // Apply border
+            side: borderColor != null ? BorderSide(color: borderColor!) : BorderSide.none,
           ),
           elevation: 2,
         ),
-        child:
-            isLoading
-                ? const CircularProgressIndicator(color: Colors.white)
-                : Text(
-                  text,
-                  style: TextStyle( // Use TextStyle to apply dynamic color
+        child: isLoading
+            ? const CircularProgressIndicator(color: Colors.white)
+            : child ?? // Render child if provided
+                Text(
+                  text ?? '', // Fallback to empty string if text is null
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: textColor ?? Colors.white, // Use textColor if provided, otherwise default to white
+                    color: textColor ?? Colors.white,
                   ),
                 ),
       ),

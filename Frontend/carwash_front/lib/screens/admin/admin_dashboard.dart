@@ -116,6 +116,17 @@ class CarwashApplicationCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: CustomButton(
+                    text: 'تایید',
+                    onPressed:
+                        () => provider.manageRequest(carwash.id!, "approve"),
+                    color: AppColors.success,
+                    textColor: Colors.white,
+                    height: 32,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: CustomButton(
                     text: 'رد',
                     onPressed:
                         () => provider.manageRequest(carwash.id!, "reject"),
@@ -127,13 +138,55 @@ class CarwashApplicationCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
+                  flex: 0,
                   child: CustomButton(
-                    text: 'تایید',
-                    onPressed:
-                        () => provider.manageRequest(carwash.id!, "approve"),
-                    color: AppColors.success,
-                    textColor: Colors.white,
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: Text(carwash.businessName),
+                            content: SingleChildScrollView(
+                              child: ListBody(
+                                children: <Widget>[
+                                  Text('نام کارواش: ${carwash.businessName}'),
+                                  Text('آدرس: ${carwash.address}'),
+                                  Text('تلفن: ${carwash.phoneNumber}'),
+                                  Text('ایمیل: ${carwash.contactEmail}'),
+                                  Text('وضعیت: ${carwash.status ?? "N/A"}'),
+                                  Text(
+                                    'مکان: ${carwash.latitude}، ${carwash.longitude}',
+                                  ),
+                                  Text(
+                                    'آدرس عکس پروانه: ${carwash.licensePhotoUrl}',
+                                  ),
+                                  const Divider(),
+                                  const Text('ساعات کاری:'),
+                                  ...carwash.workingHours.entries.map((entry) {
+                                    return Text('${entry.key}: ${entry.value}');
+                                  }),
+                                ],
+                              ),
+                            ),
+                            actions: <Widget>[
+                              TextButton(
+                                child: const Text('بستن'),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                    color: AppColors.textSub.withAlpha(26),
+                    textColor: AppColors.textMain,
                     height: 32,
+                    child: const Icon(
+                      Icons.info_outline,
+                      color: AppColors.textMain,
+                    ),
                   ),
                 ),
               ],
