@@ -22,25 +22,23 @@ class CarwashServiceProvider with ChangeNotifier {
     try {
       final response = await _api.get(ApiConstants.services, auth: true);
 
-      // لاگ کردن پاسخ سرور برای اطمینان
-      print("🔍 RAW SERVER RESPONSE: $response");
+      // print("RAW SERVER RESPONSE: $response");
 
       List<dynamic> listData = [];
 
-      // ۱. بررسی سناریوی صفحه‌بندی (Pagination)
-      if (response is Map<String, dynamic> && response.containsKey('results')) {
-        print("ℹ️ Data is Paginated (inside 'results')");
-        listData = response['results'];
-      }
-      // ۲. بررسی سناریوی لیست مستقیم
-      else if (response is List) {
-        print("ℹ️ Data is a direct List");
-        listData = response;
-      } else {
-        throw Exception(
-          "ساختار پاسخ سرور ناشناخته است: ${response.runtimeType}",
-        );
-      }
+      // if (response is Map<String, dynamic> && response.containsKey('results')) {
+      //   print("ℹ️ Data is Paginated (inside 'results')");
+      //   listData = response['results'];
+      // }
+      // // ۲. بررسی سناریوی لیست مستقیم
+      // else if (response is List) {
+      //   print("ℹ️ Data is a direct List");
+      //   listData = response;
+      // } else {
+      //   throw Exception(
+      //     "ساختار پاسخ سرور ناشناخته است: ${response.runtimeType}",
+      //   );
+      // }
 
       // ۳. تبدیل امن به مدل
       _services =
@@ -49,17 +47,16 @@ class CarwashServiceProvider with ChangeNotifier {
                 try {
                   return CarwashServiceModel.fromJson(json);
                 } catch (e) {
-                  print("❌ Error parsing item: $json \nError: $e");
-                  // در صورت خطا در یک آیتم، آن را نادیده می‌گیریم تا کل لیست خراب نشود
+                  print("Error parsing item: $json \nError: $e");
                   return null;
                 }
               })
               .whereType<CarwashServiceModel>()
-              .toList(); // حذف آیتم‌های نال (خطا دار)
+              .toList(); // delete null items
 
-      print("✅ Successfully loaded ${_services.length} services.");
+      // print("Successfully loaded ${_services.length} services.");
     } catch (e) {
-      print("❌ Error inside fetchServices: $e");
+      // print("Error inside fetchServices: $e");
       _error = "خطا در بارگذاری سرویس‌ها";
     } finally {
       _isLoading = false;
@@ -74,7 +71,7 @@ class CarwashServiceProvider with ChangeNotifier {
     try {
       await _api.post(ApiConstants.services, service.toJson(), auth: true);
 
-      // بلافاصله لیست را رفرش می‌کنیم
+      // refresh immediately
       await fetchServices();
 
       return true;
