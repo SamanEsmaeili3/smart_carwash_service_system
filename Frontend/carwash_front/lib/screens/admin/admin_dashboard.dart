@@ -17,6 +17,7 @@ class AdminDashboard extends StatelessWidget {
         appBar: AppBar(
           title: const Text('داشبورد ادمین'),
           backgroundColor: AppColors.adminAppBar,
+          centerTitle: true, // Center title looks better
           actions: [
             IconButton(
               icon: const Icon(Icons.logout),
@@ -27,57 +28,68 @@ class AdminDashboard extends StatelessWidget {
             ),
           ],
         ),
-        body: Consumer<AdminProvider>(
-          builder: (context, provider, child) {
-            if (provider.isLoading && provider.pendingList.isEmpty) {
-              return const Center(child: CircularProgressIndicator());
-            }
+        // -------------------------------------------------------------
+        // 💡 RESPONSIVE FIX: Center the content and limit width
+        // -------------------------------------------------------------
+        body: Center(
+          child: ConstrainedBox(
+            // Limit width to 800px. On phones, it will just use full width.
+            constraints: const BoxConstraints(maxWidth: 800), 
+            child: Consumer<AdminProvider>(
+              builder: (context, provider, child) {
+                if (provider.isLoading && provider.pendingList.isEmpty) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-            if (provider.error != null) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                if (provider.error != null) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('${provider.error}'),
+                        const SizedBox(height: 16),
+                        CustomButton(
+                          text: 'تلاش مجدد',
+                          onPressed: () => provider.fetchPendingCarwashes(),
+                          width: 200, // Fixed width for error button
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                if (provider.pendingList.isEmpty) {
+                  return const Center(child: Text('هیچ کارواشی در انتظار نیست.'));
+                }
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('${provider.error}'),
-                    const SizedBox(height: 16),
-                    CustomButton(
-                      text: 'تلاش مجدد',
-                      onPressed: () => provider.fetchPendingCarwashes(),
+                    const Padding(
+                      padding: EdgeInsets.all(16.0), // Increased padding
+                      child: Text(
+                        'درخواست های در انتظار',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: () => provider.fetchPendingCarwashes(),
+                        child: ListView.builder(
+                          padding: const EdgeInsets.only(bottom: 20),
+                          itemCount: provider.pendingList.length,
+                          itemBuilder: (context, index) {
+                            final carwash = provider.pendingList[index];
+                            return CarwashApplicationCard(carwash: carwash);
+                          },
+                        ),
+                      ),
                     ),
                   ],
-                ),
-              );
-            }
-
-            if (provider.pendingList.isEmpty) {
-              return const Center(child: Text('هیچ کارواشی در انتظار نیست.'));
-            }
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: Text(
-                    'درخواست های در انتظار',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                Expanded(
-                  child: RefreshIndicator(
-                    onRefresh: () => provider.fetchPendingCarwashes(),
-                    child: ListView.builder(
-                      itemCount: provider.pendingList.length,
-                      itemBuilder: (context, index) {
-                        final carwash = provider.pendingList[index];
-                        return CarwashApplicationCard(carwash: carwash);
-                      },
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
+                );
+              },
+            ),
+          ),
         ),
       ),
     );
@@ -94,51 +106,39 @@ class CarwashApplicationCard extends StatelessWidget {
     final provider = Provider.of<AdminProvider>(context, listen: false);
 
     return Card(
-      margin: const EdgeInsets.all(8.0),
-      elevation: 4,
+      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0), // Better margin
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              carwash.businessName,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  carwash.businessName,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                // Status badge could go here
+              ],
             ),
-            const SizedBox(height: 2),
-            Text('آدرس: ${carwash.address}'),
-            const SizedBox(height: 2),
-            Text('تلفن: ${carwash.phoneNumber}'),
+            const SizedBox(height: 8),
+            _buildInfoRow(Icons.location_on_outlined, carwash.address),
             const SizedBox(height: 4),
-            const Divider(), // Horizontal line
-            const SizedBox(height: 4),
+            _buildInfoRow(Icons.phone_outlined, carwash.phoneNumber),
+            
+            const SizedBox(height: 12),
+            const Divider(), 
+            const SizedBox(height: 12),
+            
+            // Buttons Row
             Row(
               children: [
+                // Info Button
                 Expanded(
-                  child: CustomButton(
-                    text: 'تایید',
-                    onPressed:
-                        () => provider.manageRequest(carwash.id!, "approve"),
-                    color: AppColors.success,
-                    textColor: Colors.white,
-                    height: 32,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: CustomButton(
-                    text: 'رد',
-                    onPressed:
-                        () => provider.manageRequest(carwash.id!, "reject"),
-                    color: Colors.white,
-                    textColor: AppColors.error,
-                    borderColor: AppColors.error,
-                    height: 32,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 0,
+                  flex: 1, // Takes less space
                   child: CustomButton(
                     onPressed: () {
                       showDialog(
@@ -150,18 +150,17 @@ class CarwashApplicationCard extends StatelessWidget {
                               child: ListBody(
                                 children: <Widget>[
                                   Text('نام کارواش: ${carwash.businessName}'),
+                                  const SizedBox(height: 8),
                                   Text('آدرس: ${carwash.address}'),
+                                  const SizedBox(height: 8),
                                   Text('تلفن: ${carwash.phoneNumber}'),
+                                  const SizedBox(height: 8),
                                   Text('ایمیل: ${carwash.contactEmail}'),
-                                  Text('وضعیت: ${carwash.status ?? "N/A"}'),
-                                  Text(
-                                    'مکان: ${carwash.latitude}، ${carwash.longitude}',
-                                  ),
-                                  Text(
-                                    'آدرس عکس پروانه: ${carwash.licensePhotoUrl}',
-                                  ),
+                                  const SizedBox(height: 8),
+                                  Text('مکان: ${carwash.latitude}, ${carwash.longitude}'),
+                                  const SizedBox(height: 8),
                                   const Divider(),
-                                  const Text('ساعات کاری:'),
+                                  const Text('ساعات کاری:', style: TextStyle(fontWeight: FontWeight.bold)),
                                   ...carwash.workingHours.entries.map((entry) {
                                     return Text('${entry.key}: ${entry.value}');
                                   }),
@@ -180,13 +179,35 @@ class CarwashApplicationCard extends StatelessWidget {
                         },
                       );
                     },
-                    color: AppColors.textSub.withAlpha(26),
+                    color: AppColors.textSub.withAlpha(30),
                     textColor: AppColors.textMain,
-                    height: 32,
-                    child: const Icon(
-                      Icons.info_outline,
-                      color: AppColors.textMain,
-                    ),
+                    height: 40, // Smaller height for card buttons
+                    child: const Icon(Icons.info_outline, color: AppColors.textMain),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Reject Button
+                Expanded(
+                  flex: 2,
+                  child: CustomButton(
+                    text: 'رد',
+                    onPressed: () => provider.manageRequest(carwash.id!, "reject"),
+                    color: Colors.white,
+                    textColor: AppColors.error,
+                    borderColor: AppColors.error,
+                    height: 40,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Approve Button
+                Expanded(
+                  flex: 2,
+                  child: CustomButton(
+                    text: 'تایید',
+                    onPressed: () => provider.manageRequest(carwash.id!, "approve"),
+                    color: AppColors.success,
+                    textColor: Colors.white,
+                    height: 40,
                   ),
                 ),
               ],
@@ -194,6 +215,24 @@ class CarwashApplicationCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  // Helper for cleaner UI
+  Widget _buildInfoRow(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppColors.textSub),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(color: AppColors.textMain),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 }

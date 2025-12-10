@@ -43,14 +43,22 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
         foregroundColor: Colors.white,
         centerTitle: true,
       ),
-      body: _selectedIndex == 0 ? const _ServicesTab() : const _ProfileTab(),
+      // ---------------------------------------------------------
+      // 💡 RESPONSIVE FIX: Center content and limit width on Desktop
+      // ---------------------------------------------------------
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: _selectedIndex == 0 ? const _ServicesTab() : const _ProfileTab(),
+        ),
+      ),
       floatingActionButton:
           _selectedIndex == 0
               ? FloatingActionButton(
-                onPressed: () => _showAddServiceSheet(context),
-                backgroundColor: AppColors.secondary,
-                child: const Icon(Icons.add, color: Colors.white),
-              )
+                  onPressed: () => _showAddServiceSheet(context),
+                  backgroundColor: AppColors.secondary,
+                  child: const Icon(Icons.add, color: Colors.white),
+                )
               : null,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
@@ -72,16 +80,23 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder:
-          (ctx) => Padding(
-            padding: EdgeInsets.fromLTRB(
-              20,
-              20,
-              20,
-              MediaQuery.of(ctx).viewInsets.bottom + 20,
+      builder: (ctx) {
+        // 💡 Make the modal responsive too
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                20,
+                20,
+                MediaQuery.of(ctx).viewInsets.bottom + 20,
+              ),
+              child: const _AddServiceForm(),
             ),
-            child: const _AddServiceForm(),
           ),
+        );
+      },
     );
   }
 }
@@ -134,7 +149,6 @@ class _ServicesTab extends StatelessWidget {
                         style: TextStyle(color: Colors.grey[600]),
                       ),
                       const SizedBox(height: 8),
-
                       Text(
                         "${formatMoney(service.price)} تومان", //like 150,000
                         style: const TextStyle(
@@ -149,8 +163,8 @@ class _ServicesTab extends StatelessWidget {
                       Icons.delete_outline,
                       color: AppColors.error,
                     ),
-                    onPressed:
-                        () => _confirmDelete(context, provider, service.id!),
+                    onPressed: () =>
+                        _confirmDelete(context, provider, service.id!),
                   ),
                 ),
               );
@@ -168,25 +182,24 @@ class _ServicesTab extends StatelessWidget {
   ) {
     showDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text("حذف سرویس"),
-            content: const Text("آیا از حذف این سرویس مطمئن هستید؟"),
-            actions: [
-              TextButton(
-                onPressed: () async {
-                  Navigator.pop(ctx);
-                  // API: DELETE /api/carwash/services/<id>/
-                  await provider.deleteService(id);
-                },
-                child: const Text("حذف", style: TextStyle(color: Colors.red)),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text("انصراف"),
-              ),
-            ],
+      builder: (ctx) => AlertDialog(
+        title: const Text("حذف سرویس"),
+        content: const Text("آیا از حذف این سرویس مطمئن هستید؟"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("انصراف"),
           ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              // API: DELETE /api/carwash/services/<id>/
+              await provider.deleteService(id);
+            },
+            child: const Text("حذف", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -220,7 +233,8 @@ class _ProfileTabState extends State<_ProfileTab> {
         businessName: _nameCtrl.text.isNotEmpty ? _nameCtrl.text : null,
         phoneNumber: _phoneCtrl.text.isNotEmpty ? _phoneCtrl.text : null,
         address: _addressCtrl.text.isNotEmpty ? _addressCtrl.text : null,
-        newPassword: _passwordCtrl.text.isNotEmpty ? _passwordCtrl.text : null,
+        newPassword:
+            _passwordCtrl.text.isNotEmpty ? _passwordCtrl.text : null,
       );
 
       if (success && mounted) {
@@ -278,11 +292,9 @@ class _ProfileTabState extends State<_ProfileTab> {
               controller: _addressCtrl,
               maxLines: 2,
             ),
-
             const SizedBox(height: 24),
             const Divider(),
             const SizedBox(height: 24),
-
             const Text(
               "تغییر رمز عبور (اختیاری)",
               style: TextStyle(
@@ -299,12 +311,12 @@ class _ProfileTabState extends State<_ProfileTab> {
               controller: _passwordCtrl,
               isPassword: true,
               validator: (v) {
-                if (v != null && v.isNotEmpty && v.length < 8)
+                if (v != null && v.isNotEmpty && v.length < 8) {
                   return "رمز عبور باید حداقل ۸ رقم باشد";
+                }
                 return null;
               },
             ),
-
             const SizedBox(height: 24),
             CustomButton(
               text: "ذخیره تغییرات",
@@ -336,9 +348,6 @@ class _AddServiceFormState extends State<_AddServiceForm> {
   final _formKey = GlobalKey<FormState>();
 
   void _submit() async {
-    print("--------------------------------------------------");
-    print("Raw Input Price: '${_priceCtrl.text}'");
-
     if (_formKey.currentState!.validate()) {
       final provider = Provider.of<CarwashServiceProvider>(
         context,
@@ -346,13 +355,11 @@ class _AddServiceFormState extends State<_AddServiceForm> {
       );
 
       // ۱. تمیز کردن ورودی (حذف ویرگول و فاصله، اما نگه داشتن نقطه)
-      // این دستور فقط اعداد 0-9 و نقطه (.) را نگه می‌دارد
-      String cleanPriceStr = _priceCtrl.text.replaceAll(RegExp(r'[^0-9.]'), '');
+      String cleanPriceStr =
+          _priceCtrl.text.replaceAll(RegExp(r'[^0-9.]'), '');
 
       // ۲. تبدیل به double
       double finalPrice = double.tryParse(cleanPriceStr) ?? 0.0;
-
-      print("Final Double Price: $finalPrice");
 
       if (finalPrice <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -369,8 +376,6 @@ class _AddServiceFormState extends State<_AddServiceForm> {
         description: _descCtrl.text.trim(),
         price: finalPrice, // مقدار double
       );
-
-      print("Sending JSON: ${newService.toJson()}");
 
       final success = await provider.addService(newService);
 
@@ -400,36 +405,31 @@ class _AddServiceFormState extends State<_AddServiceForm> {
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           const SizedBox(height: 20),
-
           CustomInput(
             label: "نام سرویس",
             hint: "مثال: روشویی",
             icon: Icons.cleaning_services,
             controller: _nameCtrl,
           ),
-
           CustomInput(
             label: "توضیحات",
             hint: "توضیحات...",
             icon: Icons.description,
             controller: _descCtrl,
           ),
-
           CustomInput(
             label: "قیمت",
             hint: "150000",
             icon: Icons.attach_money,
             controller: _priceCtrl,
-
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            keyboardType:
+                const TextInputType.numberWithOptions(decimal: true),
             validator: (v) {
               if (v == null || v.isEmpty) return "قیمت الزامی است";
               return null;
             },
           ),
-
           const SizedBox(height: 20),
-
           CustomButton(
             text: "افزودن",
             onPressed: _submit,

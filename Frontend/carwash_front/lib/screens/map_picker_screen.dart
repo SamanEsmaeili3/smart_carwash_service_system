@@ -73,25 +73,40 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
             ),
           ),
 
-          // 3. Confirm Button
+          // 3. Confirm Button (Responsive)
           Positioned(
             bottom: 30,
-            left: 20,
-            right: 20,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.secondary,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: () {
-                // Return selected coordinates
-                Navigator.pop(context, _currentCenter);
-              },
-              child: const Text(
-                "تایید موقعیت",
-                style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold),
+            left: 0,
+            right: 0, // Span the full width of the screen
+            child: Center(
+              // Center the button horizontally
+              child: ConstrainedBox(
+                // LIMIT the maximum width to 600px (looks like a mobile app on desktop)
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: SizedBox(
+                    width: double.infinity, // Fill the constraints (up to 600px)
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.secondary,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(context, _currentCenter);
+                      },
+                      child: const Text(
+                        "تایید موقعیت",
+                        style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
