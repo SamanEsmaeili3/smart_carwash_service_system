@@ -23,7 +23,7 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
   final _phoneCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   
-  // --- NEW: Password Controllers ---
+  // Password Controllers
   final _passwordCtrl = TextEditingController();
   final _confirmPasswordCtrl = TextEditingController();
 
@@ -91,6 +91,7 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
 
   void _submit() async {
     if (_formKey.currentState!.validate()) {
+      // 1. Check Terms
       if (!_acceptedTerms) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('لطفاً قوانین را بپذیرید')),
@@ -98,7 +99,7 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
         return;
       }
       
-      // --- NEW: Check Passwords ---
+      // 2. Check Password Match
       if (_passwordCtrl.text != _confirmPasswordCtrl.text) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('رمز عبور و تکرار آن یکسان نیستند')),
@@ -128,7 +129,7 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
         licensePhotoUrl: "https://example.com/license.jpg",
         latitude: _selectedLocation.latitude,
         longitude: _selectedLocation.longitude,
-        password: _passwordCtrl.text.trim(), // <--- Sending Password
+        password: _passwordCtrl.text.trim(), // Sending Password
       );
 
       final auth = Provider.of<AuthProvider>(context, listen: false);
@@ -161,6 +162,7 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
+            // Now shows the REAL error from AuthProvider
             content: Text(auth.errorMessage ?? 'خطا در ثبت درخواست'),
             backgroundColor: AppColors.error,
           ),
@@ -220,13 +222,24 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
                         hint: "کارواش نمونه",
                         icon: Icons.store,
                         controller: _nameCtrl,
+                        // NEW: Validate Name Length
+                        validator: (v) => (v == null || v.length < 3) 
+                            ? 'نام کسب و کار باید حداقل ۳ حرف باشد' 
+                            : null,
                       ),
                       CustomInput(
                         label: "تلفن تماس",
-                        hint: "021...",
+                        hint: "0912...",
                         icon: Icons.phone,
                         controller: _phoneCtrl,
                         keyboardType: TextInputType.phone,
+                        // NEW: Validate Iranian Mobile Format
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'شماره تلفن الزامی است';
+                          final phoneRegex = RegExp(r'^09[0-9]{9}$');
+                          if (!phoneRegex.hasMatch(v)) return 'شماره موبایل معتبر نیست (مثال: ۰۹۱۲۳۴۵۶۷۸۹)';
+                          return null;
+                        },
                       ),
                       CustomInput(
                         label: "ایمیل مالک (نام کاربری)",
@@ -234,10 +247,16 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
                         icon: Icons.email,
                         controller: _emailCtrl,
                         keyboardType: TextInputType.emailAddress,
-                        validator: (v) => (v == null || !v.contains('@')) ? 'ایمیل معتبر نیست' : null,
+                        // NEW: Validate Email Format
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'ایمیل الزامی است';
+                          final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                          if (!emailRegex.hasMatch(v)) return 'فرمت ایمیل صحیح نیست';
+                          return null;
+                        },
                       ),
 
-                      // --- NEW: Password Fields ---
+                      // --- Password Fields ---
                       CustomInput(
                         label: "رمز عبور",
                         hint: "حداقل ۸ کاراکتر",
