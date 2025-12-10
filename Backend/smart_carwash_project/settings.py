@@ -14,6 +14,7 @@ import os
 import dj_database_url
 from pathlib import Path
 from dotenv import load_dotenv
+from datetime import timedelta 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -163,6 +164,19 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+SIMPLE_JWT = {
+    # CHANGE THIS: Increases the Access Token expiry from minutes (default) to 24 hours.
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=24), 
+    
+    # Keeps the Refresh Token (used for auto-login) active for a week.
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    
+    # You can keep the remaining default settings or omit them if they are not customized
+    'ROTATE_REFRESH_TOKENS': True, 
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+}
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
