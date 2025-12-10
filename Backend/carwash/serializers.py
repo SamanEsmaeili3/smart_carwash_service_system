@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from .models import CarwashProfile, Driver, CarwashService
 from accounts.models import User
-from django.db import transaction
 
 # Task-B6: Create CarwashApplicationSerializer
 class CarwashApplicationSerializer(serializers.ModelSerializer):
@@ -25,21 +24,20 @@ class CarwashApplicationSerializer(serializers.ModelSerializer):
         password = validated_data.pop('password')
         email = validated_data.get('contact_email')
 
-        with transaction.atomic():
-            if User.objects.filter(email=email).exists():
-                raise serializers.ValidationError({"contact_email": "User with this email already exists."})
+        if User.objects.filter(email=email).exists():
+            raise serializers.ValidationError({"contact_email": "User with this email already exists."})
 
-            user = User.objects.create_user(
-                email=email,
-                password=password,
-                is_carwash_owner=True,
-                is_active=False 
-            )
+        user = User.objects.create_user(
+            email=email,
+            password=password,
+            is_carwash_owner=True,
+            is_active=False 
+        )
 
-            validated_data['status'] = CarwashProfile.Status.PENDING
-            carwash_profile = CarwashProfile.objects.create(user=user, **validated_data)
+        validated_data['status'] = CarwashProfile.Status.PENDING
+        carwash_profile = CarwashProfile.objects.create(user=user, **validated_data)
         
-            return carwash_profile
+        return carwash_profile
 
 # Task-B8: Admin Serializer
 class CarwashProfileAdminSerializer(serializers.ModelSerializer):

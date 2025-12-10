@@ -74,6 +74,7 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  // [Task-F8]
   Future<bool> applyForCarwash(Map<String, dynamic> data) async {
     _setLoading(true);
     try {
@@ -81,7 +82,8 @@ class AuthProvider with ChangeNotifier {
       _setLoading(false);
       return true;
     } catch (e) {
-      _setError(e.toString().replaceAll('Exception:', '').trim());
+      print("Real Error (Hidden): $e"); //in the console
+      _setError("کارواش با این مشخصات موجود است، ورود را امتحان کنید");
       return false;
     }
   }
