@@ -82,8 +82,13 @@ class AuthProvider with ChangeNotifier {
       _setLoading(false);
       return true;
     } catch (e) {
-      print("Real Error (Hidden): $e"); //in the console
-      _setError("کارواش با این مشخصات موجود است، ورود را امتحان کنید");
+      String errorString = e.toString().toLowerCase();
+
+      if (errorString.contains("user with this email already exists")) {
+        _setError("کارواش با این مشخصات موجود است، ورود را امتحان کنید");
+      } else {
+        _setError(e.toString().replaceAll('Exception:', '').trim());
+      }
       return false;
     }
   }
