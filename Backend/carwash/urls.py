@@ -5,7 +5,7 @@ from .views import (
     AdminCarwashApprovalView,
     CarwashProfileUpdateView,
     CarwashServiceListCreateView,
-    CarwashServiceDeleteView,
+    CarwashServiceDetailView, 
     CustomerCarwashListView 
 )
 
@@ -32,6 +32,7 @@ urlpatterns = [
     # /api/carwash/services/ (GET list, POST create)
     path('services/', CarwashServiceListCreateView.as_view(), name='carwash-service-list-create'),
     
-    # /api/carwash/services/<pk>/ (DELETE)
-    path('services/<int:pk>/', CarwashServiceDeleteView.as_view(), name='carwash-service-delete'),
+    # /api/carwash/services/<pk>/ (GET, PUT, PATCH, DELETE)
+    # Handles Editing and Deleting in one URL
+    path('services/<int:pk>/', CarwashServiceDetailView.as_view(), name='carwash-service-detail'),
 ]

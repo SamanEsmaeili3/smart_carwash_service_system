@@ -9,7 +9,7 @@ from .serializers import (
     CarwashProfileAdminSerializer, 
     CarwashProfileUpdateSerializer,
     CarwashServiceSerializer,
-    CarwashListSerializer  # <-- این سریالایزر جدید اضافه شد
+    CarwashListSerializer
 )
 from .models import CarwashProfile, CarwashService
 
@@ -38,11 +38,9 @@ class AdminPendingCarwashListView(generics.ListAPIView):
         return CarwashProfile.objects.filter(status=CarwashProfile.Status.PENDING)
     
 # User Story 4.1: Admin Approves Carwash
-# Task-B9 & B10: Approval/Rejection Logic (UPDATED Sprint 2)
 class AdminCarwashApprovalView(views.APIView):
     """
     API view for Admins to Approve or Reject a pending carwash application.
-    Now activates the existing user instead of creating a new one.
     """
     permission_classes = [IsAdminUser]
 
@@ -109,7 +107,7 @@ class CarwashProfileUpdateView(generics.RetrieveUpdateAPIView):
         except AttributeError:
             raise NotFound("You do not have a carwash profile.")
 
-# User Story 2.4: Manage Services
+# User Story 2.4: Manage Services (List & Create)
 class CarwashServiceListCreateView(generics.ListCreateAPIView):
     serializer_class = CarwashServiceSerializer
     permission_classes = [IsAuthenticated]
@@ -126,12 +124,15 @@ class CarwashServiceListCreateView(generics.ListCreateAPIView):
         except AttributeError:
              raise NotFound("You do not have a carwash profile to add services to.")
 
-class CarwashServiceDeleteView(generics.DestroyAPIView):
+# User Story 1.5: Edit & Delete Service (Retrieve, Update, Destroy)
+# This replaces the old DeleteView to support Editing too!
+class CarwashServiceDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CarwashServiceSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         try:
+            # Ensure owner can only edit/delete their OWN services
             return CarwashService.objects.filter(carwash=self.request.user.carwashprofile)
         except AttributeError:
             return CarwashService.objects.none()
