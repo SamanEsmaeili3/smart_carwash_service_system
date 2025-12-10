@@ -6,6 +6,20 @@ import '../../constants/app_colors.dart';
 import '../../models/carwash_model.dart';
 import '../../providers/auth_provider.dart';
 
+final List<String> orderedDays = [
+  'Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'
+];
+
+final Map<String, String> persianDays = {
+  'Saturday': 'شنبه',
+  'Sunday': 'یک‌شنبه',
+  'Monday': 'دوشنبه',
+  'Tuesday': 'سه‌شنبه',
+  'Wednesday': 'چهارشنبه',
+  'Thursday': 'پنج‌شنبه',
+  'Friday': 'جمعه',
+};
+
 class AdminDashboard extends StatelessWidget {
   const AdminDashboard({super.key});
 
@@ -145,10 +159,15 @@ class CarwashApplicationCard extends StatelessWidget {
                         context: context,
                         builder: (BuildContext context) {
                           return AlertDialog(
-                            title: Text(carwash.businessName),
+                            title: Text(
+                              carwash.businessName,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
                             content: SingleChildScrollView(
                               child: ListBody(
                                 children: <Widget>[
+                                  // ... Name, Address, Phone ...
                                   Text('نام کارواش: ${carwash.businessName}'),
                                   const SizedBox(height: 8),
                                   Text('آدرس: ${carwash.address}'),
@@ -157,12 +176,45 @@ class CarwashApplicationCard extends StatelessWidget {
                                   const SizedBox(height: 8),
                                   Text('ایمیل: ${carwash.contactEmail}'),
                                   const SizedBox(height: 8),
-                                  Text('مکان: ${carwash.latitude}, ${carwash.longitude}'),
+
+                                  // 1. CLEANER LOCATION
+                                  Text(
+                                    'مکان: ${carwash.latitude.toStringAsFixed(4)}, ${carwash.longitude.toStringAsFixed(4)}',
+                                    textDirection: TextDirection.ltr, // Keeps numbers aligned correctly
+                                    textAlign: TextAlign.right,
+                                  ),
+
                                   const SizedBox(height: 8),
                                   const Divider(),
-                                  const Text('ساعات کاری:', style: TextStyle(fontWeight: FontWeight.bold)),
-                                  ...carwash.workingHours.entries.map((entry) {
-                                    return Text('${entry.key}: ${entry.value}');
+                                  const Text(
+                                    'ساعات کاری:',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                  ),
+                                  const SizedBox(height: 8),
+
+                                  // 2. SORTED & TRANSLATED DAYS
+                                  // Iterate through our ORDERED list, not the random map keys
+                                  ...orderedDays.map((engDay) {
+                                    // Get the value from the carwash data
+                                    final time = carwash.workingHours[engDay];
+                                    if (time == null) return const SizedBox(); // Skip if missing
+
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: 4.0),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(persianDays[engDay] ?? engDay), // Persian Name
+                                          Text(
+                                            time == "Closed" ? "تعطیل" : time, // Persian Status
+                                            style: TextStyle(
+                                              color: time == "Closed" ? Colors.red : Colors.green[700],
+                                              fontWeight: FontWeight.bold
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
                                   }),
                                 ],
                               ),
@@ -170,9 +222,7 @@ class CarwashApplicationCard extends StatelessWidget {
                             actions: <Widget>[
                               TextButton(
                                 child: const Text('بستن'),
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                },
+                                onPressed: () => Navigator.of(context).pop(),
                               ),
                             ],
                           );
