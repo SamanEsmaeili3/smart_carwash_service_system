@@ -26,19 +26,19 @@ class CarwashServiceProvider with ChangeNotifier {
 
       List<dynamic> listData = [];
 
-      // if (response is Map<String, dynamic> && response.containsKey('results')) {
-      //   print("ℹ️ Data is Paginated (inside 'results')");
-      //   listData = response['results'];
-      // }
-      // // ۲. بررسی سناریوی لیست مستقیم
-      // else if (response is List) {
-      //   print("ℹ️ Data is a direct List");
-      //   listData = response;
-      // } else {
-      //   throw Exception(
-      //     "ساختار پاسخ سرور ناشناخته است: ${response.runtimeType}",
-      //   );
-      // }
+      if (response is Map<String, dynamic> && response.containsKey('results')) {
+        print("ℹ️ Data is Paginated (inside 'results')");
+        listData = response['results'];
+      }
+      // ۲. بررسی سناریوی لیست مستقیم
+      else if (response is List) {
+        print("ℹ️ Data is a direct List");
+        listData = response;
+      } else {
+        throw Exception(
+          "ساختار پاسخ سرور ناشناخته است: ${response.runtimeType}",
+        );
+      }
 
       // ۳. تبدیل امن به مدل
       _services =
