@@ -96,4 +96,37 @@ class CarwashServiceProvider with ChangeNotifier {
       return false;
     }
   }
+
+
+  Future<bool> updateService(int id, CarwashServiceModel service) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      // We use 'put' to update existing data
+      // API Route: /api/carwash/services/{id}/
+      final response = await _api.put(
+        '${ApiConstants.services}$id/', 
+        data: service.toJson(), // Sends name, description, price
+        auth: true,
+      );
+
+      // If successful, update the list locally so we don't need to refresh
+      int index = _services.indexWhere((s) => s.id == id);
+      if (index != -1) {
+        _services[index] = service;
+      }
+      
+      notifyListeners();
+      return true;
+
+    } catch (e) {
+      print("Update Error: $e");
+      _error = "خطا در ویرایش سرویس";
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 }

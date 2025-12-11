@@ -21,7 +21,7 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Fetch services when screen loads (API: GET /api/carwash/services/)
+    // Fetch services when screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<CarwashServiceProvider>(
         context,
@@ -39,27 +39,26 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
           _selectedIndex == 0 ? "مدیریت سرویس‌ها" : "پروفایل و تنظیمات",
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        backgroundColor: AppColors.secondary, // Purple for Carwash Panel
+        backgroundColor: AppColors.secondary,
         foregroundColor: Colors.white,
         centerTitle: true,
       ),
-      // ---------------------------------------------------------
-      // 💡 RESPONSIVE FIX: Center content and limit width on Desktop
-      // ---------------------------------------------------------
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: _selectedIndex == 0 ? const _ServicesTab() : const _ProfileTab(),
+          child: _selectedIndex == 0
+              // Pass the showModal function to the tab so it can open the edit form
+              ? _ServicesTab(onEdit: _showAddServiceSheet) 
+              : const _ProfileTab(),
         ),
       ),
-      floatingActionButton:
-          _selectedIndex == 0
-              ? FloatingActionButton(
-                  onPressed: () => _showAddServiceSheet(context),
-                  backgroundColor: AppColors.secondary,
-                  child: const Icon(Icons.add, color: Colors.white),
-                )
-              : null,
+      floatingActionButton: _selectedIndex == 0
+          ? FloatingActionButton(
+              onPressed: () => _showAddServiceSheet(context),
+              backgroundColor: AppColors.secondary,
+              child: const Icon(Icons.add, color: Colors.white),
+            )
+          : null,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         selectedItemColor: AppColors.secondary,
@@ -72,16 +71,15 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
     );
   }
 
-  // --- Add Service Modal (API: POST /api/carwash/services/) ---
-  void _showAddServiceSheet(BuildContext context) {
+  // --- MODIFIED: Accepts optional serviceToEdit ---
+  void _showAddServiceSheet(BuildContext context, {CarwashServiceModel? serviceToEdit}) {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // Allow full screen height for keyboard
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
-        // 💡 Make the modal responsive too
         return Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 600),
@@ -92,7 +90,8 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
                 20,
                 MediaQuery.of(ctx).viewInsets.bottom + 20,
               ),
-              child: const _AddServiceForm(),
+              // Pass the service to the form
+              child: _AddServiceForm(serviceToEdit: serviceToEdit),
             ),
           ),
         );
@@ -105,7 +104,10 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
 // TAB 1: SERVICES LIST
 // ==========================================
 class _ServicesTab extends StatelessWidget {
-  const _ServicesTab();
+  // Add a callback so we can tell the parent to open the modal
+  final Function(BuildContext, {CarwashServiceModel? serviceToEdit})? onEdit;
+  
+  const _ServicesTab({this.onEdit});
 
   @override
   Widget build(BuildContext context) {
@@ -150,7 +152,7 @@ class _ServicesTab extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        "${formatMoney(service.price)} تومان", //like 150,000
+                        "${formatMoney(service.price)} تومان",
                         style: const TextStyle(
                           color: AppColors.success,
                           fontWeight: FontWeight.bold,
@@ -158,13 +160,28 @@ class _ServicesTab extends StatelessWidget {
                       ),
                     ],
                   ),
-                  trailing: IconButton(
-                    icon: const Icon(
-                      Icons.delete_outline,
-                      color: AppColors.error,
-                    ),
-                    onPressed: () =>
-                        _confirmDelete(context, provider, service.id!),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // --- NEW EDIT BUTTON ---
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.blue),
+                        onPressed: () {
+                          if (onEdit != null) {
+                            onEdit!(context, serviceToEdit: service);
+                          }
+                        },
+                      ),
+                      // --- EXISTING DELETE BUTTON ---
+                      IconButton(
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: AppColors.error,
+                        ),
+                        onPressed: () =>
+                            _confirmDelete(context, provider, service.id!),
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -193,7 +210,6 @@ class _ServicesTab extends StatelessWidget {
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              // API: DELETE /api/carwash/services/<id>/
               await provider.deleteService(id);
             },
             child: const Text("حذف", style: TextStyle(color: Colors.red)),
@@ -207,6 +223,7 @@ class _ServicesTab extends StatelessWidget {
 // ==========================================
 // TAB 2: PROFILE & PASSWORD UPDATE
 // ==========================================
+// (KEEP THIS PART THE SAME AS YOUR ORIGINAL CODE - NO CHANGES NEEDED HERE)
 class _ProfileTab extends StatefulWidget {
   const _ProfileTab();
 
@@ -228,7 +245,6 @@ class _ProfileTabState extends State<_ProfileTab> {
         listen: false,
       );
 
-      // API: PATCH /api/carwash/profile/me/
       final success = await provider.updateProfile(
         businessName: _nameCtrl.text.isNotEmpty ? _nameCtrl.text : null,
         phoneNumber: _phoneCtrl.text.isNotEmpty ? _phoneCtrl.text : null,
@@ -244,7 +260,7 @@ class _ProfileTabState extends State<_ProfileTab> {
             backgroundColor: AppColors.success,
           ),
         );
-        _passwordCtrl.clear(); // Clear password after success
+        _passwordCtrl.clear();
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -332,10 +348,12 @@ class _ProfileTabState extends State<_ProfileTab> {
 }
 
 // ==========================================
-// ADD SERVICE FORM WIDGET
+// ADD / EDIT SERVICE FORM WIDGET
 // ==========================================
 class _AddServiceForm extends StatefulWidget {
-  const _AddServiceForm();
+  final CarwashServiceModel? serviceToEdit; // NEW: Optional service for editing
+
+  const _AddServiceForm({this.serviceToEdit});
 
   @override
   State<_AddServiceForm> createState() => _AddServiceFormState();
@@ -347,6 +365,18 @@ class _AddServiceFormState extends State<_AddServiceForm> {
   final _priceCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
+  @override
+  void initState() {
+    super.initState();
+    // NEW: If we are editing, pre-fill the fields!
+    if (widget.serviceToEdit != null) {
+      _nameCtrl.text = widget.serviceToEdit!.serviceName;
+      _descCtrl.text = widget.serviceToEdit!.description;
+      // Convert double price to string, removing ".0" if it's a clean integer
+      _priceCtrl.text = widget.serviceToEdit!.price.toString().replaceAll(RegExp(r'\.0$'), '');
+    }
+  }
+
   void _submit() async {
     if (_formKey.currentState!.validate()) {
       final provider = Provider.of<CarwashServiceProvider>(
@@ -354,11 +384,8 @@ class _AddServiceFormState extends State<_AddServiceForm> {
         listen: false,
       );
 
-      // ۱. تمیز کردن ورودی (حذف ویرگول و فاصله، اما نگه داشتن نقطه)
       String cleanPriceStr =
           _priceCtrl.text.replaceAll(RegExp(r'[^0-9.]'), '');
-
-      // ۲. تبدیل به double
       double finalPrice = double.tryParse(cleanPriceStr) ?? 0.0;
 
       if (finalPrice <= 0) {
@@ -371,19 +398,33 @@ class _AddServiceFormState extends State<_AddServiceForm> {
         return;
       }
 
-      final newService = CarwashServiceModel(
+      final serviceData = CarwashServiceModel(
+        id: widget.serviceToEdit?.id, // Keep ID if editing
         serviceName: _nameCtrl.text.trim(),
         description: _descCtrl.text.trim(),
-        price: finalPrice, // مقدار double
+        price: finalPrice,
       );
 
-      final success = await provider.addService(newService);
+      bool success;
+      // NEW: Check if we are Adding or Updating
+      if (widget.serviceToEdit == null) {
+        // --- ADD MODE ---
+        success = await provider.addService(serviceData);
+      } else {
+        // --- EDIT MODE ---
+        // Force unwrap ID because we know it exists in edit mode
+        success = await provider.updateService(widget.serviceToEdit!.id!, serviceData);
+      }
 
       if (success && mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("سرویس با موفقیت ثبت شد"),
+          SnackBar(
+            content: Text(
+                widget.serviceToEdit == null 
+                ? "سرویس با موفقیت ثبت شد" 
+                : "سرویس با موفقیت ویرایش شد"
+            ),
             backgroundColor: AppColors.success,
           ),
         );
@@ -394,15 +435,17 @@ class _AddServiceFormState extends State<_AddServiceForm> {
   @override
   Widget build(BuildContext context) {
     final isLoading = context.watch<CarwashServiceProvider>().isLoading;
+    // Dynamic Title and Button Text
+    final isEditing = widget.serviceToEdit != null;
 
     return Form(
       key: _formKey,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            "افزودن سرویس جدید",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          Text(
+            isEditing ? "ویرایش سرویس" : "افزودن سرویس جدید",
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           const SizedBox(height: 20),
           CustomInput(
@@ -431,7 +474,7 @@ class _AddServiceFormState extends State<_AddServiceForm> {
           ),
           const SizedBox(height: 20),
           CustomButton(
-            text: "افزودن",
+            text: isEditing ? "ذخیره تغییرات" : "افزودن",
             onPressed: _submit,
             isLoading: isLoading,
             color: AppColors.secondary,

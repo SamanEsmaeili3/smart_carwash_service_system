@@ -51,6 +51,26 @@ class ApiService {
     }
   }
 
+  Future<dynamic> put(
+    String endpoint, {
+    Map<String, dynamic>? data,
+    bool auth = false,
+  }) async {
+    final url = Uri.parse('${ApiConstants.baseUrl}$endpoint');
+    final headers = await _getHeaders(auth: auth);
+
+    try {
+      final response = await http.put(
+        url,
+        headers: headers,
+        body: data != null ? jsonEncode(data) : null,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      throw Exception('Connection Error: $e');
+    }
+  }
+
   dynamic _handleResponse(http.Response response) {
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return jsonDecode(utf8.decode(response.bodyBytes));
