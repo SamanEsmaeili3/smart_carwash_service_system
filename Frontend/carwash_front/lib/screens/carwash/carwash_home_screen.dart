@@ -7,6 +7,8 @@ import '../../models/carwash_service_model.dart';
 import '../../widgets/custom_input.dart';
 import '../../widgets/custom_button.dart';
 import '../../constants/app_colors.dart';
+import '../../providers/auth_provider.dart'; 
+
 
 class CarwashHomeScreen extends StatefulWidget {
   const CarwashHomeScreen({super.key});
