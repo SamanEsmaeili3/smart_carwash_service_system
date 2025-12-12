@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/customer_provider.dart';
-import '../../providers/auth_provider.dart';
-import '../../models/user_model.dart';
+import '../../providers/auth_provider.dart'; // Import AuthProvider
+import '../../models/user_model.dart';       // Import UserModel
 import '../../constants/app_colors.dart';
+// import '../../services/utiles.dart';      // Uncomment if you have formatMoney here
 
 class CustomerHomeScreen extends StatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -16,8 +17,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   @override
   void initState() {
     super.initState();
+    // Load data when screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Default location (Tehran)
+      // Default location (Tehran) for testing/MVP
+      // In a real app, you would get the actual GPS location here
       Provider.of<CustomerProvider>(context, listen: false)
           .searchCarwashes(lat: 35.6892, lon: 51.3890);
     });
@@ -30,58 +33,52 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      // 1. Center the content for Desktop/Web
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800), // Max width for web
-          child: SafeArea(
-            child: Column(
-              children: [
-                // --- HEADER ---
-                _buildHeader(context),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // --- 1. THE BLUE HEADER (Dynamic Name) ---
+            _buildHeader(context),
 
-                // --- LIST ---
-                Expanded(
-                  child: provider.isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : carwashes.isEmpty
-                          ? const Center(child: Text("هیچ کارواشی یافت نشد."))
-                          : ListView.builder(
-                              padding: const EdgeInsets.only(top: 16, bottom: 80),
-                              itemCount: carwashes.length,
-                              itemBuilder: (ctx, index) {
-                                final item = carwashes[index];
-                                return _buildCarwashCard(item);
-                              },
-                            ),
-                ),
-              ],
+            // --- 2. THE LIST OF CARWASHES ---
+            Expanded(
+              child: provider.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : carwashes.isEmpty
+                      ? const Center(child: Text("هیچ کارواشی یافت نشد."))
+                      : ListView.builder(
+                          padding: const EdgeInsets.only(top: 16, bottom: 80),
+                          itemCount: carwashes.length,
+                          itemBuilder: (ctx, index) {
+                            final item = carwashes[index];
+                            return _buildCarwashCard(item);
+                          },
+                        ),
             ),
-          ),
+          ],
         ),
       ),
-      bottomNavigationBar: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: BottomNavigationBar(
-            selectedItemColor: Colors.blue,
-            unselectedItemColor: Colors.grey,
-            currentIndex: 0,
-            items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.search), label: "جستجو"),
-              BottomNavigationBarItem(icon: Icon(Icons.person), label: "پروفایل"),
-            ],
-            onTap: (index) {},
-          ),
-        ),
+      // Bottom Navigation Bar Placeholder
+      bottomNavigationBar: BottomNavigationBar(
+        selectedItemColor: Colors.blue,
+        unselectedItemColor: Colors.grey,
+        currentIndex: 0, // Search tab selected
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: "جستجو"),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: "پروفایل"),
+        ],
+        onTap: (index) {
+          // Handle navigation later
+        },
       ),
     );
   }
 
   Widget _buildHeader(BuildContext context) {
+    // 1. Get the logged-in user info
     final authProvider = Provider.of<AuthProvider>(context);
-    final UserModel? user = authProvider.user;
+    final UserModel? user = authProvider.user; // Assuming 'user' getter exists
 
+    // 2. Logic to extract name from email (e.g., baran3@gmail.com -> baran3)
     String displayName = "کاربر گرامی";
     if (user != null && user.email.isNotEmpty) {
       displayName = user.email.split('@')[0];
@@ -90,18 +87,21 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: const BoxDecoration(
-        color: Colors.blue,
+        color: Colors.blue, // Primary Brand Color
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
       ),
       child: Column(
         children: [
+          // Top Row: Logout & Greeting
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
                 icon: const Icon(Icons.logout, color: Colors.white),
                 onPressed: () {
+                   // --- LOGOUT LOGIC ---
                    Provider.of<AuthProvider>(context, listen: false).logout();
+                   // Clear history and go to login
                    Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
                 },
               ),
@@ -116,7 +116,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                         fontSize: 18),
                   ),
                   Text(
-                    "سلام، $displayName",
+                    "سلام، $displayName", // <--- DYNAMIC NAME HERE
                     style: const TextStyle(color: Colors.white70, fontSize: 14),
                   ),
                 ],
@@ -128,6 +128,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             ],
           ),
           const SizedBox(height: 20),
+
+          // Search Bar
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
@@ -150,12 +152,22 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   Widget _buildCarwashCard(dynamic item) {
+    // Handling data safely from the API JSON
     String name = item['business_name'] ?? 'نامشخص';
     String address = item['address'] ?? '';
-    double rating = double.tryParse(item['rating'].toString()) ?? 0.0;
-    String distanceText = item['distance'] != null ? "${item['distance']} km" : "";
     
-    // Price formatting
+    // Parse numeric values safely
+    double rating = 0.0;
+    if (item['rating'] != null) {
+      rating = double.tryParse(item['rating'].toString()) ?? 0.0;
+    }
+
+    String distanceText = "";
+    if (item['distance'] != null) {
+      distanceText = "${item['distance']} km";
+    }
+
+    // Format Price
     String minPrice = "0";
     if (item['min_price'] != null) {
       double priceVal = double.tryParse(item['min_price'].toString()) ?? 0.0;
@@ -173,8 +185,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.end, // RTL Layout
         children: [
+          // Image Placeholder (Gray Box or Actual Image)
           Container(
             height: 120,
             decoration: BoxDecoration(
@@ -191,11 +204,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 ? const Center(child: Icon(Icons.store, size: 40, color: Colors.grey))
                 : null,
           ),
+          
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
+                // Name & Status
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -205,19 +220,22 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                         color: Colors.green[50],
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Text("باز", style: TextStyle(color: Colors.green, fontSize: 12)),
+                      child: const Text("باز", style: TextStyle(color: Colors.green, fontSize: 12)), 
                     ),
                     Expanded(
                       child: Text(
                         name,
                         textAlign: TextAlign.end,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
+                
+                // Rating & Distance
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -228,7 +246,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                     const Icon(Icons.star, color: Colors.amber, size: 16),
                   ],
                 ),
+                
                 const SizedBox(height: 8),
+                // Address
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -245,14 +265,19 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                     const Icon(Icons.location_on, size: 14, color: Colors.grey),
                   ],
                 ),
+                
                 const SizedBox(height: 16),
                 const Divider(),
                 const SizedBox(height: 8),
+
+                // Price & Buttons
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        // TODO: Navigate to Carwash Details Page (User Story 2.3)
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -264,7 +289,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       children: [
                         const Text("شروع قیمت از", style: TextStyle(fontSize: 10, color: Colors.grey)),
                         Text(
-                          "$minPrice تومان",
+                          "$minPrice تومان", 
                           style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
                         ),
                       ],
