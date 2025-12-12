@@ -7,13 +7,15 @@ import 'providers/auth_provider.dart';
 import 'providers/admin_provider.dart';
 import 'package:carwash_front/providers/carwash_profile_provider.dart';
 import 'package:carwash_front/providers/carwash_service_provider.dart';
+import 'providers/customer_provider.dart'; // <--- ADDED THIS IMPORT
 
 import 'screens/landing_page.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/customer_signup_screen.dart';
 import 'screens/auth/carwash_application_screen.dart';
 import 'screens/admin/admin_dashboard.dart';
-import 'screens/customer/customer_home.dart';
+// import 'screens/customer/customer_home.dart'; // <--- REMOVE THIS
+import 'screens/customer/customer_home_screen.dart'; // <--- ADD THIS (Correct File Name)
 import 'screens/carwash/carwash_home_screen.dart';
 import 'screens/splash_screen.dart';
 
@@ -25,6 +27,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => AdminProvider()),
         ChangeNotifierProvider(create: (_) => CarwashServiceProvider()),
         ChangeNotifierProvider(create: (_) => CarwashProfileProvider()),
+        ChangeNotifierProvider(create: (_) => CustomerProvider()), // This works now
       ],
       child: const MyApp(),
     ),
@@ -53,7 +56,7 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Vazir',
         primaryColor: AppColors.primary,
         scaffoldBackgroundColor: AppColors.background,
-        useMaterial3: false, // برای استایل کلاسیک‌تر شبیه Tailwind
+        useMaterial3: false, 
       ),
 
       // Routes
@@ -65,7 +68,7 @@ class MyApp extends StatelessWidget {
         '/signup': (context) => const CustomerSignupScreen(),
         '/apply': (context) => const CarwashApplicationScreen(),
         '/admin': (context) => const AdminDashboard(),
-        '/customer': (context) => const CustomerHome(),
+        '/customer': (context) => const CustomerHomeScreen(), // <--- FIXED CLASS NAME
         '/carwash': (context) => const CarwashHomeScreen(),
       },
     );
