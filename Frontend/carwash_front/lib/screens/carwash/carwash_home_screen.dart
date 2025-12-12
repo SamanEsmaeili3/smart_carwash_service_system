@@ -42,6 +42,16 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
         backgroundColor: AppColors.secondary,
         foregroundColor: Colors.white,
         centerTitle: true,
+        // --- ADD THIS LOGOUT BUTTON ---
+        leading: IconButton(
+          icon: const Icon(Icons.logout),
+          onPressed: () {
+            // 1. Log out logic
+            Provider.of<AuthProvider>(context, listen: false).logout();
+            // 2. Go back to Login Screen
+            Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+          },
+        ),
       ),
       body: Center(
         child: ConstrainedBox(
