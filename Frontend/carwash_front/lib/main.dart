@@ -14,7 +14,6 @@ import 'screens/auth/login_screen.dart';
 import 'screens/auth/customer_signup_screen.dart';
 import 'screens/auth/carwash_application_screen.dart';
 import 'screens/admin/admin_dashboard.dart';
-// import 'screens/customer/customer_home.dart'; // <--- REMOVE THIS
 import 'screens/customer/customer_home_screen.dart'; // <--- ADD THIS (Correct File Name)
 import 'screens/carwash/carwash_home_screen.dart';
 import 'screens/splash_screen.dart';
