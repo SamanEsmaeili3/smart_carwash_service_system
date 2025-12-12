@@ -18,7 +18,7 @@ class CustomerProvider with ChangeNotifier {
 
     try {
       // Build URL: /api/carwash/search/?lat=...&lon=...
-      String endpoint = '/carwash/search/?';
+      String endpoint = '/api/carwash/search/?';
       if (lat != null && lon != null) {
         endpoint += 'lat=$lat&lon=$lon&';
       }
