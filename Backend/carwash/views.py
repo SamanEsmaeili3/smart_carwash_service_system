@@ -12,6 +12,9 @@ from .serializers import (
     CarwashListSerializer
 )
 from .models import CarwashProfile, CarwashService
+import math
+from .serializers import CarwashSearchSerializer
+
 
 # User Story 1.2: Carwash Registration Application
 class CarwashApplicationView(generics.CreateAPIView):
@@ -147,3 +150,47 @@ class CustomerCarwashListView(generics.ListAPIView):
 
     def get_queryset(self):
         return CarwashProfile.objects.filter(status=CarwashProfile.Status.APPROVED)
+    
+import math
+from .serializers import CarwashSearchSerializer
+
+# --- NEW: Sprint 3 Task-B2.5 & B2.6 (Search with Distance Calculation) ---
+class CarwashSearchView(generics.ListAPIView):
+    serializer_class = CarwashSearchSerializer
+    permission_classes = [AllowAny] # Open for all users
+
+    def get_queryset(self):
+        # 1. Get User's Location from URL (e.g., ?lat=35.7&lon=51.4)
+        try:
+            user_lat = float(self.request.query_params.get('lat', 0))
+            user_lon = float(self.request.query_params.get('lon', 0))
+        except ValueError:
+            # If no location provided, just return approved carwashes unsorted
+            return CarwashProfile.objects.filter(status=CarwashProfile.Status.APPROVED)
+
+        # Get all approved carwashes
+        carwashes = list(CarwashProfile.objects.filter(status=CarwashProfile.Status.APPROVED))
+
+        # 2. Calculate Distance for each carwash
+        for carwash in carwashes:
+            # Note: Your model uses DecimalField, so we convert to float for math
+            carwash.distance_km = self.calculate_distance(
+                user_lat, user_lon, 
+                float(carwash.latitude), float(carwash.longitude)
+            )
+
+        # 3. Sort by Distance (Closest first)
+        carwashes.sort(key=lambda x: x.distance_km)
+
+        return carwashes
+
+    def calculate_distance(self, lat1, lon1, lat2, lon2):
+        # Haversine formula
+        R = 6371 # Earth radius in km
+        dLat = math.radians(lat2 - lat1)
+        dLon = math.radians(lon2 - lon1)
+        a = (math.sin(dLat / 2) * math.sin(dLat / 2) +
+             math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) *
+             math.sin(dLon / 2) * math.sin(dLon / 2))
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        return R * c

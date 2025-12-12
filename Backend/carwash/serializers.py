@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import CarwashProfile, Driver, CarwashService
 from accounts.models import User
+from django.db.models import Min
 
 # Task-B6: Create CarwashApplicationSerializer
 class CarwashApplicationSerializer(serializers.ModelSerializer):
@@ -106,3 +107,38 @@ class CarwashListSerializer(serializers.ModelSerializer):
             'license_photo_url',
             'gallery_photos',
         ]
+
+# --- NEW: Sprint 3 Task-B2.8 (Search Results with Distance) ---
+class CarwashSearchSerializer(serializers.ModelSerializer):
+    min_price = serializers.SerializerMethodField()
+    distance = serializers.SerializerMethodField()
+    rating = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CarwashProfile
+        fields = [
+            'id', 
+            'business_name', 
+            'address', 
+            'latitude', 
+            'longitude', 
+            'license_photo_url', 
+            'min_price', 
+            'distance', 
+            'rating'
+        ]
+
+    def get_min_price(self, obj):
+        # Find the cheapest service this carwash offers
+        minimum = obj.services.aggregate(Min('price'))['price__min']
+        return minimum if minimum else 0
+
+    def get_distance(self, obj):
+        # The View will calculate 'distance_km' and attach it to the object
+        if hasattr(obj, 'distance_km'):
+            return round(obj.distance_km, 1) # Returns km (e.g., 2.5)
+        return None
+
+    def get_rating(self, obj):
+        # Placeholder until Ratings are implemented
+        return 4.5
