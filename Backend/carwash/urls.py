@@ -7,7 +7,8 @@ from .views import (
     CarwashServiceListCreateView,
     CarwashServiceDetailView, 
     CustomerCarwashListView,
-    CarwashSearchView
+    CarwashSearchView,
+    CarwashProfileDetailView
 )
 
 urlpatterns = [
@@ -38,4 +39,8 @@ urlpatterns = [
     path('services/<int:pk>/', CarwashServiceDetailView.as_view(), name='carwash-service-detail'),
     
     path('search/', CarwashSearchView.as_view(), name='carwash-search'),
+
+    # Sprint 3 Task-B2.15 ---
+    # /api/carwash/profile/5/ 
+    path('profile/<int:pk>/', CarwashProfileDetailView.as_view(), name='carwash-profile-detail-public'),
 ]
