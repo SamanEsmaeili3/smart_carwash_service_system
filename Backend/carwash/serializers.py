@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from django.db.models import Min, Avg
 from accounts.models import User
-from .models import CarwashProfile, Driver, CarwashService, Rating, Order
+from .models import CarwashProfile, Driver, CarwashService
+from orders.models import Rating, Order
 
 # ---------------------------------------------------------
 # SECTION 1: REGISTRATION & AUTH

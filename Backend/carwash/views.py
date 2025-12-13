@@ -7,7 +7,8 @@ from django.db.models import Avg, Min, Q
 import math
 
 from accounts.models import User
-from .models import CarwashProfile, CarwashService, Rating
+from .models import CarwashProfile, CarwashService
+from orders.models import Rating
 
 # Import all serializers (Old and New)
 from .serializers import (
