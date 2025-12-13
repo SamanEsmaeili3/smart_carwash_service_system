@@ -3,18 +3,26 @@ from rest_framework import generics, status, views
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.exceptions import NotFound
+from django.db.models import Avg, Min, Q 
+import math
+
 from accounts.models import User
+from .models import CarwashProfile, CarwashService, Rating
+
+# Import all serializers (Old and New)
 from .serializers import (
     CarwashApplicationSerializer, 
     CarwashProfileAdminSerializer, 
     CarwashProfileUpdateSerializer,
     CarwashServiceSerializer,
-    CarwashListSerializer
+    CarwashListSerializer,
+    CarwashSearchSerializer,     
+    CarwashFullProfileSerializer 
 )
-from .models import CarwashProfile, CarwashService
-import math
-from .serializers import CarwashSearchSerializer
 
+# ---------------------------------------------------------
+# SECTION 1: REGISTRATION & AUTH (Sprint 1)
+# ---------------------------------------------------------
 
 # User Story 1.2: Carwash Registration Application
 class CarwashApplicationView(generics.CreateAPIView):
@@ -31,6 +39,10 @@ class CarwashApplicationView(generics.CreateAPIView):
             status=status.HTTP_201_CREATED, 
             headers=headers
         )
+
+# ---------------------------------------------------------
+# SECTION 2: ADMIN PANEL (Sprint 1 & 2)
+# ---------------------------------------------------------
     
 # User Story 4.1: Admin sees pending carwashes
 class AdminPendingCarwashListView(generics.ListAPIView):
@@ -87,7 +99,6 @@ class AdminCarwashApprovalView(views.APIView):
         elif action == "reject":
             profile.status = CarwashProfile.Status.REJECTED
             profile.save()
-            
             return Response(
                 {"message": f"Carwash {profile.business_name} rejected."}, 
                 status=status.HTTP_200_OK
@@ -98,6 +109,10 @@ class AdminCarwashApprovalView(views.APIView):
                 {"error": "Action 'approve' or 'reject' required."}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+# ---------------------------------------------------------
+# SECTION 3: CARWASH OWNER PANEL (Sprint 2)
+# ---------------------------------------------------------
 
 # User Story 2.1: Carwash Owner updates profile
 class CarwashProfileUpdateView(generics.RetrieveUpdateAPIView):
@@ -127,8 +142,7 @@ class CarwashServiceListCreateView(generics.ListCreateAPIView):
         except AttributeError:
              raise NotFound("You do not have a carwash profile to add services to.")
 
-# User Story 1.5: Edit & Delete Service (Retrieve, Update, Destroy)
-# This replaces the old DeleteView to support Editing too!
+# User Story 1.5: Edit & Delete Service
 class CarwashServiceDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CarwashServiceSerializer
     permission_classes = [IsAuthenticated]
@@ -140,52 +154,84 @@ class CarwashServiceDetailView(generics.RetrieveUpdateDestroyAPIView):
         except AttributeError:
             return CarwashService.objects.none()
 
-# --- NEW: Sprint 2 Task-B2.9 (Customer sees Approved Carwashes) ---
+# ---------------------------------------------------------
+# SECTION 4: CUSTOMER & SEARCH (Sprint 3)
+# ---------------------------------------------------------
+
+# Sprint 2 Task-B2.9 (Simple List)
 class CustomerCarwashListView(generics.ListAPIView):
     """
-    API view for Customers to see a list of ALL Approved carwashes.
+    API view for Customers to see a list of ALL Approved carwashes (Simple view).
     """
     serializer_class = CarwashListSerializer
     permission_classes = [IsAuthenticated] 
 
     def get_queryset(self):
         return CarwashProfile.objects.filter(status=CarwashProfile.Status.APPROVED)
-    
-import math
-from .serializers import CarwashSearchSerializer
 
-# --- NEW: Sprint 3 Task-B2.5 & B2.6 (Search with Distance Calculation) ---
+# Sprint 3 Task-B2.5 & B2.10 (Advanced Search with Filters & Distance)
 class CarwashSearchView(generics.ListAPIView):
     serializer_class = CarwashSearchSerializer
     permission_classes = [AllowAny] # Open for all users
 
     def get_queryset(self):
-        # 1. Get User's Location from URL (e.g., ?lat=35.7&lon=51.4)
-        try:
-            user_lat = float(self.request.query_params.get('lat', 0))
-            user_lon = float(self.request.query_params.get('lon', 0))
-        except ValueError:
-            # If no location provided, just return approved carwashes unsorted
-            return CarwashProfile.objects.filter(status=CarwashProfile.Status.APPROVED)
+        # 1. Get query parameters from URL
+        lat_param = self.request.query_params.get('lat')
+        lon_param = self.request.query_params.get('lon')
+        min_price = self.request.query_params.get('min_price')
+        max_price = self.request.query_params.get('max_price')
+        min_rating = self.request.query_params.get('min_rating')
 
-        # Get all approved carwashes
-        carwashes = list(CarwashProfile.objects.filter(status=CarwashProfile.Status.APPROVED))
+        # Start with all approved carwashes
+        queryset = CarwashProfile.objects.filter(status=CarwashProfile.Status.APPROVED)
 
-        # 2. Calculate Distance for each carwash
+        # 2. Apply Price Filter (on Services)
+        if min_price:
+            # Filter carwashes that have at least one service with price >= min_price
+            queryset = queryset.filter(services__price__gte=min_price).distinct()
+        
+        if max_price:
+            # Filter carwashes that have at least one service with price <= max_price
+            queryset = queryset.filter(services__price__lte=max_price).distinct()
+
+        # Prepare final list for output
+        carwashes = list(queryset)
+        final_results = []
+
+        user_lat = float(lat_param) if lat_param else None
+        user_lon = float(lon_param) if lon_param else None
+
         for carwash in carwashes:
-            # Note: Your model uses DecimalField, so we convert to float for math
-            carwash.distance_km = self.calculate_distance(
-                user_lat, user_lon, 
-                float(carwash.latitude), float(carwash.longitude)
-            )
+            # A) Calculate Real Average Rating from Rating table
+            avg = Rating.objects.filter(order__carwash=carwash).aggregate(Avg('carwash_rating'))['carwash_rating__avg']
+            carwash.rating_val = avg if avg else 0 # Temporary storage for sorting
+            
+            # Filter based on Rating (if requested)
+            if min_rating and carwash.rating_val < float(min_rating):
+                continue
 
-        # 3. Sort by Distance (Closest first)
-        carwashes.sort(key=lambda x: x.distance_km)
+            # B) Calculate Distance (Haversine)
+            if user_lat and user_lon:
+                carwash.distance_km = self.calculate_distance(
+                    user_lat, user_lon, 
+                    float(carwash.latitude), float(carwash.longitude)
+                )
+            else:
+                carwash.distance_km = 0 
 
-        return carwashes
+            final_results.append(carwash)
+
+        # 3. Sort Results
+        if user_lat and user_lon:
+            # If user location is provided, sort by distance (Closest first)
+            final_results.sort(key=lambda x: x.distance_km)
+        else:
+            # If no location, sort by Rating (Highest first)
+            final_results.sort(key=lambda x: x.rating_val, reverse=True)
+
+        return final_results
 
     def calculate_distance(self, lat1, lon1, lat2, lon2):
-        # Haversine formula
         R = 6371 # Earth radius in km
         dLat = math.radians(lat2 - lat1)
         dLon = math.radians(lon2 - lon1)
@@ -194,3 +240,14 @@ class CarwashSearchView(generics.ListAPIView):
              math.sin(dLon / 2) * math.sin(dLon / 2))
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
         return R * c
+
+# Sprint 3 Task-B2.15 (Single Carwash Full Profile)
+class CarwashProfileDetailView(generics.RetrieveAPIView):
+    """
+    GET /api/carwash/profile/<id>/
+    Returns FULL details including Service Menu (for Booking).
+    """
+    serializer_class = CarwashFullProfileSerializer
+    permission_classes = [AllowAny] 
+    queryset = CarwashProfile.objects.filter(status=CarwashProfile.Status.APPROVED)
+    lookup_field = 'pk'
