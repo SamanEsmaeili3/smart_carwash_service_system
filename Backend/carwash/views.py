@@ -182,11 +182,12 @@ class CarwashSearchView(generics.ListAPIView):
         min_price = self.request.query_params.get('min_price')
         max_price = self.request.query_params.get('max_price')
         min_rating = self.request.query_params.get('min_rating')
+        service_name = self.request.query_params.get('service_name') 
 
         # Start with all approved carwashes
         queryset = CarwashProfile.objects.filter(status=CarwashProfile.Status.APPROVED)
 
-        # 2. Apply Price Filter (on Services)
+        # 2. Apply Filters (Price & Service Name)
         if min_price:
             # Filter carwashes that have at least one service with price >= min_price
             queryset = queryset.filter(services__price__gte=min_price).distinct()
@@ -194,6 +195,10 @@ class CarwashSearchView(generics.ListAPIView):
         if max_price:
             # Filter carwashes that have at least one service with price <= max_price
             queryset = queryset.filter(services__price__lte=max_price).distinct()
+
+        # [NEW] Filter by Service Name (e.g., "Polish", "Wash")
+        if service_name:
+            queryset = queryset.filter(services__service_name__icontains=service_name).distinct()
 
         # Prepare final list for output
         carwashes = list(queryset)
