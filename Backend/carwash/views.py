@@ -10,7 +10,7 @@ from accounts.models import User
 from .models import CarwashProfile, CarwashService
 from orders.models import Rating
 
-# Import all serializers (Old and New)
+# Import all serializers
 from .serializers import (
     CarwashApplicationSerializer, 
     CarwashProfileAdminSerializer, 
@@ -179,6 +179,7 @@ class CarwashSearchView(generics.ListAPIView):
         # 1. Get query parameters from URL
         lat_param = self.request.query_params.get('lat')
         lon_param = self.request.query_params.get('lon')
+        radius_param = self.request.query_params.get('radius') # NEW: Radius in KM
         min_price = self.request.query_params.get('min_price')
         max_price = self.request.query_params.get('max_price')
         min_rating = self.request.query_params.get('min_rating')
@@ -196,7 +197,7 @@ class CarwashSearchView(generics.ListAPIView):
             # Filter carwashes that have at least one service with price <= max_price
             queryset = queryset.filter(services__price__lte=max_price).distinct()
 
-        # [NEW] Filter by Service Name (e.g., "Polish", "Wash")
+        # Filter by Service Name (e.g., "Polish", "Wash")
         if service_name:
             queryset = queryset.filter(services__service_name__icontains=service_name).distinct()
 
@@ -206,6 +207,9 @@ class CarwashSearchView(generics.ListAPIView):
 
         user_lat = float(lat_param) if lat_param else None
         user_lon = float(lon_param) if lon_param else None
+
+        # Set default radius to 15.0 KM if not provided, or use user input
+        search_radius = float(radius_param) if radius_param else 15.0
 
         for carwash in carwashes:
             # A) Calculate Real Average Rating from Rating table
@@ -218,10 +222,16 @@ class CarwashSearchView(generics.ListAPIView):
 
             # B) Calculate Distance (Haversine)
             if user_lat and user_lon:
-                carwash.distance_km = self.calculate_distance(
+                dist = self.calculate_distance(
                     user_lat, user_lon, 
                     float(carwash.latitude), float(carwash.longitude)
                 )
+
+                # [NEW] Radius Filter: Skip carwashes that are too far
+                if dist > search_radius:
+                    continue
+                
+                carwash.distance_km = dist
             else:
                 carwash.distance_km = 0 
 
