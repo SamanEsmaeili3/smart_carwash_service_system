@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/customer_provider.dart';
 import '../../providers/auth_provider.dart'; // Import AuthProvider
-import '../../models/user_model.dart';       // Import UserModel
+import '../../models/user_model.dart'; // Import UserModel
 import '../../constants/app_colors.dart';
 // import '../../services/utiles.dart';      // Uncomment if you have formatMoney here
 
@@ -21,8 +21,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Default location (Tehran) for testing/MVP
       // In a real app, you would get the actual GPS location here
-      Provider.of<CustomerProvider>(context, listen: false)
-          .searchCarwashes(lat: 35.6892, lon: 51.3890);
+      Provider.of<CustomerProvider>(
+        context,
+        listen: false,
+      ).searchCarwashes(lat: 35.6892, lon: 51.3890);
     });
   }
 
@@ -41,18 +43,19 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
             // --- 2. THE LIST OF CARWASHES ---
             Expanded(
-              child: provider.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : carwashes.isEmpty
+              child:
+                  provider.isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : carwashes.isEmpty
                       ? const Center(child: Text("هیچ کارواشی یافت نشد."))
                       : ListView.builder(
-                          padding: const EdgeInsets.only(top: 16, bottom: 80),
-                          itemCount: carwashes.length,
-                          itemBuilder: (ctx, index) {
-                            final item = carwashes[index];
-                            return _buildCarwashCard(item);
-                          },
-                        ),
+                        padding: const EdgeInsets.only(top: 16, bottom: 80),
+                        itemCount: carwashes.length,
+                        itemBuilder: (ctx, index) {
+                          final item = carwashes[index];
+                          return _buildCarwashCard(item);
+                        },
+                      ),
             ),
           ],
         ),
@@ -97,12 +100,20 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
+                icon: const Icon(Icons.search, color: Colors.white),
+                onPressed: () {
+                  Navigator.pushNamed(context, '/search');
+                },
+              ),
+              IconButton(
                 icon: const Icon(Icons.logout, color: Colors.white),
                 onPressed: () {
-                   // --- LOGOUT LOGIC ---
-                   Provider.of<AuthProvider>(context, listen: false).logout();
-                   // Clear history and go to login
-                   Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                  // --- LOGOUT LOGIC ---
+                  Provider.of<AuthProvider>(context, listen: false).logout();
+                  // Clear history and go to login
+                  Navigator.of(
+                    context,
+                  ).pushNamedAndRemoveUntil('/login', (route) => false);
                 },
               ),
               Column(
@@ -111,9 +122,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   const Text(
                     "کارواش پرو",
                     style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18),
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
                   ),
                   Text(
                     "سلام، $displayName", // <--- DYNAMIC NAME HERE
@@ -155,7 +167,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     // Handling data safely from the API JSON
     String name = item['business_name'] ?? 'نامشخص';
     String address = item['address'] ?? '';
-    
+
     // Parse numeric values safely
     double rating = 0.0;
     if (item['rating'] != null) {
@@ -171,8 +183,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     String minPrice = "0";
     if (item['min_price'] != null) {
       double priceVal = double.tryParse(item['min_price'].toString()) ?? 0.0;
-      minPrice = priceVal.toStringAsFixed(0).replaceAllMapped(
-          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},');
+      minPrice = priceVal
+          .toStringAsFixed(0)
+          .replaceAllMapped(
+            RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+            (Match m) => '${m[1]},',
+          );
     }
 
     return Container(
@@ -181,7 +197,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+          ),
         ],
       ),
       child: Column(
@@ -192,19 +211,27 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             height: 120,
             decoration: BoxDecoration(
               color: Colors.grey[300],
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              image: item['license_photo_url'] != null && item['license_photo_url'].toString().isNotEmpty
-                  ? DecorationImage(
-                      image: NetworkImage(item['license_photo_url']),
-                      fit: BoxFit.cover,
-                    )
-                  : null,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
+              image:
+                  item['license_photo_url'] != null &&
+                          item['license_photo_url'].toString().isNotEmpty
+                      ? DecorationImage(
+                        image: NetworkImage(item['license_photo_url']),
+                        fit: BoxFit.cover,
+                      )
+                      : null,
             ),
-            child: item['license_photo_url'] == null || item['license_photo_url'].toString().isEmpty
-                ? const Center(child: Icon(Icons.store, size: 40, color: Colors.grey))
-                : null,
+            child:
+                item['license_photo_url'] == null ||
+                        item['license_photo_url'].toString().isEmpty
+                    ? const Center(
+                      child: Icon(Icons.store, size: 40, color: Colors.grey),
+                    )
+                    : null,
           ),
-          
+
           Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -215,38 +242,55 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.green[50],
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Text("باز", style: TextStyle(color: Colors.green, fontSize: 12)), 
+                      child: const Text(
+                        "باز",
+                        style: TextStyle(color: Colors.green, fontSize: 12),
+                      ),
                     ),
                     Expanded(
                       child: Text(
                         name,
                         textAlign: TextAlign.end,
                         style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                
+
                 // Rating & Distance
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     if (distanceText.isNotEmpty)
-                      Text("($distanceText)", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      Text(
+                        "($distanceText)",
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
                     const SizedBox(width: 8),
-                    Text("$rating", style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text(
+                      "$rating",
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     const Icon(Icons.star, color: Colors.amber, size: 16),
                   ],
                 ),
-                
+
                 const SizedBox(height: 8),
                 // Address
                 Row(
@@ -265,7 +309,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                     const Icon(Icons.location_on, size: 14, color: Colors.grey),
                   ],
                 ),
-                
+
                 const SizedBox(height: 16),
                 const Divider(),
                 const SizedBox(height: 8),
@@ -280,17 +324,28 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
-                      child: const Text("رزرو نوبت", style: TextStyle(color: Colors.white)),
+                      child: const Text(
+                        "رزرو نوبت",
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const Text("شروع قیمت از", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                        const Text(
+                          "شروع قیمت از",
+                          style: TextStyle(fontSize: 10, color: Colors.grey),
+                        ),
                         Text(
-                          "$minPrice تومان", 
-                          style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+                          "$minPrice تومان",
+                          style: const TextStyle(
+                            color: Colors.blue,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),

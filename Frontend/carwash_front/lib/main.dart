@@ -16,6 +16,7 @@ import 'screens/auth/carwash_application_screen.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/customer/customer_home_screen.dart'; // <--- ADD THIS (Correct File Name)
 import 'screens/carwash/carwash_home_screen.dart';
+import 'screens/customer/search_screen.dart';
 import 'screens/splash_screen.dart';
 
 void main() {
@@ -26,7 +27,9 @@ void main() {
         ChangeNotifierProvider(create: (_) => AdminProvider()),
         ChangeNotifierProvider(create: (_) => CarwashServiceProvider()),
         ChangeNotifierProvider(create: (_) => CarwashProfileProvider()),
-        ChangeNotifierProvider(create: (_) => CustomerProvider()), // This works now
+        ChangeNotifierProvider(
+          create: (_) => CustomerProvider(),
+        ), // This works now
       ],
       child: const MyApp(),
     ),
@@ -55,7 +58,7 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Vazir',
         primaryColor: AppColors.primary,
         scaffoldBackgroundColor: AppColors.background,
-        useMaterial3: false, 
+        useMaterial3: false,
       ),
 
       // Routes
@@ -67,8 +70,10 @@ class MyApp extends StatelessWidget {
         '/signup': (context) => const CustomerSignupScreen(),
         '/apply': (context) => const CarwashApplicationScreen(),
         '/admin': (context) => const AdminDashboard(),
-        '/customer': (context) => const CustomerHomeScreen(), // <--- FIXED CLASS NAME
+        '/customer':
+            (context) => const CustomerHomeScreen(), // <--- FIXED CLASS NAME
         '/carwash': (context) => const CarwashHomeScreen(),
+        '/search': (context) => const SearchScreen(),
       },
     );
   }
