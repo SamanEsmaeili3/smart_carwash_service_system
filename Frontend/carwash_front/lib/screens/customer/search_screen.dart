@@ -13,7 +13,7 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  bool _isMapView = false;
+  bool _isMapView = true;
   Position? _currentPosition;
 
   Future<void> _determinePosition() async {
@@ -22,10 +22,9 @@ class _SearchScreenState extends State<SearchScreen> {
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Location services are disabled. Please enable it.'),
-        ),
+        const SnackBar(content: Text('سرویس موقعیت یاب غیر فعال است!')),
       );
       return;
     }
@@ -33,19 +32,21 @@ class _SearchScreenState extends State<SearchScreen> {
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
+      if (!mounted) return;
       if (permission == LocationPermission.denied) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Location permissions are denied')),
+          const SnackBar(content: Text('مجوز های مکانی رد شده اند!')),
         );
         return;
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Location permissions are permanently denied, we cannot request permissions.',
+            'مجوز های مکانی کاملا رد شده اند، نمی توان مجوز درخواست کرد!',
           ),
         ),
       );
@@ -53,6 +54,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
 
     Position position = await Geolocator.getCurrentPosition();
+    if (!mounted) return;
     setState(() {
       _currentPosition = position;
     });
@@ -63,14 +65,16 @@ class _SearchScreenState extends State<SearchScreen> {
 
   void _searchNearby() {
     if (_currentPosition != null) {
+      if (!mounted) return;
       Provider.of<CustomerProvider>(context, listen: false).searchCarwashes(
         lat: _currentPosition!.latitude,
         lon: _currentPosition!.longitude,
       );
     } else {
+      if (!mounted) return;
       // Handle case where location is not available
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please get your location first.')),
+        const SnackBar(content: Text('لطفاً ابتدا موقعیت خود را دریافت کنید.')),
       );
     }
   }
@@ -79,7 +83,7 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Search Carwashes'),
+        title: const Text('[جست و جوی کارواش]'),
         actions: [
           IconButton(
             icon: Icon(_isMapView ? Icons.list : Icons.map),
@@ -97,14 +101,14 @@ class _SearchScreenState extends State<SearchScreen> {
             padding: const EdgeInsets.all(8.0),
             child: ElevatedButton(
               onPressed: _determinePosition,
-              child: const Text("Get Current Location & Search"),
+              child: const Text("دریافت مکان و جست و جو"),
             ),
           ),
           if (_currentPosition != null)
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Text(
-                'LAT: ${_currentPosition!.latitude}, LON: ${_currentPosition!.longitude}',
+                '${_currentPosition!.latitude},${_currentPosition!.longitude}',
               ),
             ),
           Expanded(child: _isMapView ? _buildMapView() : _buildListView()),
@@ -121,7 +125,7 @@ class _SearchScreenState extends State<SearchScreen> {
         }
 
         if (provider.carwashes.isEmpty) {
-          return const Center(child: Text('No carwashes found nearby.'));
+          return const Center(child: Text('هیچ کارواشی در نزدیکی یافت نشد.'));
         }
 
         return ListView.builder(
@@ -135,9 +139,9 @@ class _SearchScreenState extends State<SearchScreen> {
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Address: ${carwash['address']}'),
-                    Text('Rating: ${carwash['rating']}'),
-                    Text('Min Price: ${carwash['min_price']}'),
+                    Text('آدرس: ${carwash['address']}'),
+                    Text('امتیاز: ${carwash['rating']}'),
+                    Text('حداقل قیمت: ${carwash['min_price']}'),
                   ],
                 ),
                 trailing: Text('${carwash['distance']} km'),
@@ -175,7 +179,10 @@ class _SearchScreenState extends State<SearchScreen> {
                 return Marker(
                   width: 80.0,
                   height: 80.0,
-                  point: LatLng(carwash['latitude'], carwash['longitude']),
+                  point: LatLng(
+                    double.parse(carwash['latitude'].toString()),
+                    double.parse(carwash['longitude'].toString()),
+                  ),
                   child: const Icon(
                     Icons.location_on,
                     color: Colors.red,
