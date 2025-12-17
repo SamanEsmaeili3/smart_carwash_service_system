@@ -1,3 +1,5 @@
+import 'package:carwash_front/models/carwash_service_model.dart';
+
 class CarwashModel {
   final int? id;
   final String businessName;
@@ -9,7 +11,9 @@ class CarwashModel {
   final String? status;
   final double latitude;
   final double longitude;
-  final String? password; 
+  final String? password;
+
+  final List<CarwashServiceModel> services;
 
   CarwashModel({
     this.id,
@@ -22,7 +26,8 @@ class CarwashModel {
     this.status,
     this.latitude = 35.759432,
     this.longitude = 51.410376,
-    this.password, 
+    this.password,
+    this.services = const [],
   });
 
   // helper method to parse double
@@ -51,10 +56,20 @@ class CarwashModel {
       });
     }
 
+    // --- Logic to parse services list ---
+    var servicesList = <CarwashServiceModel>[];
+    if (json['services'] != null) {
+      servicesList =
+          (json['services'] as List)
+              .map((e) => CarwashServiceModel.fromJson(e))
+              .toList();
+    }
+
     return CarwashModel(
-      id: json['id'] is int
-          ? json['id'] as int
-          : (json['id'] is String ? int.tryParse(json['id']) : null),
+      id:
+          json['id'] is int
+              ? json['id'] as int
+              : (json['id'] is String ? int.tryParse(json['id']) : null),
       businessName: (json['business_name'] ?? '') as String,
       address: (json['address'] ?? '') as String,
       phoneNumber: (json['phone_number'] ?? '') as String,
@@ -64,6 +79,7 @@ class CarwashModel {
       status: json['status']?.toString(),
       latitude: _parseDouble(json['latitude'], fallback: 35.759432),
       longitude: _parseDouble(json['longitude'], fallback: 51.410376),
+      services: servicesList,
       // We don't read password from API for security
     );
   }
@@ -79,7 +95,7 @@ class CarwashModel {
       "license_photo_url": licensePhotoUrl,
       "latitude": latitude,
       "longitude": longitude,
-      "password": password, 
+      "password": password,
     };
   }
 }
