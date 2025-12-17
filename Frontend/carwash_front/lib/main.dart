@@ -1,4 +1,6 @@
 import 'package:carwash_front/providers/booking_provider.dart';
+import 'package:carwash_front/providers/search_provider.dart';
+import 'package:carwash_front/screens/customer/customer_search_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
@@ -31,6 +33,7 @@ void main() {
           create: (_) => CustomerProvider(),
         ), // This works now
         ChangeNotifierProvider(create: (_) => BookingProvider()),
+        ChangeNotifierProvider(create: (_) => SearchProvider()),
       ],
       child: const MyApp(),
     ),
@@ -71,8 +74,9 @@ class MyApp extends StatelessWidget {
         '/signup': (context) => const CustomerSignupScreen(),
         '/apply': (context) => const CarwashApplicationScreen(),
         '/admin': (context) => const AdminDashboard(),
-        '/customer':
-            (context) => const CustomerHomeScreen(), // <--- FIXED CLASS NAME
+        // '/customer':
+        //     (context) => const CustomerHomeScreen(), // <--- FIXED CLASS NAME
+        '/customer': (context) => const CustomerSearchScreen(),
         '/carwash': (context) => const CarwashHomeScreen(),
       },
     );

@@ -19,14 +19,16 @@ class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
     super.initState();
     // Fetch profile data when screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<BookingProvider>(context, listen: false)
-          .fetchCarwashProfile(widget.carwashId);
+      Provider.of<BookingProvider>(
+        context,
+        listen: false,
+      ).fetchCarwashProfile(widget.carwashId);
     });
   }
 
   void _onContinuePressed() async {
     final provider = Provider.of<BookingProvider>(context, listen: false);
-    
+
     // Call API to create order draft
     final orderId = await provider.prepareOrder();
 
@@ -66,18 +68,23 @@ class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(provider.profileError!, style: const TextStyle(color: Colors.red)),
+                  Text(
+                    provider.profileError!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
                   ElevatedButton(
-                    onPressed: () => provider.fetchCarwashProfile(widget.carwashId),
+                    onPressed:
+                        () => provider.fetchCarwashProfile(widget.carwashId),
                     child: const Text("تلاش مجدد"),
-                  )
+                  ),
                 ],
               ),
             );
           }
 
           final profile = provider.profile;
-          if (profile == null) return const Center(child: Text("اطلاعات یافت نشد"));
+          if (profile == null)
+            return const Center(child: Text("اطلاعات یافت نشد"));
 
           // 3. Main Content
           return Stack(
@@ -86,19 +93,44 @@ class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
                 slivers: [
                   // --- Header Image & Info ---
                   SliverAppBar(
-                    expandedHeight: 200,
-                    pinned: true,
-                    backgroundColor: AppColors.primary,
                     flexibleSpace: FlexibleSpaceBar(
-                      title: Text(profile.businessName, style: const TextStyle(fontSize: 16)),
-                      background: profile.licensePhotoUrl.isNotEmpty && 
-                                  profile.licensePhotoUrl.startsWith('http')
-                          ? Image.network(
-                              profile.licensePhotoUrl, // Using license photo as placeholder if no gallery
-                              fit: BoxFit.cover,
-                              errorBuilder: (ctx, err, stack) => Container(color: Colors.grey),
-                            )
-                          : Container(color: Colors.grey),
+                      title: Text(
+                        profile.businessName,
+                        style: const TextStyle(fontSize: 16),
+                      ),
+
+                      // شرط نمایش عکس
+                      background:
+                          (profile.licensePhotoUrl.isNotEmpty &&
+                                  profile.licensePhotoUrl.startsWith('http'))
+                              ? Image.network(
+                                profile.licensePhotoUrl,
+                                fit: BoxFit.cover,
+                                // اگر عکس لود نشد (مثلا ارور 404)، این اجرا می‌شود
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: Colors.grey[300], // رنگ طوسی
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.broken_image,
+                                        size: 50,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              )
+                              // اگر کلاً لینکی وجود نداشت، این اجرا می‌شود
+                              : Container(
+                                color: Colors.grey[300],
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.store,
+                                    size: 50,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ),
                     ),
                   ),
 
@@ -111,7 +143,11 @@ class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.location_on, color: Colors.grey, size: 20),
+                              const Icon(
+                                Icons.location_on,
+                                color: Colors.grey,
+                                size: 20,
+                              ),
                               const SizedBox(width: 8),
                               Expanded(child: Text(profile.address)),
                             ],
@@ -119,7 +155,11 @@ class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
                           const SizedBox(height: 8),
                           Row(
                             children: [
-                              const Icon(Icons.phone, color: Colors.grey, size: 20),
+                              const Icon(
+                                Icons.phone,
+                                color: Colors.grey,
+                                size: 20,
+                              ),
                               const SizedBox(width: 8),
                               Text(profile.phoneNumber),
                             ],
@@ -127,7 +167,10 @@ class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
                           const Divider(height: 30),
                           const Text(
                             "انتخاب سرویس‌ها",
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
@@ -136,30 +179,35 @@ class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
 
                   // --- Services List (Checkboxes) ---
                   SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final service = profile.services[index];
-                        final isSelected = provider.selectedServiceIds.contains(service.id);
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final service = profile.services[index];
+                      final isSelected = provider.selectedServiceIds.contains(
+                        service.id,
+                      );
 
-                        return CheckboxListTile(
-                          title: Text(service.serviceName),
-                          subtitle: Text(service.description),
-                          secondary: Text(
-                            "${service.price}",
-                            style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                      return CheckboxListTile(
+                        title: Text(service.serviceName),
+                        subtitle: Text(service.description),
+                        secondary: Text(
+                          "${service.price}",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
                           ),
-                          value: isSelected,
-                          activeColor: AppColors.primary,
-                          onChanged: (val) {
-                            // Convert price to double for calculation logic
-                            provider.toggleService(service.id!, service.price.toDouble());
-                          },
-                        );
-                      },
-                      childCount: profile.services.length,
-                    ),
+                        ),
+                        value: isSelected,
+                        activeColor: AppColors.primary,
+                        onChanged: (val) {
+                          // Convert price to double for calculation logic
+                          provider.toggleService(
+                            service.id!,
+                            service.price.toDouble(),
+                          );
+                        },
+                      );
+                    }, childCount: profile.services.length),
                   ),
-                  
+
                   // Extra space for the bottom sheet
                   const SliverToBoxAdapter(child: SizedBox(height: 100)),
                 ],
@@ -176,7 +224,11 @@ class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       boxShadow: [
-                        BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, -5))
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, -5),
+                        ),
                       ],
                     ),
                     child: Row(
@@ -185,10 +237,17 @@ class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text("مبلغ قابل پرداخت", style: TextStyle(color: Colors.grey)),
+                            const Text(
+                              "مبلغ قابل پرداخت",
+                              style: TextStyle(color: Colors.grey),
+                            ),
                             Text(
                               "${provider.localTotalPrice.toInt()} تومان",
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary),
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
                             ),
                           ],
                         ),
