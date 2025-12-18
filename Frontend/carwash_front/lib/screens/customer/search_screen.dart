@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_map_marker_popup/flutter_map_marker_popup.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -13,8 +14,11 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  bool _isMapView = true;
   Position? _currentPosition;
+
+  final MapController _mapController = MapController();
+  final PopupController _popupController = PopupController();
+  CarwashMarker? _selectedCarwashMarker;
 
   Future<void> _determinePosition() async {
     bool serviceEnabled;
@@ -30,7 +34,8 @@ class _SearchScreenState extends State<SearchScreen> {
     }
 
     permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
       permission = await Geolocator.requestPermission();
       if (!mounted) return;
       if (permission == LocationPermission.denied) {
@@ -41,14 +46,11 @@ class _SearchScreenState extends State<SearchScreen> {
       }
     }
 
-    if (permission == LocationPermission.deniedForever) {
+    if (permission != LocationPermission.always &&
+        permission != LocationPermission.whileInUse) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'مجوز های مکانی کاملا رد شده اند، نمی توان مجوز درخواست کرد!',
-          ),
-        ),
+        const SnackBar(content: Text('در موقعیت یابی خطایی پیش آمد!')),
       );
       return;
     }
@@ -63,101 +65,149 @@ class _SearchScreenState extends State<SearchScreen> {
     _searchNearby();
   }
 
-  void _searchNearby() {
-    if (_currentPosition != null) {
-      if (!mounted) return;
-      Provider.of<CustomerProvider>(context, listen: false).searchCarwashes(
-        lat: _currentPosition!.latitude,
-        lon: _currentPosition!.longitude,
+  List<LatLng> _getCarwashCoordinates(List<dynamic> carwashes) {
+    return carwashes.map((d) {
+      final m = d as Map<String, dynamic>;
+      return LatLng(
+        double.parse(m['latitude'].toString()),
+        double.parse(m['longitude'].toString()),
       );
-    } else {
-      if (!mounted) return;
-      // Handle case where location is not available
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('لطفاً ابتدا موقعیت خود را دریافت کنید.')),
-      );
-    }
+    }).toList();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('[جست و جوی کارواش]'),
-        actions: [
-          IconButton(
-            icon: Icon(_isMapView ? Icons.list : Icons.map),
-            onPressed: () {
-              setState(() {
-                _isMapView = !_isMapView;
-              });
-            },
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: ElevatedButton(
-              onPressed: _determinePosition,
-              child: const Text("دریافت مکان و جست و جو"),
-            ),
-          ),
-          if (_currentPosition != null)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                '${_currentPosition!.latitude},${_currentPosition!.longitude}',
-              ),
-            ),
-          Expanded(child: _isMapView ? _buildMapView() : _buildListView()),
-        ],
+  void _fitCarwashes(List<dynamic> carwashes) {
+    if (carwashes.isEmpty) return;
+
+    final coords = _getCarwashCoordinates(carwashes);
+
+    _mapController.fitCamera(
+      CameraFit.coordinates(
+        coordinates: coords,
+        padding: const EdgeInsets.all(80),
       ),
     );
   }
 
-  Widget _buildListView() {
-    return Consumer<CustomerProvider>(
-      builder: (context, provider, child) {
-        if (provider.isLoading) {
-          return const Center(child: CircularProgressIndicator());
-        }
+  void _fitUser() {
+    if (_currentPosition == null) return;
 
-        if (provider.carwashes.isEmpty) {
-          return const Center(child: Text('هیچ کارواشی در نزدیکی یافت نشد.'));
-        }
+    _mapController.move(
+      LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+      15,
+    );
+  }
 
-        return ListView.builder(
-          itemCount: provider.carwashes.length,
-          itemBuilder: (context, index) {
-            final carwash = provider.carwashes[index];
-            return Card(
-              margin: const EdgeInsets.all(8.0),
-              child: ListTile(
-                title: Text(carwash['business_name']),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('آدرس: ${carwash['address']}'),
-                    Text('امتیاز: ${carwash['rating']}'),
-                    Text('حداقل قیمت: ${carwash['min_price']}'),
-                  ],
+  void _searchNearby() async {
+    if (_currentPosition == null) {
+      // Handle case where location is not available
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('لطفاً ابتدا موقعیت خود را دریافت کنید.')),
+      );
+      return;
+    }
+    final provider = Provider.of<CustomerProvider>(context, listen: false);
+
+    await provider.searchCarwashes(
+      lat: _currentPosition!.latitude,
+      lon: _currentPosition!.longitude,
+    );
+
+    if (!mounted) return;
+
+    // Fit carwashes AFTER data arrives
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fitCarwashes(provider.carwashes);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // return Scaffold(
+    //   appBar: AppBar(
+    //     title: const Text('جست و جوی کارواش'),
+    //     actions: [
+    //       IconButton(
+    //         icon: Icon(_isMapView ? Icons.list : Icons.map),
+    //         onPressed: () {
+    //           setState(() {
+    //             _isMapView = !_isMapView;
+    //           });
+    //         },
+    //       ),
+    //     ],
+    //   ),
+    //   body:
+    // );
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: ElevatedButton(
+            onPressed: _determinePosition,
+            child: const Text("دریافت مکان و جست و جو"),
+          ),
+        ),
+        if (_currentPosition != null)
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              '${_currentPosition!.latitude}, ${_currentPosition!.longitude}',
+            ),
+          ),
+        Expanded(
+          child: Expanded(
+            child: Stack(
+              children: [
+                _buildMapView(),
+
+                Positioned(
+                  right: 12,
+                  bottom: 12,
+                  child: Column(
+                    children: [
+                      _circleButton(icon: Icons.my_location, onTap: _fitUser),
+                      const SizedBox(height: 10),
+                      _circleButton(
+                        icon: Icons.car_repair,
+                        onTap: () {
+                          final carwashes =
+                              context.read<CustomerProvider>().carwashes;
+                          _fitCarwashes(carwashes);
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-                trailing: Text('${carwash['distance']} km'),
-              ),
-            );
-          },
-        );
-      },
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _circleButton({required IconData icon, required VoidCallback onTap}) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        shape: const CircleBorder(),
+        padding: const EdgeInsets.all(14),
+        elevation: 6,
+      ),
+      onPressed: onTap,
+      child: Icon(icon, color: Colors.white),
     );
   }
 
   Widget _buildMapView() {
     final provider = Provider.of<CustomerProvider>(context);
-    final carwashes = provider.carwashes;
+    final carwashMarkers = provider.carwashes.map(
+      (dynamic d) => _buildCarwashMarker(d as Map<String, dynamic>),
+    );
+    final markers = carwashMarkers.map((m) => m.marker).toList();
 
     return FlutterMap(
+      mapController: _mapController,
       options: MapOptions(
         initialCenter:
             _currentPosition != null
@@ -165,33 +215,143 @@ class _SearchScreenState extends State<SearchScreen> {
                   _currentPosition!.latitude,
                   _currentPosition!.longitude,
                 )
-                : const LatLng(35.715298, 51.404343), // Tehran
-        initialZoom: 13.0,
+                : const LatLng(35.715298, 51.404343),
+        initialZoom: 13,
+        onTap: (_, __) {
+          _popupController.hideAllPopups();
+        },
       ),
       children: [
         TileLayer(
           urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
           subdomains: const ['a', 'b', 'c'],
         ),
+
+        /// Markers
         MarkerLayer(
-          markers:
-              carwashes.map((carwash) {
-                return Marker(
-                  width: 80.0,
-                  height: 80.0,
-                  point: LatLng(
-                    double.parse(carwash['latitude'].toString()),
-                    double.parse(carwash['longitude'].toString()),
-                  ),
-                  child: const Icon(
-                    Icons.location_on,
-                    color: Colors.red,
-                    size: 40,
-                  ),
-                );
-              }).toList(),
+          markers: [
+            if (_currentPosition != null)
+              Marker(
+                width: 60,
+                height: 60,
+                point: LatLng(
+                  _currentPosition!.latitude,
+                  _currentPosition!.longitude,
+                ),
+                child: const Icon(
+                  Icons.my_location,
+                  color: Colors.blue,
+                  size: 36,
+                ),
+              ),
+            ...markers,
+          ],
+        ),
+
+        /// Popup layer
+        PopupMarkerLayer(
+          options: PopupMarkerLayerOptions(
+            popupController: _popupController,
+            markers: markers,
+            popupDisplayOptions: PopupDisplayOptions(
+              builder: (context, marker) {
+                final selected = _selectedCarwashMarker;
+                if (selected == null) {
+                  return const SizedBox.shrink();
+                }
+                return _buildCarwashPopup(selected.data);
+              },
+            ),
+          ),
         ),
       ],
     );
   }
+
+  CarwashMarker _buildCarwashMarker(Map<String, dynamic> carwash) {
+    late final CarwashMarker carwashMarker;
+
+    final marker = Marker(
+      width: 140,
+      height: 90,
+      point: LatLng(
+        double.parse(carwash['latitude'].toString()),
+        double.parse(carwash['longitude'].toString()),
+      ),
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _selectedCarwashMarker = carwashMarker;
+          });
+          _popupController.showPopupsOnlyFor([carwashMarker.marker]);
+        },
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(6),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black26, blurRadius: 4),
+                ],
+              ),
+              child: Text(
+                carwash['business_name'],
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const Icon(Icons.location_on, color: Colors.red, size: 40),
+          ],
+        ),
+      ),
+    );
+
+    carwashMarker = CarwashMarker(marker: marker, data: carwash);
+    return carwashMarker;
+  }
+
+  Widget _buildCarwashPopup(Map<String, dynamic> carwash) {
+    return Card(
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        width: 220,
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              carwash['business_name'],
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            const SizedBox(height: 6),
+            Text('📍 ${carwash['address']}'),
+            Text('⭐ امتیاز: ${carwash['rating']}'),
+            Text('💰 حداقل قیمت: ${carwash['min_price']}'),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () {
+                // TODO: Navigate or show details
+              },
+              child: const Text('مشاهده جزئیات'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class CarwashMarker {
+  final Marker marker;
+  final Map<String, dynamic> data;
+
+  CarwashMarker({required this.marker, required this.data});
 }
