@@ -1,9 +1,9 @@
+import 'package:carwash_front/screens/customer/search_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/customer_provider.dart';
 import '../../providers/auth_provider.dart'; // Import AuthProvider
 import '../../models/user_model.dart'; // Import UserModel
-import '../../constants/app_colors.dart';
 // import '../../services/utiles.dart';      // Uncomment if you have formatMoney here
 
 class CustomerHomeScreen extends StatefulWidget {
@@ -14,6 +14,8 @@ class CustomerHomeScreen extends StatefulWidget {
 }
 
 class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
+  bool _mapView = false;
+
   @override
   void initState() {
     super.initState();
@@ -41,10 +43,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             // --- 1. THE BLUE HEADER (Dynamic Name) ---
             _buildHeader(context),
 
-            // --- 2. THE LIST OF CARWASHES ---
+            // --- 2. THE LIST OF CARWASHES Or MAP VIEW ---
             Expanded(
               child:
-                  provider.isLoading
+                  _mapView
+                      ? SearchScreen()
+                      : provider.isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : carwashes.isEmpty
                       ? const Center(child: Text("هیچ کارواشی یافت نشد."))
@@ -100,12 +104,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
-                icon: const Icon(Icons.search, color: Colors.white),
-                onPressed: () {
-                  Navigator.pushNamed(context, '/search');
-                },
-              ),
-              IconButton(
                 icon: const Icon(Icons.logout, color: Colors.white),
                 onPressed: () {
                   // --- LOGOUT LOGIC ---
@@ -141,22 +139,40 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           ),
           const SizedBox(height: 20),
 
-          // Search Bar
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const TextField(
-              textDirection: TextDirection.rtl,
-              decoration: InputDecoration(
-                border: InputBorder.none,
-                hintText: "جستجوی کارواش...",
-                prefixIcon: Icon(Icons.search),
-                suffixIcon: Icon(Icons.filter_list, color: Colors.blue),
+          Row(
+            children: [
+              // Search Bar
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const TextField(
+                    textDirection: TextDirection.rtl,
+                    decoration: InputDecoration(
+                      border: InputBorder.none,
+                      hintText: "جستجوی کارواش...",
+                      prefixIcon: Icon(Icons.search),
+                      suffixIcon: Icon(Icons.filter_list, color: Colors.blue),
+                    ),
+                  ),
+                ),
               ),
-            ),
+
+              const SizedBox(width: 15),
+
+              // Map view search
+              FloatingActionButton(
+                onPressed: () {
+                  setState(() {
+                    _mapView = !_mapView;
+                  });
+                },
+                child: const Icon(Icons.map),
+              ),
+            ],
           ),
         ],
       ),
