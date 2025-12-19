@@ -28,7 +28,7 @@ class AdminProvider with ChangeNotifier {
               .toList();
     } catch (e) {
       print("Error happened fetching carwashes: $e");
-      _error = _error = "خطا در بارگذاری اطلاعات";
+      _error = e.toString().replaceAll('Exception:', '').trim();
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -47,7 +47,7 @@ class AdminProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _error = _error = "خطا در بارگذاری اطلاعات";
+      _error = e.toString().replaceAll('Exception:', '').trim();
       notifyListeners();
       return false;
     }

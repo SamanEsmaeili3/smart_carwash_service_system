@@ -172,11 +172,20 @@ class CustomerCarwashListView(generics.ListAPIView):
 
 # Sprint 3 Task-B2.5 & B2.10 (Advanced Search with Filters & Distance)
 class CarwashSearchView(generics.ListAPIView):
+    """
+    Advanced search for carwashes.
+    Features:
+    1. Search by Business Name or Service Name.
+    2. Filter by Price Range (min/max).
+    3. Filter by Minimum Average Rating.
+    4. Calculate distance and sort by Proximity or Rating.
+    """
     serializer_class = CarwashSearchSerializer
-    permission_classes = [AllowAny] # Open for all users
+    permission_classes = [AllowAny]
 
     def get_queryset(self):
-        # 1. Get query parameters from URL
+        # 1. Extract query parameters from the URL
+        search_query = self.request.query_params.get('search')
         lat_param = self.request.query_params.get('lat')
         lon_param = self.request.query_params.get('lon')
         radius_param = self.request.query_params.get('radius') # NEW: Radius in KM
@@ -185,23 +194,26 @@ class CarwashSearchView(generics.ListAPIView):
         min_rating = self.request.query_params.get('min_rating')
         service_name = self.request.query_params.get('service_name') 
 
-        # Start with all approved carwashes
+        # 2. Start with all approved carwash profiles
         queryset = CarwashProfile.objects.filter(status=CarwashProfile.Status.APPROVED)
 
         # 2. Apply Filters (Price & Service Name)
+        # 3. Apply Combined Search (Business Name OR Service Name)
+        if search_query:
+            queryset = queryset.filter(
+                Q(business_name__icontains=search_query) | 
+                # ✅ FIX: Changed 'name' to 'service_name' to match your Model
+                Q(services__service_name__icontains=search_query)
+            ).distinct()
+
+        # 4. Apply Price Filters
         if min_price:
-            # Filter carwashes that have at least one service with price >= min_price
             queryset = queryset.filter(services__price__gte=min_price).distinct()
         
         if max_price:
-            # Filter carwashes that have at least one service with price <= max_price
             queryset = queryset.filter(services__price__lte=max_price).distinct()
 
-        # Filter by Service Name (e.g., "Polish", "Wash")
-        if service_name:
-            queryset = queryset.filter(services__service_name__icontains=service_name).distinct()
-
-        # Prepare final list for output
+        # 5. Process results for Rating and Distance calculations
         carwashes = list(queryset)
         final_results = []
 
@@ -212,15 +224,15 @@ class CarwashSearchView(generics.ListAPIView):
         search_radius = float(radius_param) if radius_param else 15.0
 
         for carwash in carwashes:
-            # A) Calculate Real Average Rating from Rating table
+            # A) Calculate Real-time Average Rating from Rating table
             avg = Rating.objects.filter(order__carwash=carwash).aggregate(Avg('carwash_rating'))['carwash_rating__avg']
-            carwash.rating_val = avg if avg else 0 # Temporary storage for sorting
+            carwash.rating_val = avg if avg else 0 
             
-            # Filter based on Rating (if requested)
+            # B) Filter based on Min Rating (if provided)
             if min_rating and carwash.rating_val < float(min_rating):
                 continue
 
-            # B) Calculate Distance (Haversine)
+            # C) Calculate Distance (Haversine Formula)
             if user_lat and user_lon:
                 dist = self.calculate_distance(
                     user_lat, user_lon, 
@@ -237,18 +249,22 @@ class CarwashSearchView(generics.ListAPIView):
 
             final_results.append(carwash)
 
-        # 3. Sort Results
+        # 6. Sorting Logic
         if user_lat and user_lon:
-            # If user location is provided, sort by distance (Closest first)
+            # Sort by proximity: Closest first
             final_results.sort(key=lambda x: x.distance_km)
         else:
-            # If no location, sort by Rating (Highest first)
+            # Sort by rating: Highest first
             final_results.sort(key=lambda x: x.rating_val, reverse=True)
 
         return final_results
 
     def calculate_distance(self, lat1, lon1, lat2, lon2):
-        R = 6371 # Earth radius in km
+        """
+        Calculates the great-circle distance between two points 
+        on the Earth's surface using the Haversine formula.
+        """
+        R = 6371 # Earth's radius in kilometers
         dLat = math.radians(lat2 - lat1)
         dLon = math.radians(lon2 - lon1)
         a = (math.sin(dLat / 2) * math.sin(dLat / 2) +

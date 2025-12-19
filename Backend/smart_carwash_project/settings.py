@@ -100,10 +100,21 @@ DATABASES = {
         'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
+# #LOCAL POSTGRESQL
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'smart_carwash_db',  # نام دیتابیسی که ساختید
+#         'USER': 'smart_carwash_user',  # نام کاربری مد نظر شما
+#         'PASSWORD': '123456', # رمز عبور مد نظر شما
+#         'HOST': '127.0.0.1', # چون داکر روی سیستم شما اجرا شده است
+#         'PORT': '5432', # پورت پیش فرض PostgreSQL
+#     }
+# }
 
-import dj_database_url
-db_from_env = dj_database_url.config(conn_max_age=600)
-DATABASES['default'].update(db_from_env)
+# import dj_database_url
+# db_from_env = dj_database_url.config(conn_max_age=600)
+# DATABASES['default'].update(db_from_env)
 
 # DATABASES = {
 #     'default': dj_database_url.config(
