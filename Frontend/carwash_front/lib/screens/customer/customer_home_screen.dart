@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_map/flutter_map.dart'; // پکیج نقشه
-import 'package:latlong2/latlong.dart'; // پکیج مختصات
+import 'package:flutter_map/flutter_map.dart'; // map package
+import 'package:latlong2/latlong.dart'; // coordinate package
 import '../../providers/search_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../constants/app_colors.dart';
