@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_map/flutter_map.dart'; // map package
-import 'package:latlong2/latlong.dart'; // coordinate package
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../../providers/search_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../constants/app_colors.dart';
@@ -19,8 +19,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   final MapController _mapController = MapController();
 
-  // متغیر برای سوییچ بین نقشه و لیست
-  bool _isMapView = false;
+  bool _isMapView = false; // Only used for Mobile
 
   @override
   void initState() {
@@ -53,152 +52,190 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final searchProvider = Provider.of<SearchProvider>(context);
-    final results = searchProvider.results;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Breakpoint: 800px
+        bool isWideScreen = constraints.maxWidth > 800;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      // دکمه شناور برای تغییر ویو
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          setState(() {
-            _isMapView = !_isMapView;
-          });
-        },
-        backgroundColor: AppColors.primary,
-        icon: Icon(_isMapView ? Icons.list : Icons.map, color: Colors.white),
-        label: Text(
-          _isMapView ? "مشاهده لیست" : "مشاهده روی نقشه",
-          style: const TextStyle(color: Colors.white),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(context),
-
-            Expanded(
-              child:
-                  searchProvider.isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : searchProvider.error != null
-                      ? _buildErrorState(searchProvider)
-                      : results.isEmpty
-                      ? _buildEmptyState(searchProvider)
-                      : _isMapView
-                      ? _buildMapView(searchProvider) // نمایش نقشه
-                      : _buildListView(searchProvider), // نمایش لیست
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // --- Map widget ---
-  Widget _buildMapView(SearchProvider provider) {
-    // Map center (user location or Tehran center)
-    // In your SearchProvider there are variables _lat and _lon which are user location
-    // For now we assume provider.lat and provider.lon are available (if they are private create getter)
-    // Here we use default values ​​of Tehran
-    final userLocation = LatLng(35.759432, 51.410376);
-
-    return Stack(
-      children: [
-        FlutterMap(
-          mapController: _mapController,
-          options: MapOptions(initialCenter: userLocation, initialZoom: 13.0),
-          children: [
-            TileLayer(
-              urlTemplate:
-                  'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-              subdomains: const ['a', 'b', 'c'], // سرورهای کمکی
-              userAgentPackageName: 'com.carwash.app.pro',
-            ),
-            // دایره شعاع جستجو
-            CircleLayer(
-              circles: [
-                CircleMarker(
-                  point: userLocation,
-                  color: Colors.blue.withOpacity(0.1),
-                  borderColor: Colors.blue,
-                  borderStrokeWidth: 2,
-                  radius:
-                      provider.radius *
-                      1000, // تبدیل کیلومتر به متر (تقریبی برای زوم)
-                  // نکته: CircleLayer در flutter_map شعاع را به متر می‌گیرد اما در زوم‌های مختلف اسکیل می‌شود
-                  useRadiusInMeter: true,
-                ),
-              ],
-            ),
-            MarkerLayer(
-              markers: [
-                // مارکر موقعیت کاربر
-                Marker(
-                  point: userLocation,
-                  width: 40,
-                  height: 40,
-                  child: const Icon(
-                    Icons.my_location,
-                    color: Colors.blue,
-                    size: 30,
-                  ),
-                ),
-                // مارکرهای کارواش‌ها
-                ...provider.results.map((carwash) {
-                  return Marker(
-                    point: LatLng(carwash.latitude, carwash.longitude),
-                    width: 50,
-                    height: 50,
-                    child: GestureDetector(
-                      onTap: () {
-                        // نمایش مشخصات کارواش پایین صفحه
-                        _showCarwashPreview(context, carwash);
-                      },
-                      child: const Icon(
-                        Icons.local_car_wash,
-                        color: AppColors.primary,
-                        size: 40,
-                      ),
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          // Hide FAB on Web (Split view doesn't need toggle)
+          floatingActionButton:
+              isWideScreen
+                  ? null
+                  : FloatingActionButton.extended(
+                    onPressed: () {
+                      setState(() {
+                        _isMapView = !_isMapView;
+                      });
+                    },
+                    backgroundColor: AppColors.primary,
+                    icon: Icon(
+                      _isMapView ? Icons.list : Icons.map,
+                      color: Colors.white,
                     ),
-                  );
-                }),
-              ],
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  // نمایش خلاصه کارواش وقتی روی مارکر کلیک می‌شود
-  void _showCarwashPreview(BuildContext context, CarwashModel carwash) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _CarwashResultCard(
-                carwash: carwash,
-              ), // استفاده مجدد از کارت موجود
-            ],
+                    label: Text(
+                      _isMapView ? "مشاهده لیست" : "مشاهده روی نقشه",
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+          floatingActionButtonLocation:
+              FloatingActionButtonLocation.centerFloat,
+          body: SafeArea(
+            child:
+                isWideScreen
+                    ? _buildWebLayout() // Split View
+                    : _buildMobileLayout(), // Toggle View
           ),
         );
       },
     );
   }
 
-  // --- ویجت لیست (همان کد قبلی که جدا شده) ---
+  // --- 📱 MOBILE LAYOUT (Toggle Map/List) ---
+  Widget _buildMobileLayout() {
+    final searchProvider = Provider.of<SearchProvider>(context);
+    final results = searchProvider.results;
+
+    return Column(
+      children: [
+        _buildHeader(context),
+        Expanded(
+          child:
+              searchProvider.isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : searchProvider.error != null
+                  ? _buildErrorState(searchProvider)
+                  : results.isEmpty
+                  ? _buildEmptyState(searchProvider)
+                  : _isMapView
+                  ? _buildMapView(searchProvider)
+                  : _buildListView(searchProvider),
+        ),
+      ],
+    );
+  }
+
+  // --- 💻 WEB LAYOUT (Split Screen) ---
+  Widget _buildWebLayout() {
+    final searchProvider = Provider.of<SearchProvider>(context);
+    final results = searchProvider.results;
+
+    return Row(
+      children: [
+        // Left Side: Sidebar (Header + List)
+        SizedBox(
+          width: 400, // Fixed width for sidebar
+          child: Column(
+            children: [
+              _buildHeader(context),
+              Expanded(
+                child:
+                    searchProvider.isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : searchProvider.error != null
+                        ? _buildErrorState(searchProvider)
+                        : results.isEmpty
+                        ? _buildEmptyState(searchProvider)
+                        : _buildListView(searchProvider),
+              ),
+            ],
+          ),
+        ),
+        // Right Side: Map (Takes remaining space)
+        Expanded(
+          child: Stack(
+            children: [
+              _buildMapView(searchProvider),
+              // Shadow to separate map from sidebar
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                child: Container(
+                  width: 1,
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 10,
+                        offset: const Offset(5, 0),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // --- 🗺️ MAP WIDGET ---
+  Widget _buildMapView(SearchProvider provider) {
+    final userLocation = LatLng(35.759432, 51.410376); // Default Center
+
+    return FlutterMap(
+      mapController: _mapController,
+      options: MapOptions(initialCenter: userLocation, initialZoom: 13.0),
+      children: [
+        TileLayer(
+          urlTemplate:
+              'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+          subdomains: const ['a', 'b', 'c'],
+          userAgentPackageName: 'com.carwash.app.pro',
+        ),
+        CircleLayer(
+          circles: [
+            CircleMarker(
+              point: userLocation,
+              color: Colors.blue.withOpacity(0.1),
+              borderColor: Colors.blue,
+              borderStrokeWidth: 2,
+              radius: provider.radius * 1000,
+              useRadiusInMeter: true,
+            ),
+          ],
+        ),
+        MarkerLayer(
+          markers: [
+            // User Location
+            Marker(
+              point: userLocation,
+              width: 40,
+              height: 40,
+              child: const Icon(
+                Icons.my_location,
+                color: Colors.blue,
+                size: 30,
+              ),
+            ),
+            // Carwash Markers
+            ...provider.results.map((carwash) {
+              return Marker(
+                point: LatLng(carwash.latitude, carwash.longitude),
+                width: 50,
+                height: 50,
+                child: GestureDetector(
+                  onTap: () {
+                    _showCarwashPreview(context, carwash);
+                  },
+                  child: const Icon(
+                    Icons.local_car_wash,
+                    color: AppColors.primary,
+                    size: 40,
+                  ),
+                ),
+              );
+            }),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // --- 📋 LIST WIDGET ---
   Widget _buildListView(SearchProvider provider) {
     return RefreshIndicator(
       onRefresh: () => provider.searchCarwashes(),
@@ -212,7 +249,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  // --- ویجت هدر (بدون تغییر) ---
+  // --- 🏠 HEADER WIDGET ---
   Widget _buildHeader(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final user = authProvider.user;
@@ -304,7 +341,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  // --- ویجت‌های کمکی (خالی، ارور، باتم‌شیت) همانند قبل ---
+  // --- HELPERS (Empty, Error, BottomSheets) ---
+
   Widget _buildEmptyState(SearchProvider provider) {
     if (provider.searchQuery.isNotEmpty) {
       return Center(
@@ -365,101 +403,150 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
+  // Updated to handle Web/Desktop dialogs vs Mobile BottomSheet
   void _showFilterBottomSheet(BuildContext context) {
+    final isWideScreen = MediaQuery.of(context).size.width > 800;
+
+    if (isWideScreen) {
+      showDialog(
+        context: context,
+        builder:
+            (ctx) => Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Container(
+                width: 400,
+                padding: const EdgeInsets.all(24),
+                child: _buildFilterContent(context),
+              ),
+            ),
+      );
+    } else {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (ctx) {
+          return Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [_buildFilterContent(context)],
+            ),
+          );
+        },
+      );
+    }
+  }
+
+  // Refactored filter content to reuse in Dialog and BottomSheet
+  Widget _buildFilterContent(BuildContext context) {
+    return Consumer<SearchProvider>(
+      builder: (context, provider, child) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "فیلترها",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "شعاع جستجو",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  "${provider.radius.toInt()} km",
+                  style: const TextStyle(color: AppColors.primary),
+                ),
+              ],
+            ),
+            Slider(
+              value: provider.radius,
+              min: 5,
+              max: 100,
+              divisions: 19,
+              label: "${provider.radius.toInt()} km",
+              onChanged: (val) => provider.setRadius(val),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "حداقل امتیاز",
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  "${provider.minRating.toInt()}",
+                  style: const TextStyle(color: Colors.amber),
+                ),
+              ],
+            ),
+            Slider(
+              value: provider.minRating,
+              min: 0,
+              max: 5,
+              divisions: 5,
+              activeColor: Colors.amber,
+              label: provider.minRating.toInt().toString(),
+              onChanged: (val) => provider.setRatingFilter(val),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: () {
+                  provider.searchCarwashes();
+                  Navigator.pop(context);
+                },
+                child: const Text(
+                  "اعمال فیلتر",
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showCarwashPreview(BuildContext context, CarwashModel carwash) {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (ctx) {
-        return Consumer<SearchProvider>(
-          builder: (context, provider, child) {
-            return Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    "فیلترها",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "شعاع جستجو",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        "${provider.radius.toInt()} km",
-                        style: const TextStyle(color: AppColors.primary),
-                      ),
-                    ],
-                  ),
-                  Slider(
-                    value: provider.radius,
-                    min: 5,
-                    max: 100,
-                    divisions: 19,
-                    label: "${provider.radius.toInt()} km",
-                    onChanged: (val) => provider.setRadius(val),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        "حداقل امتیاز",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        "${provider.minRating.toInt()}",
-                        style: const TextStyle(color: Colors.amber),
-                      ),
-                    ],
-                  ),
-                  Slider(
-                    value: provider.minRating,
-                    min: 0,
-                    max: 5,
-                    divisions: 5,
-                    activeColor: Colors.amber,
-                    label: provider.minRating.toInt().toString(),
-                    onChanged: (val) => provider.setRatingFilter(val),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      onPressed: () {
-                        provider.searchCarwashes();
-                        Navigator.pop(context);
-                      },
-                      child: const Text(
-                        "اعمال فیلتر",
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [_CarwashResultCard(carwash: carwash)],
+          ),
         );
       },
     );
   }
 }
 
-// --- کارت نمایش تکی کارواش (بدون تغییر) ---
+// --- CARD COMPONENT ---
 class _CarwashResultCard extends StatelessWidget {
   final CarwashModel carwash;
+
   const _CarwashResultCard({required this.carwash});
 
   @override
