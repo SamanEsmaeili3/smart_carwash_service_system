@@ -1,6 +1,6 @@
 import 'package:carwash_front/providers/booking_provider.dart';
 import 'package:carwash_front/providers/search_provider.dart';
-import 'package:carwash_front/screens/customer/customer_search_screen.dart';
+import 'package:carwash_front/screens/customer/customer_home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
@@ -17,7 +17,6 @@ import 'screens/auth/login_screen.dart';
 import 'screens/auth/customer_signup_screen.dart';
 import 'screens/auth/carwash_application_screen.dart';
 import 'screens/admin/admin_dashboard.dart';
-import 'screens/customer/customer_home_screen.dart'; // <--- ADD THIS (Correct File Name)
 import 'screens/carwash/carwash_home_screen.dart';
 import 'screens/splash_screen.dart';
 
@@ -76,7 +75,7 @@ class MyApp extends StatelessWidget {
         '/admin': (context) => const AdminDashboard(),
         // '/customer':
         //     (context) => const CustomerHomeScreen(), // <--- FIXED CLASS NAME
-        '/customer': (context) => const CustomerSearchScreen(),
+        '/customer': (context) => const CustomerHomeScreen(),
         '/carwash': (context) => const CarwashHomeScreen(),
       },
     );

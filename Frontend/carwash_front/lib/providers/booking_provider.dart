@@ -13,10 +13,9 @@ class BookingProvider with ChangeNotifier {
   String? _profileError;
 
   // Selection State (User Story 2.4)
+  // --- Booking State (User Story 2.4 - NEW) ---
   final Set<int> _selectedServiceIds = {};
   double _localTotalPrice = 0.0;
-
-  // Ordering State
   bool _isSubmittingOrder = false;
 
   // Getters
@@ -57,6 +56,9 @@ class BookingProvider with ChangeNotifier {
       _selectedServiceIds.add(serviceId);
       _localTotalPrice += price;
     }
+    // Avoid negative prices (just in case)
+    if (_localTotalPrice < 0) _localTotalPrice = 0;
+
     notifyListeners();
   }
 
