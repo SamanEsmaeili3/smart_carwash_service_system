@@ -10,11 +10,13 @@ class SearchProvider with ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
-  // Filter States
+  // فیلترها
   double _minRating = 0.0;
   double _minPrice = 0.0;
+  double _radius = 15.0;
+  String _searchQuery = ''; // متنی که کاربر تایپ کرده (نام سرویس)
 
-  // Default Location (Tehran) - In real app, get this from Geolocation
+  // لوکیشن پیش‌فرض
   double _lat = 35.759432;
   double _lon = 51.410376;
 
@@ -24,8 +26,10 @@ class SearchProvider with ChangeNotifier {
   String? get error => _error;
   double get minRating => _minRating;
   double get minPrice => _minPrice;
+  double get radius => _radius;
+  String get searchQuery => _searchQuery;
 
-  // Setters for UI to update filters
+  // Setters
   void setRatingFilter(double value) {
     _minRating = value;
     notifyListeners();
@@ -36,40 +40,55 @@ class SearchProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void setLocation(double lat, double lon) {
-    _lat = lat;
-    _lon = lon;
+  void setRadius(double value) {
+    _radius = value;
+    notifyListeners();
   }
 
-  /// Execute Search (User Story 1)
+  // ذخیره متن جستجو
+  void setSearchQuery(String query) {
+    _searchQuery = query.trim();
+    // اینجا notifyListeners نمی‌زنیم تا وقتی دکمه سرچ زده شد لیست آپدیت شود
+  }
+
+  void clearFilters() {
+    _minRating = 0.0;
+    _minPrice = 0.0;
+    _radius = 15.0;
+    _searchQuery = '';
+    notifyListeners();
+  }
+
   Future<void> searchCarwashes() async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      // Prepare Query Params
       final Map<String, String> queryParams = {
         'lat': _lat.toString(),
         'lon': _lon.toString(),
+        'radius': _radius.toInt().toString(),
       };
 
-      // Add optional filters if set
-      if (_minRating > 0) {
+      if (_minRating > 0)
         queryParams['min_rating'] = _minRating.toInt().toString();
-      }
-      if (_minPrice > 0) {
+      if (_minPrice > 0)
         queryParams['min_price'] = _minPrice.toInt().toString();
+
+      // ✅ ارسال نام سرویس به سرور
+      if (_searchQuery.isNotEmpty) {
+        queryParams['search'] = _searchQuery;
       }
 
-      // Call API
+      print("Searching with params: $queryParams");
+
       final response = await _api.getWithParams(
         ApiConstants.search,
         queryParams,
         auth: true,
       );
 
-      // Parse List
       if (response is List) {
         _results = response.map((e) => CarwashModel.fromJson(e)).toList();
       } else {

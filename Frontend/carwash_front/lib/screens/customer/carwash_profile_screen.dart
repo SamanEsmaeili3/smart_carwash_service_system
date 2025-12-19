@@ -1,3 +1,4 @@
+import 'package:carwash_front/services/utiles.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/booking_provider.dart';
@@ -40,7 +41,7 @@ class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
           backgroundColor: AppColors.success,
         ),
       );
-      // Navigator.pushNamed(context, '/select_time', arguments: orderId);
+      // TODO: Navigator.pushNamed(context, '/select_time', arguments: orderId);
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -186,15 +187,15 @@ class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
                       );
 
                       return CheckboxListTile(
-                        title: Text(service.serviceName),
-                        subtitle: Text(service.description),
-                        secondary: Text(
-                          "${service.price}",
+                        title: Text(
+                          "${formatMoney(service.price)}",
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             color: AppColors.primary,
                           ),
                         ),
+                        subtitle: Text(service.description),
+                        secondary: Text(service.serviceName),
                         value: isSelected,
                         activeColor: AppColors.primary,
                         onChanged: (val) {
@@ -242,7 +243,7 @@ class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
                               style: TextStyle(color: Colors.grey),
                             ),
                             Text(
-                              "${provider.localTotalPrice.toInt()} تومان",
+                              "${formatMoney(provider.localTotalPrice)} تومان",
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,

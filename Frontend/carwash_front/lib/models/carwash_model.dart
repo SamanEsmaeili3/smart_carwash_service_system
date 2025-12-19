@@ -12,7 +12,7 @@ class CarwashModel {
   final double latitude;
   final double longitude;
   final String? password;
-
+  final double? rating;
   final List<CarwashServiceModel> services;
 
   CarwashModel({
@@ -28,6 +28,7 @@ class CarwashModel {
     this.longitude = 51.410376,
     this.password,
     this.services = const [],
+    this.rating,
   });
 
   // helper method to parse double
@@ -80,6 +81,7 @@ class CarwashModel {
       latitude: _parseDouble(json['latitude'], fallback: 35.759432),
       longitude: _parseDouble(json['longitude'], fallback: 51.410376),
       services: servicesList,
+      rating: (json['rating'] as num?)?.toDouble(),
       // We don't read password from API for security
     );
   }
