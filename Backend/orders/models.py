@@ -18,6 +18,8 @@ class Order(models.Model):
     vehicle = models.ForeignKey(Vehicle, on_delete=models.SET_NULL, null=True, related_name='orders')
     driver = models.ForeignKey(Driver, on_delete=models.SET_NULL, null=True, blank=True, related_name='orders')
     
+    scheduled_time = models.DateTimeField(null=True, blank=True)
+
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     

@@ -94,4 +94,18 @@ class BookingProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+  // NEW: Finalize Order (Sprint 4)
+  Future<bool> finalizeOrder(int orderId, String isoTime) async {
+    try {
+      await _api.post(
+        '/api/order/$orderId/finalize/', 
+        {"scheduled_time": isoTime}, // Sending proper ISO string
+        auth: true
+      );
+      return true;
+    } catch (e) {
+      print("Finalize Error: $e");
+      return false;
+    }
+  }
 }

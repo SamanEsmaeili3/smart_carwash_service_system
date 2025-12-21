@@ -10,6 +10,9 @@ class OrderServiceSerializer(serializers.ModelSerializer):
         fields = ['service_name', 'price_at_time_of_order', 'quantity']
 
 class OrderDraftSerializer(serializers.ModelSerializer):
+    # Serializer automatically handles ISO 8601 format (e.g., "2025-12-25T14:00:00Z")
+    scheduled_time = serializers.DateTimeField(required=False)
+
     service_ids = serializers.ListField(
         child=serializers.IntegerField(), write_only=True
     )
@@ -19,5 +22,5 @@ class OrderDraftSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Order
-        fields = ['id', 'carwash_id', 'service_ids', 'total_price', 'status', 'created_at', 'order_services']
+        fields = ['id', 'carwash_id', 'service_ids', 'total_price', 'status', 'created_at', 'order_services', 'scheduled_time']
         read_only_fields = ['id', 'total_price', 'status', 'created_at', 'order_services']

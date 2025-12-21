@@ -32,13 +32,8 @@ class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
     final orderId = await provider.prepareOrder();
 
     if (orderId != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("سفارش $orderId ایجاد شد. رفتن به انتخاب زمان..."),
-          backgroundColor: AppColors.success,
-        ),
-      );
-      // Navigator.pushNamed(context, '/select_time', arguments: orderId);
+      // ✅ NAVIGATE TO TIME SELECTION
+      Navigator.pushNamed(context, '/select_time', arguments: orderId);
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

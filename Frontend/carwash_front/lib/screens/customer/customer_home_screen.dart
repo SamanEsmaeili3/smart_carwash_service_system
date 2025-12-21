@@ -182,10 +182,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       options: MapOptions(initialCenter: userLocation, initialZoom: 13.0),
       children: [
         TileLayer(
-          urlTemplate:
-              'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-          subdomains: const ['a', 'b', 'c'],
-          userAgentPackageName: 'com.carwash.app.pro',
+          // Use standard OpenStreetMap instead of CartoCDN
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          // OSM does not use subdomains like {s}, so we remove that line
+          userAgentPackageName: 'com.carwash.app.pro', 
         ),
         CircleLayer(
           circles: [

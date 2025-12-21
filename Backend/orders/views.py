@@ -1,5 +1,6 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 
@@ -7,6 +8,8 @@ from .models import Order, OrderService
 from .serializers import OrderDraftSerializer
 from carwash.models import CarwashProfile, CarwashService
 from accounts.models import CustomerProfile
+
+from django.utils.dateparse import parse_datetime
 
 # Task-B2.18: Prepare Order (Calculate Price & Create Draft)
 class OrderPrepareView(generics.CreateAPIView):
@@ -60,3 +63,37 @@ class OrderPrepareView(generics.CreateAPIView):
 
         serializer = self.get_serializer(order)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+# NEW: Finalize Booking with Professional Date Parsing
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def finalize_order(request, pk):
+    try:
+        # Ensure user owns the order
+        order = Order.objects.get(pk=pk, customer=request.user.customerprofile)
+    except Order.DoesNotExist:
+        return Response({"error": "Order not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    # 1. Get the raw ISO string (e.g., "2023-12-25T14:30:00")
+    time_str = request.data.get('scheduled_time')
+    
+    if not time_str:
+        return Response({"error": "Scheduled time is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # 2. Parse into Python datetime object
+    scheduled_dt = parse_datetime(time_str)
+    
+    if scheduled_dt is None:
+        return Response({"error": "Invalid date format. Use ISO 8601."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # 3. Update Order
+    order.scheduled_time = scheduled_dt
+    order.status = Order.Status.SUBMITTED # Move from PENDING to SUBMITTED
+    order.save()
+
+    return Response({
+        "message": "Order confirmed successfully!",
+        "order_id": order.id,
+        "status": order.status,
+        "scheduled_time": order.scheduled_time
+    }, status=status.HTTP_200_OK)
