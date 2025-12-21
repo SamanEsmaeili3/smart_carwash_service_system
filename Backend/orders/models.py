@@ -7,6 +7,7 @@ from carwash.models import CarwashProfile, Driver, CarwashService # Import model
 class Order(models.Model):
     class Status(models.TextChoices):
         PENDING = 'PENDING', 'Pending'
+        SUBMITTED = 'SUBMITTED', 'Submitted'
         ACCEPTED = 'ACCEPTED', 'Accepted'
         EN_ROUTE = 'EN_ROUTE', 'En Route'
         IN_SERVICE = 'IN_SERVICE', 'In Service'
