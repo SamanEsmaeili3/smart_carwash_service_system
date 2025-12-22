@@ -319,14 +319,21 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           // --- دکمه تغییر مکان ---
           InkWell(
             onTap: () async {
-              // باز کردن صفحه انتخاب لوکیشن
               final LatLng? result = await Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder:
                       (_) => LocationPickerScreen(
-                        initialLat: searchProvider.lat,
-                        initialLon: searchProvider.lon,
+                        // اگر قبلاً لوکیشن انتخاب کرده، همان را نشان بده
+                        // اگر نه (0.0 بود)، مقادیر پیش‌فرض کلاس (تهران) اعمال می‌شود
+                        initialLat:
+                            searchProvider.lat != 0
+                                ? searchProvider.lat
+                                : 35.6892,
+                        initialLon:
+                            searchProvider.lon != 0
+                                ? searchProvider.lon
+                                : 51.3890,
                       ),
                 ),
               );
