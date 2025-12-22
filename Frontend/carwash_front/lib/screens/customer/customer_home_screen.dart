@@ -185,7 +185,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           // Use standard OpenStreetMap instead of CartoCDN
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           // OSM does not use subdomains like {s}, so we remove that line
-          userAgentPackageName: 'com.carwash.app.pro', 
+          userAgentPackageName: 'com.carwash.app.pro',
         ),
         CircleLayer(
           circles: [
@@ -303,52 +303,40 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             ],
           ),
           const SizedBox(height: 20),
-          // Container(
-          //   padding: const EdgeInsets.symmetric(horizontal: 16),
-          //   decoration: BoxDecoration(
-          //     color: Colors.white,
-          //     borderRadius: BorderRadius.circular(12),
-          //   ),
-          //   child: TextField(
-          //     controller: _searchCtrl,
-          //     textDirection: TextDirection.rtl,
-          //     textInputAction: TextInputAction.search,
-          //     onSubmitted: _onSearchSubmitted,
-          //     onChanged: (val) {
-          //       setState(() {});
-          //     },
-          //     decoration: InputDecoration(
-          //       border: InputBorder.none,
-          //       hintText: "جستجوی سرویس (مثلاً روشویی...)",
-          //       prefixIcon: const Icon(Icons.search),
-          //       suffixIcon:
-          //           _searchCtrl.text.isNotEmpty
-          //               ? IconButton(
-          //                 icon: const Icon(Icons.close, color: Colors.grey),
-          //                 onPressed: _onClearSearch,
-          //               )
-          //               : IconButton(
-          //                 icon: const Icon(
-          //                   Icons.filter_list,
-          //                   color: AppColors.primary,
-          //                 ),
-          //                 onPressed: () => _showFilterBottomSheet(context),
-          //               ),
-          //     ),
-
-          //     const SizedBox(width: 15),
-
-          //     // Map view search
-          //     FloatingActionButton(
-          //       onPressed: () {
-          //         setState(() {
-          //           _mapView = !_mapView;
-          //         });
-          //       },
-          //       child: const Icon(Icons.map),
-          //     ),
-          //   ],
-          // ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: TextField(
+              controller: _searchCtrl,
+              textDirection: TextDirection.rtl,
+              textInputAction: TextInputAction.search,
+              onSubmitted: _onSearchSubmitted,
+              onChanged: (val) {
+                setState(() {});
+              },
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                hintText: "جستجوی سرویس (مثلاً روشویی...)",
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon:
+                    _searchCtrl.text.isNotEmpty
+                        ? IconButton(
+                          icon: const Icon(Icons.close, color: Colors.grey),
+                          onPressed: _onClearSearch,
+                        )
+                        : IconButton(
+                          icon: const Icon(
+                            Icons.filter_list,
+                            color: AppColors.primary,
+                          ),
+                          onPressed: () => _showFilterBottomSheet(context),
+                        ),
+              ),
+            ),
+          ),
         ],
       ),
     );
