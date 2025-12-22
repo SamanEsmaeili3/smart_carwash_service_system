@@ -17,8 +17,8 @@ class SearchProvider with ChangeNotifier {
   String _searchQuery = ''; // متنی که کاربر تایپ کرده (نام سرویس)
 
   // لوکیشن پیش‌فرض
-  double _lat = 35.759432;
-  double _lon = 51.410376;
+  double _lat = 0.0;
+  double _lon = 0.0;
 
   // Getters
   List<CarwashModel> get results => _results;
@@ -28,6 +28,8 @@ class SearchProvider with ChangeNotifier {
   double get minPrice => _minPrice;
   double get radius => _radius;
   String get searchQuery => _searchQuery;
+  double get lat => _lat;
+  double get lon => _lon;
 
   // Setters
   void setRatingFilter(double value) {
@@ -57,6 +59,15 @@ class SearchProvider with ChangeNotifier {
     _radius = 15.0;
     _searchQuery = '';
     notifyListeners();
+  }
+
+  void updateUserLocation(double newLat, double newLon) {
+    _lat = newLat;
+    _lon = newLon;
+    notifyListeners(); // برای اینکه UI مختصات جدید را نشان دهد
+
+    // بلافاصله با مختصات جدید جستجو کن
+    searchCarwashes();
   }
 
   Future<void> searchCarwashes() async {
