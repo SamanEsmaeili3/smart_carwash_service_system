@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../../providers/booking_provider.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/custom_button.dart';
-import '../../models/carwash_model.dart'; // Ensure this is imported for the type
+import '../../models/carwash_model.dart';
 
 class CarwashProfileScreen extends StatefulWidget {
   final int carwashId;
@@ -32,7 +32,12 @@ class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
     final orderId = await provider.prepareOrder();
 
     if (orderId != null && mounted) {
-      // ✅ NAVIGATE TO TIME SELECTION
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   SnackBar(
+      //     content: Text("سفارش $orderId ایجاد شد. رفتن به انتخاب زمان..."),
+      //     backgroundColor: AppColors.success,
+      //   ),
+      // );
       Navigator.pushNamed(context, '/select_time', arguments: orderId);
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -69,6 +74,12 @@ class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
                         () => provider.fetchCarwashProfile(widget.carwashId),
                     child: const Text("تلاش مجدد"),
                   ),
+                  const SizedBox(height: 16),
+                  // دکمه بازگشت در حالت ارور
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("بازگشت"),
+                  ),
                 ],
               ),
             );
@@ -79,7 +90,6 @@ class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
             return const Center(child: Text("اطلاعات یافت نشد"));
           }
 
-          // --- RESPONSIVE LAYOUT BUILDER ---
           return LayoutBuilder(
             builder: (context, constraints) {
               if (constraints.maxWidth > 800) {
@@ -110,6 +120,21 @@ class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
               expandedHeight: 200,
               pinned: true,
               backgroundColor: AppColors.primary,
+              // --- دکمه بازگشت (اضافه شده) ---
+              leading: IconButton(
+                icon: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(
+                      0.3,
+                    ), // پس‌زمینه نیمه‌شفاف برای دیده شدن روی عکس
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.arrow_back, color: Colors.white),
+                ),
+                onPressed: () => Navigator.pop(context),
+              ),
+              // ------------------------------
               flexibleSpace: FlexibleSpaceBar(
                 title: Text(
                   profile.businessName,
@@ -150,70 +175,94 @@ class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
       child: Container(
         constraints: const BoxConstraints(maxWidth: 1200),
         padding: const EdgeInsets.all(24),
-        child: Row(
+        child: Column(
+          // اضافه کردن Column اصلی برای دکمه بک
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- Left Column: Content (Scrollable) ---
-            Expanded(
-              flex: 2,
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 1. Image
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: SizedBox(
-                        height: 300,
-                        width: double.infinity,
-                        child: _buildCarwashImage(profile.licensePhotoUrl),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // 2. Title & Info
-                    Text(
-                      profile.businessName,
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildInfoSection(profile),
-                    const Divider(height: 40),
-
-                    // 3. Services
-                    const Text(
-                      "انتخاب سرویس‌ها",
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: profile.services.length,
-                      itemBuilder: (context, index) {
-                        return _buildServiceItem(
-                          profile.services[index],
-                          provider,
-                        );
-                      },
-                    ),
-                  ],
+            // --- دکمه بازگشت برای وب ---
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: ElevatedButton.icon(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back),
+                label: const Text("بازگشت به لیست"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                  elevation: 0,
+                  side: const BorderSide(color: Colors.grey),
                 ),
               ),
             ),
 
-            // --- Right Column: Sticky Summary Card ---
-            const SizedBox(width: 32),
+            // --------------------------
             Expanded(
-              flex: 1,
-              child: Column(
-                children: [_buildBottomSummary(provider, isWeb: true)],
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // --- Left Column: Content ---
+                  Expanded(
+                    flex: 2,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: SizedBox(
+                              height: 300,
+                              width: double.infinity,
+                              child: _buildCarwashImage(
+                                profile.licensePhotoUrl,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+
+                          Text(
+                            profile.businessName,
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          _buildInfoSection(profile),
+                          const Divider(height: 40),
+
+                          const Text(
+                            "انتخاب سرویس‌ها",
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: profile.services.length,
+                            itemBuilder: (context, index) {
+                              return _buildServiceItem(
+                                profile.services[index],
+                                provider,
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // --- Right Column: Sticky Summary ---
+                  const SizedBox(width: 32),
+                  Expanded(
+                    flex: 1,
+                    child: Column(
+                      children: [_buildBottomSummary(provider, isWeb: true)],
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -269,7 +318,6 @@ class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
               Text(profile.phoneNumber),
             ],
           ),
-          // Only show divider here on mobile, web handles it differently
         ],
       ),
     );
@@ -289,7 +337,7 @@ class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
       ),
       child: CheckboxListTile(
         title: Text(
-          "${formatMoney(service.price)}", // Assuming you handle 'تومان' inside formatMoney or add it here
+          "${formatMoney(service.price)}",
           style: const TextStyle(
             fontWeight: FontWeight.bold,
             color: AppColors.primary,
