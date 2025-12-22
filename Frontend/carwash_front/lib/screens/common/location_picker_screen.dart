@@ -10,8 +10,8 @@ class LocationPickerScreen extends StatefulWidget {
 
   const LocationPickerScreen({
     super.key,
-    this.initialLat = 35.7594, // پیش‌فرض تهران
-    this.initialLon = 51.4103,
+    this.initialLat = 35.7546, // میدان ونک
+    this.initialLon = 51.4090, // میدان ونک
   });
 
   @override
@@ -26,6 +26,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   void initState() {
     super.initState();
     _mapController = MapController();
+
+    // مقدار اولیه نقشه = میدان ونک
     _currentCenter = LatLng(widget.initialLat, widget.initialLon);
   }
 
@@ -34,12 +36,12 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // ۱. نقشه
+          /// 1️⃣ نقشه
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
               initialCenter: _currentCenter,
-              initialZoom: 15.0,
+              initialZoom: 16.0, // زوم مناسب برای میدان
               onPositionChanged: (position, hasGesture) {
                 if (position.center != null) {
                   _currentCenter = position.center!;
@@ -48,20 +50,16 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
             ),
             children: [
               TileLayer(
-                // Use standard OpenStreetMap instead of CartoCDN
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                // OSM does not use subdomains like {s}, so we remove that line
                 userAgentPackageName: 'com.carwash.app.pro',
               ),
             ],
           ),
 
-          // ۲. پین وسط صفحه (ثابت)
+          /// 2️⃣ پین ثابت وسط
           const Center(
             child: Padding(
-              padding: EdgeInsets.only(
-                bottom: 40,
-              ), // کمی بالاتر برای دیده شدن نوک پین
+              padding: EdgeInsets.only(bottom: 40),
               child: Icon(
                 Icons.location_on,
                 size: 50,
@@ -70,7 +68,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
             ),
           ),
 
-          // ۳. هدر بازگشت
+          /// 3️⃣ دکمه بازگشت
           Positioned(
             top: 50,
             right: 20,
@@ -83,7 +81,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
             ),
           ),
 
-          // ۴. دکمه تایید پایین صفحه
+          /// 4️⃣ تایید موقعیت
           Positioned(
             bottom: 30,
             left: 20,
@@ -92,7 +90,6 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
               text: "تایید موقعیت و جستجو",
               color: AppColors.primary,
               onPressed: () {
-                // برگرداندن مختصات انتخاب شده به صفحه قبل
                 Navigator.pop(context, _currentCenter);
               },
             ),

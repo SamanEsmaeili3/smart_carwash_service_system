@@ -17,8 +17,8 @@ class SearchProvider with ChangeNotifier {
   String _searchQuery = ''; // متنی که کاربر تایپ کرده (نام سرویس)
 
   // لوکیشن پیش‌فرض
-  double _lat = 0.0;
-  double _lon = 0.0;
+  double _lat = 35.7544;
+  double _lon = 51.4105;
 
   // Getters
   List<CarwashModel> get results => _results;

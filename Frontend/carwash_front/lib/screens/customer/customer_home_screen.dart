@@ -182,17 +182,25 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
   // --- 🗺️ ویجت نقشه ---
   Widget _buildMapView(SearchProvider provider) {
-    // مرکز نقشه: لوکیشن کاربر یا پیش‌فرض تهران
-    final userLocation = LatLng(provider.lat, provider.lon);
+    // تنظیم مختصات پیش‌فرض روی میدان ونک تهران
+    final double defaultLat = 35.7544;
+    final double defaultLon = 51.4105;
+
+    // اگر پروایدر مقدار معتبری (غیر صفر) داشت از آن استفاده کن، در غیر این صورت ونک
+    final userLocation = LatLng(
+      provider.lat != 0 ? provider.lat : defaultLat,
+      provider.lon != 0 ? provider.lon : defaultLon,
+    );
 
     return FlutterMap(
       mapController: _mapController,
-      options: MapOptions(initialCenter: userLocation, initialZoom: 13.0),
+      options: MapOptions(
+        initialCenter: userLocation,
+        initialZoom: 14.0, // زوم کمی بیشتر برای نمایش بهتر محله
+      ),
       children: [
         TileLayer(
-          // Use standard OpenStreetMap instead of CartoCDN
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          // OSM does not use subdomains like {s}, so we remove that line
           userAgentPackageName: 'com.carwash.app.pro',
         ),
         // دایره شعاع جستجو
@@ -203,14 +211,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               color: Colors.blue.withOpacity(0.1),
               borderColor: Colors.blue,
               borderStrokeWidth: 2,
-              radius: provider.radius * 1000, // کیلومتر به متر
+              radius: provider.radius * 1000,
               useRadiusInMeter: true,
             ),
           ],
         ),
         MarkerLayer(
           markers: [
-            // مارکر کاربر
             Marker(
               point: userLocation,
               width: 40,
@@ -221,16 +228,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 size: 30,
               ),
             ),
-            // مارکر کارواش‌ها
             ...provider.results.map((carwash) {
               return Marker(
                 point: LatLng(carwash.latitude, carwash.longitude),
                 width: 50,
                 height: 50,
                 child: GestureDetector(
-                  onTap: () {
-                    _showCarwashPreview(context, carwash);
-                  },
+                  onTap: () => _showCarwashPreview(context, carwash),
                   child: const Icon(
                     Icons.local_car_wash,
                     color: AppColors.primary,
@@ -324,16 +328,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 MaterialPageRoute(
                   builder:
                       (_) => LocationPickerScreen(
-                        // اگر قبلاً لوکیشن انتخاب کرده، همان را نشان بده
-                        // اگر نه (0.0 بود)، مقادیر پیش‌فرض کلاس (تهران) اعمال می‌شود
                         initialLat:
                             searchProvider.lat != 0
                                 ? searchProvider.lat
-                                : 35.6892,
+                                : 35.7544,
                         initialLon:
                             searchProvider.lon != 0
                                 ? searchProvider.lon
-                                : 51.3890,
+                                : 51.4105,
                       ),
                 ),
               );
