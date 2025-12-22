@@ -10,7 +10,7 @@ import 'providers/auth_provider.dart';
 import 'providers/admin_provider.dart';
 import 'package:carwash_front/providers/carwash_profile_provider.dart';
 import 'package:carwash_front/providers/carwash_service_provider.dart';
-import 'providers/customer_provider.dart'; 
+import 'providers/customer_provider.dart';
 
 import 'screens/landing_page.dart';
 import 'screens/auth/login_screen.dart';
@@ -18,9 +18,8 @@ import 'screens/auth/customer_signup_screen.dart';
 import 'screens/auth/carwash_application_screen.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/carwash/carwash_home_screen.dart';
-import 'screens/customer/search_screen.dart';
 import 'screens/splash_screen.dart';
-import 'screens/customer/time_selection_screen.dart'; 
+import 'screens/customer/time_selection_screen.dart';
 
 void main() {
   runApp(
@@ -30,9 +29,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => AdminProvider()),
         ChangeNotifierProvider(create: (_) => CarwashServiceProvider()),
         ChangeNotifierProvider(create: (_) => CarwashProfileProvider()),
-        ChangeNotifierProvider(
-          create: (_) => CustomerProvider(),
-        ), 
+        ChangeNotifierProvider(create: (_) => CustomerProvider()),
         ChangeNotifierProvider(create: (_) => BookingProvider()),
         ChangeNotifierProvider(create: (_) => SearchProvider()),
       ],
@@ -77,8 +74,7 @@ class MyApp extends StatelessWidget {
         '/admin': (context) => const AdminDashboard(),
         '/customer': (context) => const CustomerHomeScreen(),
         '/carwash': (context) => const CarwashHomeScreen(),
-        '/search': (context) => const SearchScreen(),
-        
+
         // --- NEW SPRINT 4 ROUTES ---
         '/select_time': (context) {
           final args = ModalRoute.of(context)!.settings.arguments;
@@ -87,35 +83,57 @@ class MyApp extends StatelessWidget {
             return TimeSelectionScreen(orderId: args);
           }
           // Fallback if no ID passed (should not happen in normal flow)
-          return const Scaffold(body: Center(child: Text("Error: No Order ID provided")));
+          return const Scaffold(
+            body: Center(child: Text("Error: No Order ID provided")),
+          );
         },
-        
-        '/booking_success': (context) => Scaffold(
-          backgroundColor: Colors.green,
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.check_circle, size: 80, color: Colors.white),
-                const SizedBox(height: 20),
-                const Text(
-                  "رزرو با موفقیت انجام شد!", 
-                  style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)
+
+        '/booking_success':
+            (context) => Scaffold(
+              backgroundColor: Colors.green,
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.check_circle,
+                      size: 80,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      "رزرو با موفقیت انجام شد!",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    ElevatedButton(
+                      onPressed:
+                          () => Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            '/customer',
+                            (r) => false,
+                          ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.green,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 12,
+                        ),
+                      ),
+                      child: const Text(
+                        "بازگشت به خانه",
+                        style: TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 40),
-                ElevatedButton(
-                  onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/customer', (r) => false),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white, 
-                    foregroundColor: Colors.green,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12)
-                  ),
-                  child: const Text("بازگشت به خانه", style: TextStyle(fontSize: 16))
-                )
-              ]
-            )
-          )
-        ),
+              ),
+            ),
       },
     );
   }
