@@ -33,3 +33,11 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             token['role'] = 'customer'
 
         return token
+    
+class CustomerProfileSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(source='user.email', read_only=True)
+
+    class Meta:
+        model = CustomerProfile
+        # MATCHES YOUR MODEL EXACTLY:
+        fields = ['email', 'full_name', 'phone_number']
