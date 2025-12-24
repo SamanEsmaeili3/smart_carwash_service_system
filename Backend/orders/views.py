@@ -6,8 +6,8 @@ from django.shortcuts import get_object_or_404
 
 from .models import Order, OrderService
 from .serializers import OrderDraftSerializer, OrderOwnerSerializer, OrderHistorySerializer
-from carwash.models import CarwashProfile, CarwashService
-from accounts.models import CustomerProfile
+from carwash.models import CarwashProfile, CarwashService, Driver
+from carwash.serializers import DriverSelectionSerializer 
 
 from django.utils.dateparse import parse_datetime
 
@@ -173,3 +173,52 @@ def customer_orders_list(request):
 
     serializer = OrderHistorySerializer(orders, many=True)
     return Response(serializer.data)
+
+# [NEW] 4. Get Available Drivers for Owner
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_my_drivers(request):
+    try:
+        carwash_profile = request.user.carwashprofile
+    except Exception:
+        return Response({"error": "Unauthorized"}, status=403)
+
+    # Get drivers for this carwash (optional: filter by status='AVAILABLE')
+    drivers = Driver.objects.filter(carwash=carwash_profile)
+    serializer = DriverSelectionSerializer(drivers, many=True)
+    return Response(serializer.data)
+
+# [NEW] 5. Assign Driver to Order
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def assign_driver_to_order(request, order_id):
+    try:
+        carwash_profile = request.user.carwashprofile
+        order = Order.objects.get(pk=order_id, carwash=carwash_profile)
+    except Order.DoesNotExist:
+        return Response({"error": "Order not found"}, status=404)
+    except Exception:
+        return Response({"error": "Unauthorized"}, status=403)
+
+    driver_id = request.data.get('driver_id')
+    if not driver_id:
+        return Response({"error": "Driver ID is required"}, status=400)
+
+    try:
+        driver = Driver.objects.get(pk=driver_id, carwash=carwash_profile)
+    except Driver.DoesNotExist:
+        return Response({"error": "Driver not found or belongs to another carwash"}, status=404)
+
+    # Update Order
+    order.driver = driver
+    order.status = 'EN_ROUTE' # Automatically update status to En Route (or Accepted)
+    order.save()
+
+    # Update Driver Status (Optional but recommended)
+    driver.status = 'BUSY'
+    driver.save()
+
+    return Response({
+        "message": f"Driver {driver.full_name} assigned to Order #{order.id}",
+        "order_status": order.status
+    })

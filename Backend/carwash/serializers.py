@@ -185,3 +185,9 @@ class CarwashFullProfileSerializer(serializers.ModelSerializer):
     def get_rating(self, obj):
         avg_rating = Rating.objects.filter(order__carwash=obj).aggregate(Avg('carwash_rating'))['carwash_rating__avg']
         return round(avg_rating, 1) if avg_rating else 0
+    
+# [NEW] Simple Driver Serializer for Selection
+class DriverSelectionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Driver
+        fields = ['id', 'full_name', 'phone_number', 'status']
