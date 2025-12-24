@@ -46,3 +46,28 @@ class OrderOwnerSerializer(serializers.ModelSerializer):
         # Return a list of strings like ["Basic Wash (x1)", "Wax (x1)"]
         return [f"{os.service.service_name}" for os in obj.order_services.all()]
     
+class OrderHistorySerializer(serializers.ModelSerializer):
+    # Flatten Carwash details directly from the related model
+    carwash_name = serializers.CharField(source='carwash.business_name', read_only=True)
+    # Note: Using 'license_photo_url' to match your Carwash model
+    carwash_image = serializers.CharField(source='carwash.license_photo_url', read_only=True) 
+    
+    services_text = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Order
+        fields = [
+            'id', 
+            'carwash_name', 
+            'carwash_image',
+            'scheduled_time', 
+            'total_price', 
+            'status', 
+            'services_text',
+            'created_at'
+        ]
+
+    def get_services_text(self, obj):
+        # Returns string like: "Basic Wash, Wax, Interior Cleaning"
+        services = [os.service.service_name for os in obj.order_services.all()]
+        return ", ".join(services)

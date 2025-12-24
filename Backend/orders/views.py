@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 
 from .models import Order, OrderService
-from .serializers import OrderDraftSerializer, OrderOwnerSerializer
+from .serializers import OrderDraftSerializer, OrderOwnerSerializer, OrderHistorySerializer
 from carwash.models import CarwashProfile, CarwashService
 from accounts.models import CustomerProfile
 
@@ -156,3 +156,20 @@ def manage_order_status(request, pk):
     else:
         return Response({"error": "Invalid Status"}, status=400)
     
+# 3. CUSTOMER ORDER HISTORY (My Bookings)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def customer_orders_list(request):
+    try:
+        # Ensure the user has a customer profile
+        customer_profile = request.user.customerprofile
+    except Exception:
+        return Response({"error": "Only customers have order history."}, status=403)
+
+    # Fetch orders for this customer, sorted by newest first
+    orders = Order.objects.filter(
+        customer=customer_profile
+    ).order_by('-created_at')
+
+    serializer = OrderHistorySerializer(orders, many=True)
+    return Response(serializer.data)
