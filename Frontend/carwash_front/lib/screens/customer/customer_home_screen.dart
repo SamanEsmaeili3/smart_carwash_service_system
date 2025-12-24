@@ -1,4 +1,3 @@
-import 'package:carwash_front/screens/customer/search_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -8,6 +7,8 @@ import '../../providers/auth_provider.dart';
 import '../../constants/app_colors.dart';
 import '../../models/carwash_model.dart';
 import 'carwash_profile_screen.dart';
+// اگر صفحه انتخاب لوکیشن دارید، آن را ایمپورت کنید
+import '../common/location_picker_screen.dart';
 
 class CustomerHomeScreen extends StatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -20,11 +21,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   final MapController _mapController = MapController();
 
-  bool _isMapView = false; // Only used for Mobile
+  bool _isMapView = false; // فقط برای موبایل استفاده می‌شود
 
   @override
   void initState() {
     super.initState();
+    // فراخوانی جستجو هنگام لود شدن صفحه
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<SearchProvider>(context, listen: false).searchCarwashes();
     });
@@ -48,19 +50,20 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     final provider = Provider.of<SearchProvider>(context, listen: false);
     provider.setSearchQuery('');
     provider.searchCarwashes();
-    setState(() {});
+    setState(() {}); // آپدیت آیکون ضربدر
   }
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Breakpoint: 800px
+        // نقطه شکست برای وب/موبایل: 800 پیکسل
         bool isWideScreen = constraints.maxWidth > 800;
 
         return Scaffold(
           backgroundColor: AppColors.background,
-          // Hide FAB on Web (Split view doesn't need toggle)
+
+          // دکمه شناور فقط در موبایل (برای سوییچ بین نقشه و لیست)
           floatingActionButton:
               isWideScreen
                   ? null
@@ -77,23 +80,27 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                     ),
                     label: Text(
                       _isMapView ? "مشاهده لیست" : "مشاهده روی نقشه",
-                      style: const TextStyle(color: Colors.white),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
           floatingActionButtonLocation:
               FloatingActionButtonLocation.centerFloat,
+
           body: SafeArea(
             child:
                 isWideScreen
-                    ? _buildWebLayout() // Split View
-                    : _buildMobileLayout(), // Toggle View
+                    ? _buildWebLayout() // طرح‌بندی وب (Split View)
+                    : _buildMobileLayout(), // طرح‌بندی موبایل (Toggle View)
           ),
         );
       },
     );
   }
 
-  // --- 📱 MOBILE LAYOUT (Toggle Map/List) ---
+  // --- 📱 طرح‌بندی موبایل ---
   Widget _buildMobileLayout() {
     final searchProvider = Provider.of<SearchProvider>(context);
     final results = searchProvider.results;
@@ -117,16 +124,16 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  // --- 💻 WEB LAYOUT (Split Screen) ---
+  // --- 💻 طرح‌بندی وب ---
   Widget _buildWebLayout() {
     final searchProvider = Provider.of<SearchProvider>(context);
     final results = searchProvider.results;
 
     return Row(
       children: [
-        // Left Side: Sidebar (Header + List)
+        // ستون چپ: هدر و لیست
         SizedBox(
-          width: 400, // Fixed width for sidebar
+          width: 400,
           child: Column(
             children: [
               _buildHeader(context),
@@ -143,12 +150,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             ],
           ),
         ),
-        // Right Side: Map (Takes remaining space)
+        // ستون راست: نقشه تمام صفحه
         Expanded(
           child: Stack(
             children: [
               _buildMapView(searchProvider),
-              // Shadow to separate map from sidebar
+              // سایه جداکننده
               Positioned(
                 right: 0,
                 top: 0,
@@ -173,20 +180,30 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  // --- 🗺️ MAP WIDGET ---
+  // --- 🗺️ ویجت نقشه ---
   Widget _buildMapView(SearchProvider provider) {
-    final userLocation = LatLng(35.759432, 51.410376); // Default Center
+    // تنظیم مختصات پیش‌فرض روی میدان ونک تهران
+    final double defaultLat = 35.7544;
+    final double defaultLon = 51.4105;
+
+    // اگر پروایدر مقدار معتبری (غیر صفر) داشت از آن استفاده کن، در غیر این صورت ونک
+    final userLocation = LatLng(
+      provider.lat != 0 ? provider.lat : defaultLat,
+      provider.lon != 0 ? provider.lon : defaultLon,
+    );
 
     return FlutterMap(
       mapController: _mapController,
-      options: MapOptions(initialCenter: userLocation, initialZoom: 13.0),
+      options: MapOptions(
+        initialCenter: userLocation,
+        initialZoom: 14.0, // زوم کمی بیشتر برای نمایش بهتر محله
+      ),
       children: [
         TileLayer(
-          // Use standard OpenStreetMap instead of CartoCDN
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          // OSM does not use subdomains like {s}, so we remove that line
-          userAgentPackageName: 'com.carwash.app.pro', 
+          userAgentPackageName: 'com.carwash.app.pro',
         ),
+        // دایره شعاع جستجو
         CircleLayer(
           circles: [
             CircleMarker(
@@ -201,7 +218,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
         ),
         MarkerLayer(
           markers: [
-            // User Location
             Marker(
               point: userLocation,
               width: 40,
@@ -212,16 +228,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 size: 30,
               ),
             ),
-            // Carwash Markers
             ...provider.results.map((carwash) {
               return Marker(
                 point: LatLng(carwash.latitude, carwash.longitude),
                 width: 50,
                 height: 50,
                 child: GestureDetector(
-                  onTap: () {
-                    _showCarwashPreview(context, carwash);
-                  },
+                  onTap: () => _showCarwashPreview(context, carwash),
                   child: const Icon(
                     Icons.local_car_wash,
                     color: AppColors.primary,
@@ -236,7 +249,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  // --- 📋 LIST WIDGET ---
+  // --- 📋 ویجت لیست ---
   Widget _buildListView(SearchProvider provider) {
     return RefreshIndicator(
       onRefresh: () => provider.searchCarwashes(),
@@ -250,10 +263,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  // --- 🏠 HEADER WIDGET ---
+  // --- 🏠 ویجت هدر ---
   Widget _buildHeader(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
+    final searchProvider = Provider.of<SearchProvider>(context);
     final user = authProvider.user;
+
     String displayName =
         user != null && user.email.isNotEmpty
             ? user.email.split('@')[0]
@@ -302,60 +317,111 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          // Container(
-          //   padding: const EdgeInsets.symmetric(horizontal: 16),
-          //   decoration: BoxDecoration(
-          //     color: Colors.white,
-          //     borderRadius: BorderRadius.circular(12),
-          //   ),
-          //   child: TextField(
-          //     controller: _searchCtrl,
-          //     textDirection: TextDirection.rtl,
-          //     textInputAction: TextInputAction.search,
-          //     onSubmitted: _onSearchSubmitted,
-          //     onChanged: (val) {
-          //       setState(() {});
-          //     },
-          //     decoration: InputDecoration(
-          //       border: InputBorder.none,
-          //       hintText: "جستجوی سرویس (مثلاً روشویی...)",
-          //       prefixIcon: const Icon(Icons.search),
-          //       suffixIcon:
-          //           _searchCtrl.text.isNotEmpty
-          //               ? IconButton(
-          //                 icon: const Icon(Icons.close, color: Colors.grey),
-          //                 onPressed: _onClearSearch,
-          //               )
-          //               : IconButton(
-          //                 icon: const Icon(
-          //                   Icons.filter_list,
-          //                   color: AppColors.primary,
-          //                 ),
-          //                 onPressed: () => _showFilterBottomSheet(context),
-          //               ),
-          //     ),
 
-          //     const SizedBox(width: 15),
+          const SizedBox(height: 16),
 
-          //     // Map view search
-          //     FloatingActionButton(
-          //       onPressed: () {
-          //         setState(() {
-          //           _mapView = !_mapView;
-          //         });
-          //       },
-          //       child: const Icon(Icons.map),
-          //     ),
-          //   ],
-          // ),
+          // --- دکمه تغییر مکان ---
+          InkWell(
+            onTap: () async {
+              final LatLng? result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder:
+                      (_) => LocationPickerScreen(
+                        initialLat:
+                            searchProvider.lat != 0
+                                ? searchProvider.lat
+                                : 35.7544,
+                        initialLon:
+                            searchProvider.lon != 0
+                                ? searchProvider.lon
+                                : 51.4105,
+                      ),
+                ),
+              );
+
+              if (result != null) {
+                searchProvider.updateUserLocation(
+                  result.latitude,
+                  result.longitude,
+                );
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.3)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.edit_location_alt,
+                    color: Colors.white,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    "موقعیت: ${searchProvider.lat.toStringAsFixed(4)}, ${searchProvider.lon.toStringAsFixed(4)}",
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // --------------------
+          const SizedBox(height: 16),
+
+          // نوار جستجو
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: TextField(
+              controller: _searchCtrl,
+              textDirection: TextDirection.rtl,
+              textInputAction: TextInputAction.search,
+              onSubmitted: _onSearchSubmitted,
+              onChanged: (val) {
+                setState(() {});
+              },
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                hintText: "جستجوی سرویس (مثلاً روشویی...)",
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon:
+                    _searchCtrl.text.isNotEmpty
+                        ? IconButton(
+                          icon: const Icon(Icons.close, color: Colors.grey),
+                          onPressed: _onClearSearch,
+                        )
+                        : IconButton(
+                          icon: const Icon(
+                            Icons.filter_list,
+                            color: AppColors.primary,
+                          ),
+                          onPressed: () => _showFilterBottomSheet(context),
+                        ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  // --- HELPERS (Empty, Error, BottomSheets) ---
-
+  // --- ویجت‌های وضعیت (خالی، خطا) ---
   Widget _buildEmptyState(SearchProvider provider) {
     if (provider.searchQuery.isNotEmpty) {
       return Center(
@@ -416,7 +482,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  // Updated to handle Web/Desktop dialogs vs Mobile BottomSheet
+  // --- باتم‌شیت فیلتر (ریسپانسیو) ---
   void _showFilterBottomSheet(BuildContext context) {
     final isWideScreen = MediaQuery.of(context).size.width > 800;
 
@@ -455,7 +521,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     }
   }
 
-  // Refactored filter content to reuse in Dialog and BottomSheet
+  // محتوای فیلتر
   Widget _buildFilterContent(BuildContext context) {
     return Consumer<SearchProvider>(
       builder: (context, provider, child) {
@@ -556,10 +622,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 }
 
-// --- CARD COMPONENT ---
+// --- کارت نمایش کارواش ---
 class _CarwashResultCard extends StatelessWidget {
   final CarwashModel carwash;
-
   const _CarwashResultCard({required this.carwash});
 
   @override
