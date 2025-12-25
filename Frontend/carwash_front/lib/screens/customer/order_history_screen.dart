@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart'; 
 import '../../providers/booking_provider.dart';
 import '../../constants/app_colors.dart';
 import '../../models/order_history_model.dart';
@@ -95,8 +94,7 @@ class _OrderHistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Simple date formatting (requires intl or custom logic)
-    // For now using toString() substring for simplicity if intl not installed
+    // Simple date formatting
     String dateStr = order.scheduledTime.toString().split('.')[0]; 
 
     return Card(
@@ -131,10 +129,10 @@ class _OrderHistoryCard extends StatelessWidget {
                           fontSize: 16,
                         ),
                       ),
+                      // Removed explicit textDirection to fix build error
                       Text(
                         dateStr,
                         style: const TextStyle(color: Colors.grey, fontSize: 12),
-                        textDirection: TextDirection.ltr,
                       ),
                     ],
                   ),
