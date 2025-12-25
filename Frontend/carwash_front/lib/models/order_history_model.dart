@@ -18,13 +18,26 @@ class OrderHistoryModel {
   });
 
   factory OrderHistoryModel.fromJson(Map<String, dynamic> json) {
+    // 1. Safe Date Parsing Logic
+    DateTime parsedDate;
+    try {
+      if (json['scheduled_time'] != null) {
+        parsedDate = DateTime.parse(json['scheduled_time'].toString());
+      } else {
+        parsedDate = DateTime.now(); // Fallback if null
+      }
+    } catch (e) {
+      print("Date parsing error for ID ${json['id']}: $e");
+      parsedDate = DateTime.now(); // Fallback if format is invalid
+    }
+
     return OrderHistoryModel(
       id: json['id'],
       carwashName: json['carwash_name'] ?? 'Carwash',
       carwashImage: json['carwash_image'] ?? '',
-      scheduledTime: DateTime.parse(json['scheduled_time']),
+      scheduledTime: parsedDate, // Use the safely parsed date
       totalPrice: double.tryParse(json['total_price'].toString()) ?? 0.0,
-      status: json['status'],
+      status: json['status'] ?? 'UNKNOWN',
       servicesText: json['services_text'] ?? '',
     );
   }
