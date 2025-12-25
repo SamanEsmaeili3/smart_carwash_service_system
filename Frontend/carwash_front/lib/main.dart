@@ -20,6 +20,7 @@ import 'screens/admin/admin_dashboard.dart';
 import 'screens/carwash/carwash_home_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/customer/time_selection_screen.dart';
+import 'screens/customer/order_history_screen.dart'; 
 
 void main() {
   runApp(
@@ -134,6 +135,7 @@ class MyApp extends StatelessWidget {
                 ),
               ),
             ),
+        '/customer/history': (context) => const OrderHistoryScreen(),
       },
     );
   }

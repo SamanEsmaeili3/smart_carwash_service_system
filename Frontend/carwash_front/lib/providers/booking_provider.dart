@@ -3,6 +3,7 @@ import '../services/api_service.dart';
 import '../constants/api_constants.dart';
 import '../models/carwash_model.dart';
 import '../models/order_draft_model.dart';
+import '../models/order_history_model.dart'; 
 
 class BookingProvider with ChangeNotifier {
   final ApiService _api = ApiService();
@@ -106,6 +107,32 @@ class BookingProvider with ChangeNotifier {
     } catch (e) {
       print("Finalize Error: $e");
       return false;
+    }
+  }
+
+  // [NEW] History State
+  List<OrderHistoryModel> _history = [];
+  bool _isLoadingHistory = false;
+
+  List<OrderHistoryModel> get history => _history;
+  bool get isLoadingHistory => _isLoadingHistory;
+
+  Future<void> fetchOrderHistory() async {
+    _isLoadingHistory = true;
+    notifyListeners();
+
+    try {
+      final response = await _api.get(ApiConstants.orderHistory, auth: true);
+      
+      if (response is List) {
+        _history = response.map((e) => OrderHistoryModel.fromJson(e)).toList();
+      }
+    } catch (e) {
+      print("Error fetching history: $e");
+      // Handle error cleanly
+    } finally {
+      _isLoadingHistory = false;
+      notifyListeners();
     }
   }
 }

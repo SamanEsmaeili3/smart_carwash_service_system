@@ -49,6 +49,7 @@ class ApiConstants {
 
   // User Story 2.4: Start Order (Draft)
   static const String prepareOrder = '/api/order/prepare/';
+  static const String orderHistory = "$baseUrl/order/history/";
 }
 
 // class ApiConstants {
