@@ -10,13 +10,13 @@ class SearchProvider with ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
-  // فیلترها
+  // Filters
   double _minRating = 0.0;
   double _minPrice = 0.0;
   double _radius = 15.0;
-  String _searchQuery = ''; // متنی که کاربر تایپ کرده (نام سرویس)
+  String _searchQuery = ''; 
 
-  // لوکیشن پیش‌فرض
+  // Default Location (Tehran)
   double _lat = 35.7544;
   double _lon = 51.4105;
 
@@ -47,10 +47,9 @@ class SearchProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // ذخیره متن جستجو
   void setSearchQuery(String query) {
     _searchQuery = query.trim();
-    // اینجا notifyListeners نمی‌زنیم تا وقتی دکمه سرچ زده شد لیست آپدیت شود
+    // No notifyListeners here, waiting for search execution
   }
 
   void clearFilters() {
@@ -64,22 +63,29 @@ class SearchProvider with ChangeNotifier {
   void updateUserLocation(double newLat, double newLon) {
     _lat = newLat;
     _lon = newLon;
-    notifyListeners(); // برای اینکه UI مختصات جدید را نشان دهد
+    notifyListeners(); 
 
-    // بلافاصله با مختصات جدید جستجو کن
+    // Auto-search on location change
     searchCarwashes();
   }
 
-  Future<void> searchCarwashes() async {
+  // [FIXED] Added {String? query} here so the UI can pass it
+  Future<void> searchCarwashes({String? query}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
+
+    // If the UI sent a specific query (like typing "Wash"), update our state
+    if (query != null) {
+      _searchQuery = query; 
+    }
 
     try {
       final Map<String, String> queryParams = {
         'lat': _lat.toString(),
         'lon': _lon.toString(),
         'radius': _radius.toInt().toString(),
+        'search': _searchQuery,
       };
 
       if (_minRating > 0)
@@ -87,7 +93,6 @@ class SearchProvider with ChangeNotifier {
       if (_minPrice > 0)
         queryParams['min_price'] = _minPrice.toInt().toString();
 
-      // ✅ ارسال نام سرویس به سرور
       if (_searchQuery.isNotEmpty) {
         queryParams['search'] = _searchQuery;
       }
