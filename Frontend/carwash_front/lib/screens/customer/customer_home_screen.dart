@@ -7,8 +7,8 @@ import '../../providers/auth_provider.dart';
 import '../../constants/app_colors.dart';
 import '../../models/carwash_model.dart';
 import 'carwash_profile_screen.dart';
-// اگر صفحه انتخاب لوکیشن دارید، آن را ایمپورت کنید
 import '../common/location_picker_screen.dart';
+import 'dart:async'; 
 
 class CustomerHomeScreen extends StatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -21,12 +21,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   final MapController _mapController = MapController();
 
-  bool _isMapView = false; // فقط برای موبایل استفاده می‌شود
+  bool _isMapView = false; // Only used for mobile toggle
+
+  // [NEW] Timer for search debounce
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
-    // فراخوانی جستجو هنگام لود شدن صفحه
+    // Fetch initial data
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<SearchProvider>(context, listen: false).searchCarwashes();
     });
@@ -34,6 +37,8 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
   @override
   void dispose() {
+    // [NEW] Cancel timer to prevent leaks
+    _debounce?.cancel();
     _searchCtrl.dispose();
     _mapController.dispose();
     super.dispose();
@@ -50,20 +55,37 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     final provider = Provider.of<SearchProvider>(context, listen: false);
     provider.setSearchQuery('');
     provider.searchCarwashes();
-    setState(() {}); // آپدیت آیکون ضربدر
+    setState(() {}); // Update 'X' icon
+  }
+
+  // [NEW] Function to handle typing with delay
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+    _debounce = Timer(const Duration(milliseconds: 800), () {
+      if (query.isNotEmpty) {
+        // Trigger search automatically
+        Provider.of<SearchProvider>(context, listen: false).searchCarwashes(query: query);
+      } else {
+        _onClearSearch(); // Reset if empty
+      }
+    });
+    
+    // Update UI immediately (e.g., show/hide X button)
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // نقطه شکست برای وب/موبایل: 800 پیکسل
+        // Breakpoint for Web/Mobile: 800px
         bool isWideScreen = constraints.maxWidth > 800;
 
         return Scaffold(
           backgroundColor: AppColors.background,
 
-          // دکمه شناور فقط در موبایل (برای سوییچ بین نقشه و لیست)
+          // Mobile Floating Action Button
           floatingActionButton:
               isWideScreen
                   ? null
@@ -92,15 +114,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
           body: SafeArea(
             child:
                 isWideScreen
-                    ? _buildWebLayout() // طرح‌بندی وب (Split View)
-                    : _buildMobileLayout(), // طرح‌بندی موبایل (Toggle View)
+                    ? _buildWebLayout() // Web Layout
+                    : _buildMobileLayout(), // Mobile Layout
           ),
         );
       },
     );
   }
 
-  // --- 📱 طرح‌بندی موبایل ---
+  // --- 📱 Mobile Layout ---
   Widget _buildMobileLayout() {
     final searchProvider = Provider.of<SearchProvider>(context);
     final results = searchProvider.results;
@@ -124,14 +146,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  // --- 💻 طرح‌بندی وب ---
+  // --- 💻 Web Layout ---
   Widget _buildWebLayout() {
     final searchProvider = Provider.of<SearchProvider>(context);
     final results = searchProvider.results;
 
     return Row(
       children: [
-        // ستون چپ: هدر و لیست
+        // Left Column: Header & List
         SizedBox(
           width: 400,
           child: Column(
@@ -150,12 +172,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             ],
           ),
         ),
-        // ستون راست: نقشه تمام صفحه
+        // Right Column: Full Map
         Expanded(
           child: Stack(
             children: [
               _buildMapView(searchProvider),
-              // سایه جداکننده
+              // Shadow Divider
               Positioned(
                 right: 0,
                 top: 0,
@@ -180,13 +202,12 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  // --- 🗺️ ویجت نقشه ---
+  // --- 🗺️ Map Widget ---
   Widget _buildMapView(SearchProvider provider) {
-    // تنظیم مختصات پیش‌فرض روی میدان ونک تهران
+    // Default: Vanak Square, Tehran
     final double defaultLat = 35.7544;
     final double defaultLon = 51.4105;
 
-    // اگر پروایدر مقدار معتبری (غیر صفر) داشت از آن استفاده کن، در غیر این صورت ونک
     final userLocation = LatLng(
       provider.lat != 0 ? provider.lat : defaultLat,
       provider.lon != 0 ? provider.lon : defaultLon,
@@ -196,14 +217,14 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       mapController: _mapController,
       options: MapOptions(
         initialCenter: userLocation,
-        initialZoom: 14.0, // زوم کمی بیشتر برای نمایش بهتر محله
+        initialZoom: 14.0, 
       ),
       children: [
         TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'com.carwash.app.pro',
         ),
-        // دایره شعاع جستجو
+        // Radius Circle
         CircleLayer(
           circles: [
             CircleMarker(
@@ -249,7 +270,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  // --- 📋 ویجت لیست ---
+  // --- 📋 List Widget ---
   Widget _buildListView(SearchProvider provider) {
     return RefreshIndicator(
       onRefresh: () => provider.searchCarwashes(),
@@ -263,7 +284,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-// --- 🏠 HEADER WIDGET (Final Version) ---
+  // --- 🏠 HEADER WIDGET (Updated with Search Logic) ---
   Widget _buildHeader(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final searchProvider = Provider.of<SearchProvider>(context);
@@ -282,11 +303,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       ),
       child: Column(
         children: [
-          // 1. Top Row: Buttons (Logout/History) & User Info
+          // 1. Top Row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // --- LEFT SIDE BUTTONS ---
+              // Left: Buttons
               Row(
                 children: [
                   IconButton(
@@ -297,7 +318,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                           '/login', (route) => false);
                     },
                   ),
-                  // [NEW] History Button
                   IconButton(
                     icon: const Icon(Icons.history, color: Colors.white),
                     tooltip: "سفارش‌های من",
@@ -307,8 +327,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   ),
                 ],
               ),
-
-              // --- RIGHT SIDE INFO ---
+              // Right: User Info
               Row(
                 children: [
                   Column(
@@ -341,7 +360,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
           const SizedBox(height: 16),
 
-          // 2. Location Picker Button (Kept from your code)
+          // 2. Location Picker
           InkWell(
             onTap: () async {
               final LatLng? result = await Navigator.push(
@@ -398,7 +417,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
           const SizedBox(height: 16),
 
-          // 3. Search Bar (Kept from your code)
+          // 3. Search Bar (UPDATED with onChanged)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
@@ -410,9 +429,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               textDirection: TextDirection.rtl,
               textInputAction: TextInputAction.search,
               onSubmitted: _onSearchSubmitted,
-              onChanged: (val) {
-                setState(() {});
-              },
+              
+              // [NEW] Use the debounce function here
+              onChanged: _onSearchChanged,
+
               decoration: InputDecoration(
                 border: InputBorder.none,
                 hintText: "جستجوی سرویس (مثلاً روشویی...)",
@@ -437,7 +457,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  // --- ویجت‌های وضعیت (خالی، خطا) ---
+  // --- Empty & Error States ---
   Widget _buildEmptyState(SearchProvider provider) {
     if (provider.searchQuery.isNotEmpty) {
       return Center(
@@ -498,7 +518,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  // --- باتم‌شیت فیلتر (ریسپانسیو) ---
+  // --- Filter Bottom Sheet ---
   void _showFilterBottomSheet(BuildContext context) {
     final isWideScreen = MediaQuery.of(context).size.width > 800;
 
@@ -537,7 +557,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     }
   }
 
-  // محتوای فیلتر
   Widget _buildFilterContent(BuildContext context) {
     return Consumer<SearchProvider>(
       builder: (context, provider, child) {
@@ -638,7 +657,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 }
 
-// --- کارت نمایش کارواش ---
+// --- Carwash Card ---
 class _CarwashResultCard extends StatelessWidget {
   final CarwashModel carwash;
   const _CarwashResultCard({required this.carwash});
