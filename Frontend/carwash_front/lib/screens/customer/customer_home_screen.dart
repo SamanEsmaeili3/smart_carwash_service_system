@@ -263,7 +263,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     );
   }
 
-  // --- 🏠 ویجت هدر ---
+// --- 🏠 HEADER WIDGET (Final Version) ---
   Widget _buildHeader(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final searchProvider = Provider.of<SearchProvider>(context);
@@ -282,61 +282,79 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
       ),
       child: Column(
         children: [
+          // 1. Top Row: Buttons (Logout/History) & User Info
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              IconButton(
-                icon: const Icon(Icons.logout, color: Colors.white),
-                onPressed: () {
-                  Provider.of<AuthProvider>(context, listen: false).logout();
-                  Navigator.of(
-                    context,
-                  ).pushNamedAndRemoveUntil('/login', (route) => false);
-                },
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              // --- LEFT SIDE BUTTONS ---
+              Row(
                 children: [
-                  const Text(
-                    "کارواش پرو",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
+                  IconButton(
+                    icon: const Icon(Icons.logout, color: Colors.white),
+                    onPressed: () {
+                      Provider.of<AuthProvider>(context, listen: false).logout();
+                      Navigator.of(context).pushNamedAndRemoveUntil(
+                          '/login', (route) => false);
+                    },
                   ),
-                  Text(
-                    "سلام، $displayName",
-                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  // [NEW] History Button
+                  IconButton(
+                    icon: const Icon(Icons.history, color: Colors.white),
+                    tooltip: "سفارش‌های من",
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/customer/history');
+                    },
                   ),
                 ],
               ),
-              const CircleAvatar(
-                backgroundColor: Colors.white,
-                child: Icon(Icons.person, color: AppColors.primary),
+
+              // --- RIGHT SIDE INFO ---
+              Row(
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Text(
+                        "کارواش پرو",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                      Text(
+                        "سلام، $displayName",
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 14),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 12),
+                  const CircleAvatar(
+                    backgroundColor: Colors.white,
+                    child: Icon(Icons.person, color: AppColors.primary),
+                  ),
+                ],
               ),
             ],
           ),
 
           const SizedBox(height: 16),
 
-          // --- دکمه تغییر مکان ---
+          // 2. Location Picker Button (Kept from your code)
           InkWell(
             onTap: () async {
               final LatLng? result = await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder:
-                      (_) => LocationPickerScreen(
-                        initialLat:
-                            searchProvider.lat != 0
-                                ? searchProvider.lat
-                                : 35.7544,
-                        initialLon:
-                            searchProvider.lon != 0
-                                ? searchProvider.lon
-                                : 51.4105,
-                      ),
+                  builder: (_) => LocationPickerScreen(
+                    initialLat: searchProvider.lat != 0
+                        ? searchProvider.lat
+                        : 35.7544,
+                    initialLon: searchProvider.lon != 0
+                        ? searchProvider.lon
+                        : 51.4105,
+                  ),
                 ),
               );
 
@@ -378,10 +396,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
             ),
           ),
 
-          // --------------------
           const SizedBox(height: 16),
 
-          // نوار جستجو
+          // 3. Search Bar (Kept from your code)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
@@ -400,19 +417,18 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 border: InputBorder.none,
                 hintText: "جستجوی سرویس (مثلاً روشویی...)",
                 prefixIcon: const Icon(Icons.search),
-                suffixIcon:
-                    _searchCtrl.text.isNotEmpty
-                        ? IconButton(
-                          icon: const Icon(Icons.close, color: Colors.grey),
-                          onPressed: _onClearSearch,
-                        )
-                        : IconButton(
-                          icon: const Icon(
-                            Icons.filter_list,
-                            color: AppColors.primary,
-                          ),
-                          onPressed: () => _showFilterBottomSheet(context),
+                suffixIcon: _searchCtrl.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.close, color: Colors.grey),
+                        onPressed: _onClearSearch,
+                      )
+                    : IconButton(
+                        icon: const Icon(
+                          Icons.filter_list,
+                          color: AppColors.primary,
                         ),
+                        onPressed: () => _showFilterBottomSheet(context),
+                      ),
               ),
             ),
           ),
