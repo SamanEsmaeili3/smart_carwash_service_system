@@ -5,7 +5,8 @@ from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.exceptions import NotFound
 from django.db.models import Avg, Min, Q 
 import math
-
+from django.core.mail import send_mail  
+from django.conf import settings        
 from accounts.models import User
 from .models import CarwashProfile, CarwashService
 from orders.models import Rating
@@ -89,9 +90,33 @@ class AdminCarwashApprovalView(views.APIView):
             profile.status = CarwashProfile.Status.APPROVED
             profile.save()
             
+            try:
+                subject = '🎉 تبریک! کارواش شما تایید شد'
+                message = f"""
+                سلام {profile.business_name} عزیز،
+                
+                درخواست ثبت‌نام شما در سامانه «کارواش پرو» بررسی و تایید شد.
+                اکنون حساب کاربری شما فعال است.
+                
+                نام کاربری (ایمیل): {user.email}
+                
+                می‌توانید وارد پنل خود شده و خدماتتان را تعریف کنید.
+                موفق باشید.
+                """
+                send_mail(
+                    subject=subject,
+                    message=message,
+                    from_email=settings.EMAIL_HOST_USER,
+                    recipient_list=[user.email],
+                    fail_silently=False,
+                )
+                print(f"✅ Email sent to {user.email}")
+            except Exception as e:
+                print(f"❌ Failed to send email: {e}")
+            
             return Response(
                 {
-                    "message": f"Carwash {profile.business_name} approved and user activated.",
+                    "message": f"Carwash {profile.business_name} approved, user activated, and email sent.",
                     "created_user_email": user.email
                 }, 
                 status=status.HTTP_200_OK
@@ -100,6 +125,7 @@ class AdminCarwashApprovalView(views.APIView):
         elif action == "reject":
             profile.status = CarwashProfile.Status.REJECTED
             profile.save()
+                        
             return Response(
                 {"message": f"Carwash {profile.business_name} rejected."}, 
                 status=status.HTTP_200_OK
