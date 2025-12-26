@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/error_handler.dart';
 import '../constants/api_constants.dart';
 import '../models/carwash_model.dart';
 
@@ -14,7 +15,7 @@ class SearchProvider with ChangeNotifier {
   double _minRating = 0.0;
   double _minPrice = 0.0;
   double _radius = 15.0;
-  String _searchQuery = ''; 
+  String _searchQuery = '';
 
   // Default Location (Tehran)
   double _lat = 35.7544;
@@ -49,7 +50,6 @@ class SearchProvider with ChangeNotifier {
 
   void setSearchQuery(String query) {
     _searchQuery = query.trim();
-    // No notifyListeners here, waiting for search execution
   }
 
   void clearFilters() {
@@ -63,21 +63,19 @@ class SearchProvider with ChangeNotifier {
   void updateUserLocation(double newLat, double newLon) {
     _lat = newLat;
     _lon = newLon;
-    notifyListeners(); 
+    notifyListeners();
 
     // Auto-search on location change
     searchCarwashes();
   }
 
-  // [FIXED] Added {String? query} here so the UI can pass it
   Future<void> searchCarwashes({String? query}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
-    // If the UI sent a specific query (like typing "Wash"), update our state
     if (query != null) {
-      _searchQuery = query; 
+      _searchQuery = query;
     }
 
     try {
@@ -85,19 +83,17 @@ class SearchProvider with ChangeNotifier {
         'lat': _lat.toString(),
         'lon': _lon.toString(),
         'radius': _radius.toInt().toString(),
-        'search': _searchQuery,
       };
 
-      if (_minRating > 0)
+      if (_minRating > 0) {
         queryParams['min_rating'] = _minRating.toInt().toString();
-      if (_minPrice > 0)
+      }
+      if (_minPrice > 0) {
         queryParams['min_price'] = _minPrice.toInt().toString();
-
+      }
       if (_searchQuery.isNotEmpty) {
         queryParams['search'] = _searchQuery;
       }
-
-      print("Searching with params: $queryParams");
 
       final response = await _api.getWithParams(
         ApiConstants.search,
@@ -111,11 +107,22 @@ class SearchProvider with ChangeNotifier {
         _results = [];
       }
     } catch (e) {
-      _error = "خطا در جستجو: $e";
-      print(_error);
+      _error = ErrorHandler.getErrorMessage(e);
+      print("Search error: $_error");
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  void clearError() {
+    _error = null;
+    notifyListeners();
+  }
+
+  // Reset search results
+  void resetResults() {
+    _results = [];
+    notifyListeners();
   }
 }

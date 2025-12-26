@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import '../services/api_service.dart';
+import '../services/error_handler.dart';
 import '../constants/api_constants.dart';
 import '../models/user_model.dart';
 
@@ -41,12 +42,13 @@ class AuthProvider with ChangeNotifier {
 
       _user = UserModel.fromToken(decodedToken);
       _status = AuthStatus.authenticated;
+      _errorMessage = null;
       notifyListeners();
       return true;
     } catch (e) {
-      _setError(
-        "نام کاربری یا رمز عبور اشتباه است و یا کاربری با این مشخصات موجود نمی باشد",
-      );
+      // فقط از ErrorHandler استفاده کن
+      final errorMsg = ErrorHandler.getErrorMessage(e);
+      _setError(errorMsg);
       return false;
     }
   }
@@ -63,13 +65,14 @@ class AuthProvider with ChangeNotifier {
       await _api.post(ApiConstants.register, {
         "email": email,
         "password": password,
-        "full_name": fullName, // must match Django serializer
-        "phone_number": phone, // must match Django serializer
+        "full_name": fullName,
+        "phone_number": phone,
       });
       _setLoading(false);
       return true;
     } catch (e) {
-      _setError(e.toString());
+      final errorMsg = ErrorHandler.getErrorMessage(e);
+      _setError(errorMsg);
       return false;
     }
   }
@@ -82,13 +85,8 @@ class AuthProvider with ChangeNotifier {
       _setLoading(false);
       return true;
     } catch (e) {
-      String errorString = e.toString().toLowerCase();
-
-      if (errorString.contains("user with this email already exists")) {
-        _setError("کارواش با این مشخصات موجود است، ورود را امتحان کنید");
-      } else {
-        _setError(e.toString().replaceAll('Exception:', '').trim());
-      }
+      final errorMsg = ErrorHandler.getErrorMessage(e);
+      _setError(errorMsg);
       return false;
     }
   }
@@ -98,6 +96,7 @@ class AuthProvider with ChangeNotifier {
     await prefs.clear();
     _user = null;
     _status = AuthStatus.initial;
+    _errorMessage = null;
     notifyListeners();
   }
 
@@ -109,11 +108,37 @@ class AuthProvider with ChangeNotifier {
       return false;
     }
 
-    Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
-    _user = UserModel.fromToken(decodedToken);
-    _status = AuthStatus.authenticated;
-    notifyListeners();
-    return true;
+    try {
+      Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
+      _user = UserModel.fromToken(decodedToken);
+      _status = AuthStatus.authenticated;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      print("Error in auto login: ${ErrorHandler.getErrorMessage(e)}");
+      return false;
+    }
+  }
+
+  // Refresh token method
+  Future<bool> refreshToken() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final refreshToken = prefs.getString('refresh_token');
+
+      if (refreshToken == null) return false;
+
+      final response = await _api.post(ApiConstants.refreshToken, {
+        "refresh": refreshToken,
+      });
+
+      final newAccessToken = response['access'];
+      await prefs.setString('access_token', newAccessToken);
+      return true;
+    } catch (e) {
+      print("Error refreshing token: ${ErrorHandler.getErrorMessage(e)}");
+      return false;
+    }
   }
 
   void _setLoading(bool val) {
@@ -123,8 +148,16 @@ class AuthProvider with ChangeNotifier {
   }
 
   void _setError(String msg) {
-    _errorMessage = msg.replaceAll('Exception:', '').trim();
+    _errorMessage = msg;
     _status = AuthStatus.error;
+    notifyListeners();
+  }
+
+  void clearError() {
+    _errorMessage = null;
+    if (_status == AuthStatus.error) {
+      _status = AuthStatus.initial;
+    }
     notifyListeners();
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/error_handler.dart';
 import '../constants/api_constants.dart';
 
 class CarwashProfileProvider with ChangeNotifier {
@@ -12,38 +13,38 @@ class CarwashProfileProvider with ChangeNotifier {
   String? get error => _error;
 
   /// Update Profile (supports optional password change)
-  /// PDF: You can send 'new_password' optionally.
   Future<bool> updateProfile({
     String? businessName,
     String? address,
     String? phoneNumber,
-    String? newPassword, // Optional field per PDF
+    String? newPassword,
   }) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
-    // Prepare the body with only non-null values (Partial Update)
     final Map<String, dynamic> body = {};
     if (businessName != null) body['business_name'] = businessName;
     if (address != null) body['address'] = address;
     if (phoneNumber != null) body['phone_number'] = phoneNumber;
     if (newPassword != null && newPassword.isNotEmpty) {
-      body['new_password'] = newPassword; // The PDF specific field
+      body['new_password'] = newPassword;
     }
 
     try {
-      // PDF: Method PUT / PATCH -> URL: /api/carwash/profile/me/
       await _api.patch(ApiConstants.profileMe, body, auth: true);
-
-      _isLoading = false;
-      notifyListeners();
       return true;
     } catch (e) {
-      _error = e.toString().replaceAll('Exception:', '').trim();
+      _error = ErrorHandler.getErrorMessage(e);
+      return false;
+    } finally {
       _isLoading = false;
       notifyListeners();
-      return false;
     }
+  }
+
+  void clearError() {
+    _error = null;
+    notifyListeners();
   }
 }

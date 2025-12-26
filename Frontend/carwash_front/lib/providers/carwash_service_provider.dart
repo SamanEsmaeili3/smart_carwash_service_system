@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/error_handler.dart';
 import '../constants/api_constants.dart';
 import '../models/carwash_service_model.dart';
 
@@ -22,42 +23,34 @@ class CarwashServiceProvider with ChangeNotifier {
     try {
       final response = await _api.get(ApiConstants.services, auth: true);
 
-      // print("RAW SERVER RESPONSE: $response");
-
       List<dynamic> listData = [];
 
       if (response is Map<String, dynamic> && response.containsKey('results')) {
-        print("ℹ️ Data is Paginated (inside 'results')");
         listData = response['results'];
-      }
-      // ۲. بررسی سناریوی لیست مستقیم
-      else if (response is List) {
-        print("ℹ️ Data is a direct List");
+      } else if (response is List) {
         listData = response;
       } else {
         throw Exception(
-          "ساختار پاسخ سرور ناشناخته است: ${response.runtimeType}",
+          ErrorHandler.getErrorMessage("ساختار پاسخ سرور ناشناخته است"),
         );
       }
 
-      // ۳. تبدیل امن به مدل
       _services =
           listData
               .map((json) {
                 try {
                   return CarwashServiceModel.fromJson(json);
                 } catch (e) {
-                  print("Error parsing item: $json \nError: $e");
+                  print(
+                    "Error parsing item: ${ErrorHandler.getErrorMessage(e)}",
+                  );
                   return null;
                 }
               })
               .whereType<CarwashServiceModel>()
-              .toList(); // delete null items
-
-      // print("Successfully loaded ${_services.length} services.");
+              .toList();
     } catch (e) {
-      // print("Error inside fetchServices: $e");
-      _error = "خطا در بارگذاری سرویس‌ها";
+      _error = ErrorHandler.getErrorMessage(e);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -66,67 +59,69 @@ class CarwashServiceProvider with ChangeNotifier {
 
   Future<bool> addService(CarwashServiceModel service) async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
 
     try {
       await _api.post(ApiConstants.services, service.toJson(), auth: true);
-
-      // refresh immediately
       await fetchServices();
-
       return true;
     } catch (e) {
-      print("Error adding service: $e");
-      _error = "خطا در افزودن سرویس";
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
-  }
-
-  Future<bool> deleteService(int id) async {
-    try {
-      await _api.delete('${ApiConstants.services}$id/', auth: true);
-      _services.removeWhere((item) => item.id == id);
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _error = "خطا در حذف سرویس";
-      notifyListeners();
-      return false;
-    }
-  }
-
-
-  Future<bool> updateService(int id, CarwashServiceModel service) async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      // We use 'put' to update existing data
-      // API Route: /api/carwash/services/{id}/
-      final response = await _api.put(
-        '${ApiConstants.services}$id/', 
-        data: service.toJson(), // Sends name, description, price
-        auth: true,
-      );
-
-      // If successful, update the list locally so we don't need to refresh
-      int index = _services.indexWhere((s) => s.id == id);
-      if (index != -1) {
-        _services[index] = service;
-      }
-      
-      notifyListeners();
-      return true;
-
-    } catch (e) {
-      print("Update Error: $e");
-      _error = "خطا در ویرایش سرویس";
+      _error = ErrorHandler.getErrorMessage(e);
       return false;
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<bool> deleteService(int id) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _api.delete('${ApiConstants.services}$id/', auth: true);
+      _services.removeWhere((item) => item.id == id);
+      return true;
+    } catch (e) {
+      _error = ErrorHandler.getErrorMessage(e);
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> updateService(int id, CarwashServiceModel service) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      await _api.put(
+        '${ApiConstants.services}$id/',
+        data: service.toJson(),
+        auth: true,
+      );
+
+      int index = _services.indexWhere((s) => s.id == id);
+      if (index != -1) {
+        _services[index] = service;
+      }
+
+      return true;
+    } catch (e) {
+      _error = ErrorHandler.getErrorMessage(e);
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  void clearError() {
+    _error = null;
+    notifyListeners();
   }
 }

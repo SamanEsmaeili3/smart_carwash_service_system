@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/error_handler.dart';
 import '../constants/api_constants.dart';
 import '../models/carwash_model.dart';
 
@@ -27,8 +28,8 @@ class AdminProvider with ChangeNotifier {
               .map((e) => CarwashModel.fromJson(e as Map<String, dynamic>))
               .toList();
     } catch (e) {
-      print("Error happened fetching carwashes: $e");
-      _error = e.toString().replaceAll('Exception:', '').trim();
+      print("Error fetching carwashes: $e");
+      _error = ErrorHandler.getErrorMessage(e);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -37,6 +38,10 @@ class AdminProvider with ChangeNotifier {
 
   // [Task-F13]
   Future<bool> manageRequest(int id, String action) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
     try {
       await _api.post('${ApiConstants.adminManage}$id/', {
         "action": action,
@@ -44,12 +49,19 @@ class AdminProvider with ChangeNotifier {
 
       // Optimistic Update: Remove from local list
       _pendingList.removeWhere((item) => item.id == id);
-      notifyListeners();
       return true;
     } catch (e) {
-      _error = e.toString().replaceAll('Exception:', '').trim();
-      notifyListeners();
+      _error = ErrorHandler.getErrorMessage(e);
       return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
+  }
+
+  // Clear error
+  void clearError() {
+    _error = null;
+    notifyListeners();
   }
 }
