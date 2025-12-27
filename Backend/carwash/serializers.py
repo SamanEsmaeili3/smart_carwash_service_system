@@ -186,8 +186,29 @@ class CarwashFullProfileSerializer(serializers.ModelSerializer):
         avg_rating = Rating.objects.filter(order__carwash=obj).aggregate(Avg('carwash_rating'))['carwash_rating__avg']
         return round(avg_rating, 1) if avg_rating else 0
     
-# [NEW] Simple Driver Serializer for Selection
+# Simple Driver Serializer for Selection
 class DriverSelectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Driver
         fields = ['id', 'full_name', 'phone_number', 'status']
+
+# ---------------------------------------------------------
+# SECTION 4: DRIVER MANAGEMENT (Sprint 4)
+# ---------------------------------------------------------
+
+class DriverSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Driver
+        fields = [
+            'id', 
+            'full_name', 
+            'national_id', 
+            'phone_number', 
+            'address', 
+            'personnel_photo', 
+            'status', 
+            'created_at'
+        ]
+        # 'status' is read-only during creation (defaults to AVAILABLE)
+        # 'created_at' is always read-only
+        read_only_fields = ['id', 'created_at', 'status']

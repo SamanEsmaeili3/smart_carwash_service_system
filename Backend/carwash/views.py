@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from rest_framework import generics, status, views
+from rest_framework import generics, status, views, permissions
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.exceptions import NotFound
@@ -8,7 +8,7 @@ import math
 from django.core.mail import send_mail  
 from django.conf import settings        
 from accounts.models import User, OTPRequest
-from .models import CarwashProfile, CarwashService
+from .models import CarwashProfile, CarwashService, Driver
 from orders.models import Rating
 
 # Import all serializers
@@ -19,7 +19,8 @@ from .serializers import (
     CarwashServiceSerializer,
     CarwashListSerializer,
     CarwashSearchSerializer,     
-    CarwashFullProfileSerializer 
+    CarwashFullProfileSerializer,
+    DriverSerializer
 )
 
 # ---------------------------------------------------------
@@ -369,3 +370,36 @@ class CarwashProfileDetailView(generics.RetrieveAPIView):
     permission_classes = [AllowAny] 
     queryset = CarwashProfile.objects.filter(status=CarwashProfile.Status.APPROVED)
     lookup_field = 'pk'
+
+# Custom Permission: Only Carwash Owners can access these views
+class IsCarwashOwnerUser(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return bool(request.user and request.user.is_authenticated and request.user.is_carwash_owner)
+
+# API: List all drivers & Add a new driver
+class DriverListCreateView(generics.ListCreateAPIView):
+    serializer_class = DriverSerializer
+    permission_classes = [IsCarwashOwnerUser]
+
+    def get_queryset(self):
+        # Return only drivers belonging to the current user's carwash
+        try:
+            return Driver.objects.filter(carwash=self.request.user.carwashprofile)
+        except Exception:
+            return Driver.objects.none()
+
+    def perform_create(self, serializer):
+        # Automatically link the new driver to the current user's carwash
+        serializer.save(carwash=self.request.user.carwashprofile)
+
+# API: Retrieve, Update, or Delete a specific driver
+class DriverDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = DriverSerializer
+    permission_classes = [IsCarwashOwnerUser]
+
+    def get_queryset(self):
+        # Ensure owner can only edit/delete their OWN drivers
+        try:
+            return Driver.objects.filter(carwash=self.request.user.carwashprofile)
+        except Exception:
+            return Driver.objects.none()

@@ -1,14 +1,16 @@
 from django.urls import path
 from .views import (
     CarwashApplicationView, 
-    AdminCarwashListView,      # <--- Updated Import (was AdminPendingCarwashListView)
+    AdminCarwashListView,      
     AdminCarwashApprovalView,
     CarwashProfileUpdateView,
     CarwashServiceListCreateView,
     CarwashServiceDetailView, 
     CustomerCarwashListView,
     CarwashSearchView,
-    CarwashProfileDetailView
+    CarwashProfileDetailView,
+    DriverListCreateView,  
+    DriverDetailView
 )
 
 urlpatterns = [
@@ -43,4 +45,11 @@ urlpatterns = [
     # Sprint 3 Task-B2.15 ---
     # /api/carwash/profile/5/ 
     path('profile/<int:pk>/', CarwashProfileDetailView.as_view(), name='carwash-profile-detail-public'),
+
+    # --- Driver Management ---
+    # /api/carwash/drivers/ (GET list, POST create)
+    path('drivers/', DriverListCreateView.as_view(), name='driver-list-create'),
+    
+    # /api/carwash/drivers/<pk>/ (GET, PUT, DELETE)
+    path('drivers/<int:pk>/', DriverDetailView.as_view(), name='driver-detail'),
 ]

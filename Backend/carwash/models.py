@@ -33,15 +33,25 @@ class CarwashProfile(models.Model):
 
 # --- 6. Driver Model (Table 5: Driver) ---
 class Driver(models.Model):
-    class ValidationStatus(models.TextChoices):
-        PENDING = 'PENDING', 'Pending'
-        APPROVED = 'APPROVED', 'Approved'
-        REJECTED = 'REJECTED', 'Rejected'
+    # Status for assigning orders 
+    class Status(models.TextChoices):
+        AVAILABLE = 'AVAILABLE', 'Available'
+        BUSY = 'BUSY', 'Busy'
+        OFF_DUTY = 'OFF_DUTY', 'Off Duty'
 
     carwash = models.ForeignKey(CarwashProfile, on_delete=models.CASCADE, related_name='drivers')
+    
+    # Personal Information
     full_name = models.CharField(max_length=255)
-    license_scan_url = models.URLField(max_length=1024, blank=True) 
-    validation_status = models.CharField(max_length=10, choices=ValidationStatus.choices, default=ValidationStatus.PENDING)
+    national_id = models.CharField(max_length=10, unique=True, help_text="National Identity Number")
+    phone_number = models.CharField(max_length=15)
+    address = models.TextField(blank=True, null=True)
+    
+    # Photos (Requires Pillow library)
+    personnel_photo = models.ImageField(upload_to='drivers_photos/', null=True, blank=True) 
+    
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.AVAILABLE)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.full_name} ({self.carwash.business_name})"
