@@ -46,14 +46,22 @@ class CarwashApplicationView(generics.CreateAPIView):
 # SECTION 2: ADMIN PANEL (Sprint 1 & 2)
 # ---------------------------------------------------------
     
-# User Story 4.1: Admin sees pending carwashes
-class AdminPendingCarwashListView(generics.ListAPIView):
+# User Story 4.1: Admin List View (Flexible)
+class AdminCarwashListView(generics.ListAPIView):
     serializer_class = CarwashProfileAdminSerializer
     permission_classes = [IsAdminUser]
 
     def get_queryset(self):
-        return CarwashProfile.objects.filter(status=CarwashProfile.Status.PENDING)
-    
+        # Default to PENDING if no status is provided
+        status_param = self.request.query_params.get('status', 'pending').upper()
+        
+        if status_param == 'APPROVED':
+            return CarwashProfile.objects.filter(status=CarwashProfile.Status.APPROVED)
+        elif status_param == 'REJECTED':
+            return CarwashProfile.objects.filter(status=CarwashProfile.Status.REJECTED)
+        else:
+            return CarwashProfile.objects.filter(status=CarwashProfile.Status.PENDING)
+            
 # User Story 4.1: Admin Approves Carwash
 class AdminCarwashApprovalView(views.APIView):
     """

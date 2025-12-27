@@ -6,29 +6,54 @@ import '../models/carwash_model.dart';
 
 class AdminProvider with ChangeNotifier {
   final ApiService _api = ApiService();
+  
+  // Lists for our two tabs
   List<CarwashModel> _pendingList = [];
+  List<CarwashModel> _approvedList = []; 
+
   bool _isLoading = false;
   String? _error;
 
+  // Getters
   List<CarwashModel> get pendingList => _pendingList;
+  List<CarwashModel> get approvedList => _approvedList;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  // [Task-F11]
+  // --- Fetch PENDING Requests ---
   Future<void> fetchPendingCarwashes() async {
+    await _fetchList(status: 'pending');
+  }
+
+  // --- Fetch APPROVED Carwashes ---
+  Future<void> fetchApprovedCarwashes() async {
+    await _fetchList(status: 'approved');
+  }
+
+  // Helper method to fetch lists based on status
+  Future<void> _fetchList({required String status}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final response = await _api.get(ApiConstants.adminPending, auth: true);
-      final List<dynamic> data = response;
-      _pendingList =
-          data
-              .map((e) => CarwashModel.fromJson(e as Map<String, dynamic>))
-              .toList();
+      // Calls: /api/carwash/admin/list/?status=pending (or approved)
+      // Note: We append the query param manually here
+      final String endpoint = '${ApiConstants.adminPending}?status=$status';
+      
+      final response = await _api.get(endpoint, auth: true);
+      
+      final List<CarwashModel> data = (response as List)
+          .map((e) => CarwashModel.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+      if (status == 'approved') {
+        _approvedList = data;
+      } else {
+        _pendingList = data;
+      }
     } catch (e) {
-      print("Error fetching carwashes: $e");
+      print("Error fetching $status carwashes: $e");
       _error = ErrorHandler.getErrorMessage(e);
     } finally {
       _isLoading = false;
@@ -36,7 +61,7 @@ class AdminProvider with ChangeNotifier {
     }
   }
 
-  // [Task-F13]
+  // --- Approve / Reject Action ---
   Future<bool> manageRequest(int id, String action) async {
     _isLoading = true;
     _error = null;
@@ -47,8 +72,12 @@ class AdminProvider with ChangeNotifier {
         "action": action,
       }, auth: true);
 
-      // Optimistic Update: Remove from local list
+      // Optimistic Update: Remove from pending list immediately
       _pendingList.removeWhere((item) => item.id == id);
+      
+      // If approved, we might want to refresh the approved list later, 
+      // but strictly speaking, simply removing it from pending is enough for now.
+      
       return true;
     } catch (e) {
       _error = ErrorHandler.getErrorMessage(e);

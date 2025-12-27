@@ -37,7 +37,7 @@ class ApiConstants {
   static const String profileMe = '/api/carwash/profile/me/';
 
   // Admin Endpoints
-  static const String adminPending = '/api/carwash/admin/pending/';
+  static const String adminPending = '/api/carwash/admin/list/';
   static const String adminManage = '/api/carwash/admin/manage/'; // + <id>/
 
   // User Story 2.1 & 2.2: Search

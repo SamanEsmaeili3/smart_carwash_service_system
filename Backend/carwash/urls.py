@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (
     CarwashApplicationView, 
-    AdminPendingCarwashListView,
+    AdminCarwashListView,      # <--- Updated Import (was AdminPendingCarwashListView)
     AdminCarwashApprovalView,
     CarwashProfileUpdateView,
     CarwashServiceListCreateView,
@@ -20,8 +20,8 @@ urlpatterns = [
     path('list/', CustomerCarwashListView.as_view(), name='carwash-list-public'),
 
     # --- Admin ---
-    # /api/carwash/admin/pending/ (GET)
-    path('admin/pending/', AdminPendingCarwashListView.as_view(), name='admin-pending-list'),
+    # [UPDATED] /api/carwash/admin/list/ (GET) - Handles ?status=pending OR ?status=approved
+    path('admin/list/', AdminCarwashListView.as_view(), name='admin-carwash-list'),
     
     # /api/carwash/admin/manage/<pk>/ (POST)
     path('admin/manage/<int:pk>/', AdminCarwashApprovalView.as_view(), name='admin-manage-carwash'), 
@@ -35,9 +35,9 @@ urlpatterns = [
     path('services/', CarwashServiceListCreateView.as_view(), name='carwash-service-list-create'),
     
     # /api/carwash/services/<pk>/ (GET, PUT, PATCH, DELETE)
-    # Handles Editing and Deleting in one URL
     path('services/<int:pk>/', CarwashServiceDetailView.as_view(), name='carwash-service-detail'),
     
+    # Search
     path('search/', CarwashSearchView.as_view(), name='carwash-search'),
 
     # Sprint 3 Task-B2.15 ---
