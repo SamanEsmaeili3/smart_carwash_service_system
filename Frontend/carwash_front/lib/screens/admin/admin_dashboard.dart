@@ -25,16 +25,10 @@ class AdminDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // We remove the ChangeNotifierProvider creation here because 
-    // it's best practice to provide it higher up or let the tabs manage fetching.
-    // However, for this specific structure, we can wrap the scaffold or just use the existing provider.
-    // Assuming AdminProvider is provided in main.dart or a parent. 
-    // If not, we can wrap this widget. Let's wrap it to be safe.
-    
     return ChangeNotifierProvider(
-      create: (_) => AdminProvider(), // Don't fetch immediately here, tabs will fetch.
+      create: (_) => AdminProvider(),
       child: DefaultTabController(
-        length: 2, // Two tabs: Pending & Approved
+        length: 3, // <--- CHANGED TO 3
         child: Scaffold(
           appBar: AppBar(
             title: const Text('داشبورد ادمین'),
@@ -54,18 +48,20 @@ class AdminDashboard extends StatelessWidget {
               unselectedLabelColor: Colors.white60,
               indicatorColor: Colors.white,
               tabs: [
-                Tab(text: "درخواست‌های جدید", icon: Icon(Icons.hourglass_empty)),
-                Tab(text: "کارواش‌های فعال", icon: Icon(Icons.check_circle_outline)),
+                Tab(text: "جدید", icon: Icon(Icons.hourglass_empty)),
+                Tab(text: "فعال", icon: Icon(Icons.check_circle_outline)),
+                Tab(text: "رد شده", icon: Icon(Icons.cancel_outlined)), // [NEW]
               ],
             ),
           ),
-          body: Center(
+          body: const Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: 800),
               child: TabBarView(
                 children: [
-                  _PendingListTab(),  // Tab 1
-                  _ApprovedListTab(), // Tab 2
+                  _PendingListTab(),
+                  _ApprovedListTab(),
+                  _RejectedListTab(), // [NEW]
                 ],
               ),
             ),
@@ -406,6 +402,66 @@ class CarwashApplicationCard extends StatelessWidget {
               onPressed: () => Navigator.of(context).pop(),
             ),
           ],
+        );
+      },
+    );
+  }
+}
+
+class _RejectedListTab extends StatefulWidget {
+  const _RejectedListTab();
+
+  @override
+  State<_RejectedListTab> createState() => _RejectedListTabState();
+}
+
+class _RejectedListTabState extends State<_RejectedListTab> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<AdminProvider>(context, listen: false).fetchRejectedCarwashes();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AdminProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading && provider.rejectedList.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (provider.rejectedList.isEmpty) {
+          return const Center(child: Text('هیچ کارواش رد شده‌ای وجود ندارد.'));
+        }
+
+        return RefreshIndicator(
+          onRefresh: () => provider.fetchRejectedCarwashes(),
+          child: ListView.builder(
+            padding: const EdgeInsets.only(top: 16, bottom: 20),
+            itemCount: provider.rejectedList.length,
+            itemBuilder: (context, index) {
+              final carwash = provider.rejectedList[index];
+              // Use the same card but pending=false (so no buttons)
+              // You might want to visually indicate it's rejected (e.g. red badge)
+              // For now, we reuse the card logic:
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                elevation: 1,
+                color: Colors.grey.shade100, // Gray background for rejected
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Colors.red,
+                    child: Icon(Icons.block, color: Colors.white),
+                  ),
+                  title: Text(carwash.businessName, style: const TextStyle(color: Colors.grey)),
+                  subtitle: Text("رد شده"),
+                ),
+              );
+            },
+          ),
         );
       },
     );

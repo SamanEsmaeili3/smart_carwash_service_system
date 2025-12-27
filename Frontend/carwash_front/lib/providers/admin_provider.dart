@@ -10,13 +10,15 @@ class AdminProvider with ChangeNotifier {
   // Lists for our two tabs
   List<CarwashModel> _pendingList = [];
   List<CarwashModel> _approvedList = []; 
-
+  List<CarwashModel> _rejectedList = [];
   bool _isLoading = false;
   String? _error;
 
   // Getters
   List<CarwashModel> get pendingList => _pendingList;
   List<CarwashModel> get approvedList => _approvedList;
+  List<CarwashModel> get rejectedList => _rejectedList; // [NEW]
+  
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -29,6 +31,9 @@ class AdminProvider with ChangeNotifier {
   Future<void> fetchApprovedCarwashes() async {
     await _fetchList(status: 'approved');
   }
+
+  // [NEW] Fetch Rejected
+  Future<void> fetchRejectedCarwashes() async => await _fetchList(status: 'rejected');
 
   // Helper method to fetch lists based on status
   Future<void> _fetchList({required String status}) async {
@@ -49,6 +54,8 @@ class AdminProvider with ChangeNotifier {
 
       if (status == 'approved') {
         _approvedList = data;
+      } else if (status == 'rejected') { // [NEW]
+        _rejectedList = data;
       } else {
         _pendingList = data;
       }
