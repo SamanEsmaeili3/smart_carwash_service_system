@@ -7,7 +7,7 @@ from django.db.models import Avg, Min, Q
 import math
 from django.core.mail import send_mail  
 from django.conf import settings        
-from accounts.models import User
+from accounts.models import User, OTPRequest
 from .models import CarwashProfile, CarwashService
 from orders.models import Rating
 
@@ -26,7 +26,7 @@ from .serializers import (
 # SECTION 1: REGISTRATION & AUTH (Sprint 1)
 # ---------------------------------------------------------
 
-# User Story 1.2: Carwash Registration Application
+# User Story 1.2: Carwash Registration Application (Updated with OTP)
 class CarwashApplicationView(generics.CreateAPIView):
     serializer_class = CarwashApplicationSerializer
     permission_classes = [AllowAny] 
@@ -34,10 +34,39 @@ class CarwashApplicationView(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
+        
+        # 1. Creating Profiles and Users (by Serializer)
+        carwash_profile = serializer.save()
+        user = carwash_profile.user 
+
+        # 2. Generate OTP code for user
+        otp = OTPRequest(email=user.email)
+        otp.generate_code()
+
+        # 3. Send confirmation email
+        try:
+            send_mail(
+                subject='کد تایید حساب کاربری - کارواش پرو',
+                message=f'کد تایید شما: {otp.code}\n\nتوجه: پس از تایید ایمیل، حساب شما باید توسط مدیریت بررسی و تایید شود.',
+                from_email=settings.EMAIL_HOST_USER,
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            user.delete() 
+            return Response(
+                {"error": "Failed to send email. Please try again."}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        # 4. Reply to Front (to redirect to OTP page)
         headers = self.get_success_headers(serializer.data)
         return Response(
-            {"message": "Thank you for applying, we will review your application."}, 
+            {
+                "message": "Application submitted. Verification code sent to your email.",
+                "email": user.email,
+                "role": "carwash_owner" 
+            }, 
             status=status.HTTP_201_CREATED, 
             headers=headers
         )

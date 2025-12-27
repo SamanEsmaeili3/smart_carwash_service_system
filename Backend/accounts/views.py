@@ -74,17 +74,30 @@ class VerifyOTPView(views.APIView):
 
         try:
             user = User.objects.get(email=email)
-            user.is_active = True
-            user.save()
+                        
+            if user.is_customer:
+                user.is_active = True
+                user.save()
+                otp_record.delete()
+                refresh = RefreshToken.for_user(user)
+                return Response({
+                    'message': 'Account verified successfully!',
+                    'role': 'customer',
+                    'access': str(refresh.access_token),
+                    'refresh': str(refresh),
+                }, status=status.HTTP_200_OK)
+
+            elif user.is_carwash_owner:
+                otp_record.delete()
+                
+                return Response({
+                    'message': 'Email verified. Please wait for Admin approval.',
+                    'role': 'carwash_owner'
+                }, status=status.HTTP_200_OK)
             
-            otp_record.delete() 
-            refresh = RefreshToken.for_user(user)
-            
-            return Response({
-                'message': 'Account verified successfully!',
-                'access': str(refresh.access_token),
-                'refresh': str(refresh),
-            }, status=status.HTTP_200_OK)
+            else:
+                 otp_record.delete()
+                 return Response({'message': 'Verified.'}, status=status.HTTP_200_OK)
 
         except User.DoesNotExist:
             return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
