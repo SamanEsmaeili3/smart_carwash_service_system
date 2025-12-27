@@ -59,7 +59,7 @@ class AdminDashboard extends StatelessWidget {
               ],
             ),
           ),
-          body: const Center(
+          body: Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: 800),
               child: TabBarView(
