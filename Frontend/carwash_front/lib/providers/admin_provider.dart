@@ -68,22 +68,30 @@ class AdminProvider with ChangeNotifier {
     }
   }
 
-  // --- Approve / Reject Action ---
-  Future<bool> manageRequest(int id, String action) async {
+  // [Task-F13] Updated to support rejection reason
+  Future<bool> manageRequest(int id, String action, {String? reason}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      await _api.post('${ApiConstants.adminManage}$id/', {
+      // Prepare Payload
+      final Map<String, dynamic> body = {
         "action": action,
-      }, auth: true);
+      };
+      
+      // If there is a reason (for rejection), add it
+      if (reason != null && reason.isNotEmpty) {
+        body['rejection_reason'] = reason;
+      }
 
-      // Optimistic Update: Remove from pending list immediately
+      await _api.post('${ApiConstants.adminManage}$id/', body, auth: true);
+
+      // Optimistic Update: Remove from pending list
       _pendingList.removeWhere((item) => item.id == id);
       
-      // If approved, we might want to refresh the approved list later, 
-      // but strictly speaking, simply removing it from pending is enough for now.
+      // Note: We don't manually add it to _rejectedList here to keep logic simple.
+      // Refreshing the rejected tab will fetch it from server.
       
       return true;
     } catch (e) {

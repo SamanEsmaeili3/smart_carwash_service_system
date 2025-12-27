@@ -82,6 +82,7 @@ class AdminCarwashApprovalView(views.APIView):
             )
 
         action = request.data.get('action') # e.g., {"action": "approve"}
+        rejection_reason = request.data.get('rejection_reason', 'دلیلی ذکر نشده است.')
 
         if action == "approve":
             user = profile.user
@@ -131,19 +132,41 @@ class AdminCarwashApprovalView(views.APIView):
             )
 
         elif action == "reject":
+            # 1. Update Status
             profile.status = CarwashProfile.Status.REJECTED
             profile.save()
+            
+            # 2. Send Rejection Email
+            user = profile.user
+            if user and user.email:
+                try:
+                    subject = '❌ درخواست ثبت کارواش رد شد'
+                    message = f"""
+                    سلام {profile.business_name} عزیز،
+                    
+                    متاسفانه درخواست ثبت‌نام شما در سامانه «کارواش پرو» تایید نشد.
+                    
+                    دلیل رد درخواست:
+                    {rejection_reason}
+                    
+                    در صورت رفع مشکل، می‌توانید مجددا درخواست دهید.
+                    با احترام، تیم پشتیبانی.
+                    """
+                    send_mail(
+                        subject=subject,
+                        message=message,
+                        from_email=settings.EMAIL_HOST_USER,
+                        recipient_list=[user.email],
+                        fail_silently=False,
+                    )
+                    print(f"✅ Rejection email sent to {user.email}")
+                except Exception as e:
+                    print(f"❌ Failed to send rejection email: {e}")
                         
-            return Response(
-                {"message": f"Carwash {profile.business_name} rejected."}, 
-                status=status.HTTP_200_OK
-            )
+            return Response({"message": "Rejected successfully."}, status=status.HTTP_200_OK)
 
         else:
-            return Response(
-                {"error": "Action 'approve' or 'reject' required."}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({"error": "Invalid action."}, status=status.HTTP_400_BAD_REQUEST)
 
 # ---------------------------------------------------------
 # SECTION 3: CARWASH OWNER PANEL (Sprint 2)

@@ -28,7 +28,7 @@ class AdminDashboard extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => AdminProvider(),
       child: DefaultTabController(
-        length: 3, // <--- CHANGED TO 3
+        length: 3, // 3 Tabs: Pending, Active, Rejected
         child: Scaffold(
           appBar: AppBar(
             title: const Text('داشبورد ادمین'),
@@ -50,18 +50,19 @@ class AdminDashboard extends StatelessWidget {
               tabs: [
                 Tab(text: "جدید", icon: Icon(Icons.hourglass_empty)),
                 Tab(text: "فعال", icon: Icon(Icons.check_circle_outline)),
-                Tab(text: "رد شده", icon: Icon(Icons.cancel_outlined)), // [NEW]
+                Tab(text: "رد شده", icon: Icon(Icons.cancel_outlined)),
               ],
             ),
           ),
-          body: const Center(
+          // Removed 'const' to prevent build errors
+          body: Center(
             child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: 800),
-              child: TabBarView(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: const TabBarView(
                 children: [
                   _PendingListTab(),
                   _ApprovedListTab(),
-                  _RejectedListTab(), // [NEW]
+                  _RejectedListTab(),
                 ],
               ),
             ),
@@ -86,7 +87,6 @@ class _PendingListTabState extends State<_PendingListTab> {
   @override
   void initState() {
     super.initState();
-    // Fetch pending list when this tab loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<AdminProvider>(context, listen: false).fetchPendingCarwashes();
     });
@@ -115,7 +115,6 @@ class _PendingListTabState extends State<_PendingListTab> {
             itemCount: provider.pendingList.length,
             itemBuilder: (context, index) {
               final carwash = provider.pendingList[index];
-              // Pass isPending: true to show Approve/Reject buttons
               return CarwashApplicationCard(carwash: carwash, isPending: true);
             },
           ),
@@ -156,7 +155,6 @@ class _ApprovedListTabState extends State<_ApprovedListTab> {
   @override
   void initState() {
     super.initState();
-    // Fetch approved list when this tab loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<AdminProvider>(context, listen: false).fetchApprovedCarwashes();
     });
@@ -170,12 +168,6 @@ class _ApprovedListTabState extends State<_ApprovedListTab> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        // We reuse the error variable, but usually you'd want separate error states per list.
-        // For simplicity, we assume the provider manages one error state nicely.
-        if (provider.error != null) {
-             return Center(child: Text(provider.error!));
-        }
-
         if (provider.approvedList.isEmpty) {
           return const Center(child: Text('هیچ کارواش فعالی یافت نشد.'));
         }
@@ -187,7 +179,6 @@ class _ApprovedListTabState extends State<_ApprovedListTab> {
             itemCount: provider.approvedList.length,
             itemBuilder: (context, index) {
               final carwash = provider.approvedList[index];
-              // Pass isPending: false to hide buttons
               return CarwashApplicationCard(carwash: carwash, isPending: false);
             },
           ),
@@ -198,14 +189,81 @@ class _ApprovedListTabState extends State<_ApprovedListTab> {
 }
 
 // -----------------------------------------------------------------------------
-// SHARED WIDGET: Carwash Card
+// TAB 3: Rejected Carwashes
+// -----------------------------------------------------------------------------
+class _RejectedListTab extends StatefulWidget {
+  const _RejectedListTab();
+
+  @override
+  State<_RejectedListTab> createState() => _RejectedListTabState();
+}
+
+class _RejectedListTabState extends State<_RejectedListTab> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<AdminProvider>(context, listen: false).fetchRejectedCarwashes();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AdminProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading && provider.rejectedList.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (provider.rejectedList.isEmpty) {
+          return const Center(child: Text('هیچ کارواش رد شده‌ای وجود ندارد.'));
+        }
+
+        return RefreshIndicator(
+          onRefresh: () => provider.fetchRejectedCarwashes(),
+          child: ListView.builder(
+            padding: const EdgeInsets.only(top: 16, bottom: 20),
+            itemCount: provider.rejectedList.length,
+            itemBuilder: (context, index) {
+              final carwash = provider.rejectedList[index];
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                elevation: 1,
+                color: Colors.grey.shade100,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: ListTile(
+                  leading: const CircleAvatar(
+                    backgroundColor: Colors.red,
+                    child: Icon(Icons.block, color: Colors.white),
+                  ),
+                  title: Text(
+                    carwash.businessName,
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: const Text("وضعیت: رد شده"),
+                  trailing: const Icon(Icons.cancel, color: Colors.red),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// SHARED WIDGET: Carwash Card (Pending/Approved)
 // -----------------------------------------------------------------------------
 class CarwashApplicationCard extends StatelessWidget {
   final CarwashModel carwash;
-  final bool isPending; // [NEW] Flag to toggle buttons
+  final bool isPending;
 
   const CarwashApplicationCard({
-    super.key, 
+    super.key,
     required this.carwash,
     required this.isPending,
   });
@@ -242,8 +300,8 @@ class CarwashApplicationCard extends StatelessWidget {
                     isPending ? "در انتظار" : "فعال",
                     style: TextStyle(
                       color: isPending ? Colors.orange : Colors.green,
-                      fontSize: 12, 
-                      fontWeight: FontWeight.bold
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
@@ -253,17 +311,16 @@ class CarwashApplicationCard extends StatelessWidget {
             _buildInfoRow(Icons.location_on_outlined, carwash.address),
             const SizedBox(height: 4),
             _buildInfoRow(Icons.phone_outlined, carwash.phoneNumber),
-            
+
             const SizedBox(height: 12),
-            const Divider(), 
+            const Divider(),
             const SizedBox(height: 12),
-            
-            // Buttons Row
+
             Row(
               children: [
-                // Info Button (Always Visible)
+                // Info Button
                 Expanded(
-                  flex: 1, 
+                  flex: 1,
                   child: CustomButton(
                     onPressed: () => _showDetailsDialog(context),
                     color: AppColors.textSub.withAlpha(30),
@@ -279,16 +336,15 @@ class CarwashApplicationCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                
-                // Only show Approve/Reject if Pending
+
+                // Approve/Reject Buttons (Only if Pending)
                 if (isPending) ...[
                   const SizedBox(width: 8),
-                  // Reject Button
                   Expanded(
                     flex: 2,
                     child: CustomButton(
                       text: 'رد',
-                      onPressed: () => provider.manageRequest(carwash.id!, "reject"),
+                      onPressed: () => _showRejectDialog(context, provider),
                       color: Colors.white,
                       textColor: AppColors.error,
                       borderColor: AppColors.error,
@@ -296,7 +352,6 @@ class CarwashApplicationCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // Approve Button
                   Expanded(
                     flex: 2,
                     child: CustomButton(
@@ -316,7 +371,6 @@ class CarwashApplicationCard extends StatelessWidget {
     );
   }
 
-  // Helper for cleaner UI
   Widget _buildInfoRow(IconData icon, String text) {
     return Row(
       children: [
@@ -356,7 +410,6 @@ class CarwashApplicationCard extends StatelessWidget {
                 Text('ایمیل: ${carwash.contactEmail}'),
                 const SizedBox(height: 8),
 
-                // LOCATION
                 Text(
                   'مکان: ${carwash.latitude.toStringAsFixed(4)}, ${carwash.longitude.toStringAsFixed(4)}',
                   textDirection: TextDirection.ltr,
@@ -371,7 +424,6 @@ class CarwashApplicationCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
 
-                // WORKING HOURS
                 ...orderedDays.map((engDay) {
                   final time = carwash.workingHours[engDay];
                   if (time == null) return const SizedBox();
@@ -386,7 +438,7 @@ class CarwashApplicationCard extends StatelessWidget {
                           time == "Closed" ? "تعطیل" : time,
                           style: TextStyle(
                             color: time == "Closed" ? Colors.red : Colors.green[700],
-                            fontWeight: FontWeight.bold
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
@@ -406,64 +458,60 @@ class CarwashApplicationCard extends StatelessWidget {
       },
     );
   }
-}
 
-class _RejectedListTab extends StatefulWidget {
-  const _RejectedListTab();
+  // Function to show the input dialog
+  void _showRejectDialog(BuildContext context, AdminProvider provider) {
+    final TextEditingController reasonCtrl = TextEditingController();
 
-  @override
-  State<_RejectedListTab> createState() => _RejectedListTabState();
-}
-
-class _RejectedListTabState extends State<_RejectedListTab> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<AdminProvider>(context, listen: false).fetchRejectedCarwashes();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<AdminProvider>(
-      builder: (context, provider, child) {
-        if (provider.isLoading && provider.rejectedList.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (provider.rejectedList.isEmpty) {
-          return const Center(child: Text('هیچ کارواش رد شده‌ای وجود ندارد.'));
-        }
-
-        return RefreshIndicator(
-          onRefresh: () => provider.fetchRejectedCarwashes(),
-          child: ListView.builder(
-            padding: const EdgeInsets.only(top: 16, bottom: 20),
-            itemCount: provider.rejectedList.length,
-            itemBuilder: (context, index) {
-              final carwash = provider.rejectedList[index];
-              // Use the same card but pending=false (so no buttons)
-              // You might want to visually indicate it's rejected (e.g. red badge)
-              // For now, we reuse the card logic:
-              return Card(
-                margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                elevation: 1,
-                color: Colors.grey.shade100, // Gray background for rejected
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Colors.red,
-                    child: Icon(Icons.block, color: Colors.white),
-                  ),
-                  title: Text(carwash.businessName, style: const TextStyle(color: Colors.grey)),
-                  subtitle: Text("رد شده"),
-                ),
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text(
+          "دلیل رد درخواست",
+          textAlign: TextAlign.center,
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "لطفاً دلیل رد کردن این کارواش را بنویسید. این متن برای کاربر ایمیل خواهد شد.",
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: reasonCtrl,
+              maxLines: 3,
+              textDirection: TextDirection.rtl,
+              decoration: const InputDecoration(
+                hintText: "مثلاً: عکس پروانه کسب ناخوانا است...",
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx), // Cancel
+            child: const Text("انصراف", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () {
+              // 1. Close Dialog
+              Navigator.pop(ctx);
+              
+              // 2. Call Provider with the text
+              provider.manageRequest(
+                carwash.id!, 
+                "reject", 
+                reason: reasonCtrl.text
               );
             },
+            child: const Text("تایید و رد کردن", style: TextStyle(color: Colors.white)),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }
