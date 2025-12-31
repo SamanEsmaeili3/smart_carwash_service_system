@@ -8,6 +8,10 @@ import '../../widgets/custom_input.dart';
 import '../../widgets/custom_button.dart';
 import '../../constants/app_colors.dart';
 import '../../providers/auth_provider.dart'; 
+import 'dart:io'; 
+import 'package:image_picker/image_picker.dart'; 
+import '../../providers/driver_provider.dart'; 
+import '../../models/driver_model.dart'; 
 
 
 class CarwashHomeScreen extends StatefulWidget {
@@ -34,23 +38,21 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    String title = "مدیریت سرویس‌ها";
+    if (_selectedIndex == 1) title = "مدیریت رانندگان";
+    if (_selectedIndex == 2) title = "پروفایل و تنظیمات";
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(
-          _selectedIndex == 0 ? "مدیریت سرویس‌ها" : "پروفایل و تنظیمات",
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: AppColors.secondary,
         foregroundColor: Colors.white,
         centerTitle: true,
-        // --- ADD THIS LOGOUT BUTTON ---
         leading: IconButton(
           icon: const Icon(Icons.logout),
           onPressed: () {
-            // 1. Log out logic
             Provider.of<AuthProvider>(context, listen: false).logout();
-            // 2. Go back to Login Screen
             Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
           },
         ),
@@ -58,15 +60,15 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: _selectedIndex == 0
-              // Pass the showModal function to the tab so it can open the edit form
-              ? _ServicesTab(onEdit: _showAddServiceSheet) 
-              : const _ProfileTab(),
+          child: _getBody(), 
         ),
       ),
-      floatingActionButton: _selectedIndex == 0
+      floatingActionButton: _selectedIndex < 2
           ? FloatingActionButton(
-              onPressed: () => _showAddServiceSheet(context),
+              onPressed: () {
+                if (_selectedIndex == 0) _showAddServiceSheet(context);
+                if (_selectedIndex == 1) _showAddDriverSheet(context); 
+              },
               backgroundColor: AppColors.secondary,
               child: const Icon(Icons.add, color: Colors.white),
             )
@@ -77,10 +79,24 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
         onTap: (index) => setState(() => _selectedIndex = index),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.list), label: "سرویس‌ها"),
+          BottomNavigationBarItem(icon: Icon(Icons.drive_eta), label: "رانندگان"), 
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "پروفایل"),
         ],
       ),
     );
+  }
+
+  Widget _getBody() {
+    switch (_selectedIndex) {
+      case 0:
+        return _ServicesTab(onEdit: _showAddServiceSheet);
+      case 1:
+        return const _DriversTab(); 
+      case 2:
+        return const _ProfileTab();
+      default:
+        return _ServicesTab(onEdit: _showAddServiceSheet);
+    }
   }
 
   // --- MODIFIED: Accepts optional serviceToEdit ---
@@ -106,6 +122,22 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
               child: _AddServiceForm(serviceToEdit: serviceToEdit),
             ),
           ),
+        );
+      },
+    );
+  }
+
+  void _showAddDriverSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
+          child: const _AddDriverForm(), 
         );
       },
     );
@@ -371,6 +403,194 @@ class _AddServiceForm extends StatefulWidget {
   State<_AddServiceForm> createState() => _AddServiceFormState();
 }
 
+// ==========================================
+// TAB 2: DRIVERS LIST (NEW SECTION)
+// ==========================================
+class _DriversTab extends StatefulWidget {
+  const _DriversTab();
+
+  @override
+  State<_DriversTab> createState() => _DriversTabState();
+}
+
+class _DriversTabState extends State<_DriversTab> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<DriverProvider>(context, listen: false).fetchDrivers();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<DriverProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading) return const Center(child: CircularProgressIndicator());
+        
+        if (provider.drivers.isEmpty) {
+          return const Center(child: Text("راننده‌ای ثبت نشده است."));
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: provider.drivers.length,
+          itemBuilder: (ctx, index) {
+            final driver = provider.drivers[index];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: AppColors.secondary.withOpacity(0.1),
+                  backgroundImage: driver.personnelPhoto != null 
+                      ? NetworkImage(driver.personnelPhoto!) 
+                      : null,
+                  child: driver.personnelPhoto == null 
+                      ? const Icon(Icons.person, color: AppColors.secondary) 
+                      : null,
+                ),
+                title: Text(driver.fullName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text("کدملی: ${driver.nationalId}\nتماس: ${driver.phoneNumber}"),
+                trailing: IconButton(
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
+                  onPressed: () => _confirmDelete(context, provider, driver.id!),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _confirmDelete(BuildContext context, DriverProvider provider, int id) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("حذف راننده"),
+        content: const Text("آیا مطمئن هستید؟"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("خیر")),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              provider.deleteDriver(id);
+            },
+            child: const Text("بله، حذف شود", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==========================================
+// FORM: ADD DRIVER WIDGET
+// ==========================================
+class _AddDriverForm extends StatefulWidget {
+  const _AddDriverForm();
+
+  @override
+  State<_AddDriverForm> createState() => _AddDriverFormState();
+}
+
+class _AddDriverFormState extends State<_AddDriverForm> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameCtrl = TextEditingController();
+  final _nationalIdCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
+  File? _imageFile;
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() => _imageFile = File(pickedFile.path));
+    }
+  }
+
+  void _submit() async {
+    if (_formKey.currentState!.validate()) {
+      final provider = Provider.of<DriverProvider>(context, listen: false);
+      
+      final newDriver = DriverModel(
+        fullName: _nameCtrl.text,
+        nationalId: _nationalIdCtrl.text,
+        phoneNumber: _phoneCtrl.text,
+        address: _addressCtrl.text,
+      );
+
+      final success = await provider.addDriver(newDriver, _imageFile);
+
+      if (success && mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("راننده با موفقیت افزوده شد"), backgroundColor: Colors.green),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isLoading = context.watch<DriverProvider>().isLoading;
+
+    return Form(
+      key: _formKey,
+      child: SingleChildScrollView( 
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("افزودن راننده جدید", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            const SizedBox(height: 20),
+            
+            GestureDetector(
+              onTap: _pickImage,
+              child: CircleAvatar(
+                radius: 40,
+                backgroundColor: Colors.grey[200],
+                backgroundImage: _imageFile != null ? FileImage(_imageFile!) : null,
+                child: _imageFile == null 
+                    ? const Icon(Icons.add_a_photo, size: 30, color: Colors.grey) 
+                    : null,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text("تصویر پرسنلی (اختیاری)", style: TextStyle(fontSize: 12, color: Colors.grey)),
+            
+            const SizedBox(height: 16),
+            CustomInput(label: "نام و نام خانوادگی", icon: Icons.person, controller: _nameCtrl),
+            CustomInput(
+              label: "کد ملی", 
+              icon: Icons.badge, 
+              controller: _nationalIdCtrl, 
+              keyboardType: TextInputType.number,
+              validator: (v) => (v != null && v.length == 10) ? null : "کد ملی باید ۱۰ رقم باشد",
+            ),
+            CustomInput(
+              label: "شماره تماس", 
+              icon: Icons.phone, 
+              controller: _phoneCtrl, 
+              keyboardType: TextInputType.phone
+            ),
+            CustomInput(label: "آدرس", icon: Icons.location_on, controller: _addressCtrl, maxLines: 2),
+            
+            const SizedBox(height: 20),
+            CustomButton(
+              text: "ثبت راننده", 
+              onPressed: _submit, 
+              isLoading: isLoading, 
+              color: AppColors.secondary
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _AddServiceFormState extends State<_AddServiceForm> {
   final _nameCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
@@ -496,3 +716,4 @@ class _AddServiceFormState extends State<_AddServiceForm> {
     );
   }
 }
+
