@@ -594,11 +594,11 @@ class _DriversTabState extends State<_DriversTab> {
                 leading: CircleAvatar(
                   backgroundColor: AppColors.secondary.withOpacity(0.1),
                   backgroundImage:
-                      driver.personnelPhoto != null
-                          ? NetworkImage(driver.personnelPhoto!)
+                      driver.personnelPhotoUrl != null
+                          ? NetworkImage(driver.personnelPhotoUrl!)
                           : null,
                   child:
-                      driver.personnelPhoto == null
+                      driver.personnelPhotoUrl == null
                           ? const Icon(Icons.person, color: AppColors.secondary)
                           : null,
                 ),
@@ -761,7 +761,7 @@ class _AddDriverFormState extends State<_AddDriverForm> {
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(provider.error ?? "خطا در عملیات"),
+            content: Text(provider.errorMessage ?? "خطا در عملیات"),
             backgroundColor: Colors.red,
           ),
         );
