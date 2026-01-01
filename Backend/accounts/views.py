@@ -164,7 +164,9 @@ class ResetPasswordView(generics.GenericAPIView):
         # 2. Change password
         try:
             user = User.objects.get(email=email)
-            user.set_password(new_password) 
+            user.set_password(new_password)
+            # Ensure user is active after password reset so they can login immediately
+            user.is_active = True
             user.save()
             
             otp_record.delete() # Clear invalid code

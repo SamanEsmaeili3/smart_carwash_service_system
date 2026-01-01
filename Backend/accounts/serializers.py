@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from django.contrib.auth import authenticate
+from django.utils.translation import gettext_lazy as _
 from .models import User, CustomerProfile
 
 class CustomerRegistrationSerializer(serializers.ModelSerializer):
@@ -19,6 +21,23 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
         return user
     
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    username_field = 'email'
+    
+    def validate(self, attrs):
+        # The parent class expects the username_field name in attrs
+        # Since frontend sends 'email' and username_field is 'email', it should work
+        # But let's ensure the mapping is correct
+        data = super().validate(attrs)
+        
+        # After parent validate, self.user should be set
+        # Ensure user is active
+        if hasattr(self, 'user') and self.user and not self.user.is_active:
+            raise serializers.ValidationError(
+                {'email': _('This account is inactive. Please contact support.')}
+            )
+        
+        return data
+    
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)

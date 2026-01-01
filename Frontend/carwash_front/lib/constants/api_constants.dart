@@ -28,11 +28,11 @@ class ApiConstants {
   static const String login = '/api/token/';
   static const String register = '/api/accounts/register/';
   static const String refreshToken = '/api/token/refresh/';
-  static const String verifyOtp = '/api/auth/verify-otp/';
+  static const String verifyOtp = '/api/accounts/auth/verify-otp/';
   static const String passwordResetRequest =
-      '/api/auth/password-reset/request/';
+      '/api/accounts/auth/password-reset/request/';
   static const String passwordResetConfirm =
-      '/api/auth/password-reset/confirm/';
+      '/api/accounts/auth/password-reset/confirm/';
 
   // Carwash Endpoints
   static const String apply = '/api/carwash/apply/';

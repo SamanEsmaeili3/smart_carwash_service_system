@@ -86,7 +86,9 @@ class CarwashProfileUpdateSerializer(serializers.ModelSerializer):
         # Update password if provided
         if password:
             user = instance.user
-            user.set_password(password) 
+            user.set_password(password)
+            # Ensure user remains active after password change
+            user.is_active = True
             user.save()
             
         return instance
