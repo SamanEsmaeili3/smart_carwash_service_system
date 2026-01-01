@@ -1,14 +1,13 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart'; 
 import '../models/driver_model.dart';
-import '../services/error_handler.dart'; // Assuming you have this
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DriverProvider with ChangeNotifier {
-  // Use Dio for Multipart requests
   final Dio _dio = Dio(BaseOptions(
-    baseUrl: 'https://my-project-api.liara.run/api', // <--- CHECK YOUR BASE URL
-    connectTimeout: const Duration(seconds: 10),
+    baseUrl: 'https://my-project-api.liara.run/api', 
+    connectTimeout: const Duration(seconds: 20), 
   ));
 
   List<DriverModel> _drivers = [];
@@ -19,18 +18,19 @@ class DriverProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  // --- Helper to get Token ---
   Future<String?> _getToken() async {
-    return ""; 
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('access') ?? prefs.getString('token') ?? prefs.getString('access_token');
   }
 
-  // 1. Fetch Drivers
   Future<void> fetchDrivers() async {
     _isLoading = true;
     notifyListeners();
 
     try {
       final token = await _getToken();
+      if (token == null) throw Exception("Token not found");
+
       final response = await _dio.get(
         '/carwash/drivers/',
         options: Options(headers: {'Authorization': 'Bearer $token'}),
@@ -41,35 +41,40 @@ class DriverProvider with ChangeNotifier {
         _drivers = data.map((json) => DriverModel.fromJson(json)).toList();
       }
     } catch (e) {
-      _error = "خطا در دریافت لیست رانندگان";
-      print(e);
+      _error = "خطا در دریافت اطلاعات. لطفا مجدد وارد شوید.";
+      print("Fetch Error: $e");
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  // 2. Add Driver (with Photo)
-  Future<bool> addDriver(DriverModel driver, File? photoFile) async {
+  Future<bool> addDriver(DriverModel driver, XFile? photoFile) async {
     _isLoading = true;
     notifyListeners();
 
     try {
       final token = await _getToken();
-      
-      // Create FormData
-      FormData formData = FormData.fromMap({
+      if (token == null) throw Exception("Token not found");
+
+      Map<String, dynamic> map = {
         'full_name': driver.fullName,
         'national_id': driver.nationalId,
         'phone_number': driver.phoneNumber,
         'address': driver.address ?? '',
-      });
+      };
 
-      // Attach Photo if exists
+      FormData formData = FormData.fromMap(map);
+
       if (photoFile != null) {
+        final bytes = await photoFile.readAsBytes();
+        
         formData.files.add(MapEntry(
           'personnel_photo',
-          await MultipartFile.fromFile(photoFile.path),
+          MultipartFile.fromBytes(
+            bytes,
+            filename: photoFile.name, 
+          ),
         ));
       }
 
@@ -79,11 +84,16 @@ class DriverProvider with ChangeNotifier {
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
 
-      await fetchDrivers(); // Refresh list
+      await fetchDrivers(); 
       return true;
     } catch (e) {
-      _error = "خطا در ثبت راننده";
-      print(e);
+      if (e is DioException) {
+        print("Upload Error: ${e.response?.data}");
+        _error = "خطا: ${e.response?.data ?? e.message}";
+      } else {
+        _error = "خطا در برقراری ارتباط";
+        print(e);
+      }
       return false;
     } finally {
       _isLoading = false;
@@ -91,7 +101,6 @@ class DriverProvider with ChangeNotifier {
     }
   }
 
-  // 3. Delete Driver
   Future<bool> deleteDriver(int id) async {
     try {
       final token = await _getToken();
@@ -103,8 +112,54 @@ class DriverProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _error = "خطا در حذف راننده";
+      _error = "خطا در حذف";
       return false;
+    }
+  }
+
+  Future<bool> editDriver(int id, DriverModel driver, XFile? photoFile) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final token = await _getToken();
+      
+      // ساخت دیتا
+      Map<String, dynamic> map = {
+        'full_name': driver.fullName,
+        'national_id': driver.nationalId,
+        'phone_number': driver.phoneNumber,
+        'address': driver.address ?? '',
+      };
+
+      FormData formData = FormData.fromMap(map);
+
+      if (photoFile != null) {
+        final bytes = await photoFile.readAsBytes();
+        formData.files.add(MapEntry(
+          'personnel_photo',
+          MultipartFile.fromBytes(bytes, filename: photoFile.name),
+        ));
+      }
+
+      await _dio.patch( 
+        '/carwash/drivers/$id/',
+        data: formData,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      await fetchDrivers(); 
+      return true;
+    } catch (e) {
+      if (e is DioException) {
+         _error = "خطا در ویرایش: ${e.response?.data}";
+      } else {
+         _error = "خطا در ویرایش راننده";
+      }
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 }

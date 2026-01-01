@@ -12,6 +12,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart'; 
 import '../../providers/driver_provider.dart'; 
 import '../../models/driver_model.dart'; 
+import 'dart:typed_data'; 
 
 
 class CarwashHomeScreen extends StatefulWidget {
@@ -127,7 +128,7 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
     );
   }
 
-  void _showAddDriverSheet(BuildContext context) {
+  void _showAddDriverSheet(BuildContext context, {DriverModel? driverToEdit}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -137,7 +138,8 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
       builder: (ctx) {
         return Padding(
           padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
-          child: const _AddDriverForm(), 
+          // راننده رو پاس میدیم به فرم
+          child: _AddDriverForm(driverToEdit: driverToEdit), 
         );
       },
     );
@@ -403,207 +405,6 @@ class _AddServiceForm extends StatefulWidget {
   State<_AddServiceForm> createState() => _AddServiceFormState();
 }
 
-// ==========================================
-// TAB 2: DRIVERS LIST (NEW SECTION)
-// ==========================================
-class _DriversTab extends StatefulWidget {
-  const _DriversTab();
-
-  @override
-  State<_DriversTab> createState() => _DriversTabState();
-}
-
-class _DriversTabState extends State<_DriversTab> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<DriverProvider>(context, listen: false).fetchDrivers();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<DriverProvider>(
-      builder: (context, provider, child) {
-        if (provider.isLoading) return const Center(child: CircularProgressIndicator());
-        
-        if (provider.drivers.isEmpty) {
-          return const Center(child: Text("راننده‌ای ثبت نشده است."));
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: provider.drivers.length,
-          itemBuilder: (ctx, index) {
-            final driver = provider.drivers[index];
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: AppColors.secondary.withOpacity(0.1),
-                  backgroundImage: driver.personnelPhoto != null 
-                      ? NetworkImage(driver.personnelPhoto!) 
-                      : null,
-                  child: driver.personnelPhoto == null 
-                      ? const Icon(Icons.person, color: AppColors.secondary) 
-                      : null,
-                ),
-                title: Text(driver.fullName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text("کدملی: ${driver.nationalId}\nتماس: ${driver.phoneNumber}"),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                  onPressed: () => _confirmDelete(context, provider, driver.id!),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _confirmDelete(BuildContext context, DriverProvider provider, int id) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("حذف راننده"),
-        content: const Text("آیا مطمئن هستید؟"),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("خیر")),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              provider.deleteDriver(id);
-            },
-            child: const Text("بله، حذف شود", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ==========================================
-// FORM: ADD DRIVER WIDGET
-// ==========================================
-class _AddDriverForm extends StatefulWidget {
-  const _AddDriverForm();
-
-  @override
-  State<_AddDriverForm> createState() => _AddDriverFormState();
-}
-
-class _AddDriverFormState extends State<_AddDriverForm> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController();
-  final _nationalIdCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
-  final _addressCtrl = TextEditingController();
-  File? _imageFile;
-
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() => _imageFile = File(pickedFile.path));
-    }
-  }
-
-  void _submit() async {
-    if (_formKey.currentState!.validate()) {
-      final provider = Provider.of<DriverProvider>(context, listen: false);
-      
-      final newDriver = DriverModel(
-        fullName: _nameCtrl.text,
-        nationalId: _nationalIdCtrl.text,
-        phoneNumber: _phoneCtrl.text,
-        address: _addressCtrl.text,
-      );
-
-      final success = await provider.addDriver(newDriver, _imageFile);
-
-      if (success && mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("راننده با موفقیت افزوده شد"), backgroundColor: Colors.green),
-        );
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isLoading = context.watch<DriverProvider>().isLoading;
-
-    return Form(
-      key: _formKey,
-      child: SingleChildScrollView( 
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text("افزودن راننده جدید", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            const SizedBox(height: 20),
-            
-            GestureDetector(
-              onTap: _pickImage,
-              child: CircleAvatar(
-                radius: 40,
-                backgroundColor: Colors.grey[200],
-                backgroundImage: _imageFile != null ? FileImage(_imageFile!) : null,
-                child: _imageFile == null 
-                    ? const Icon(Icons.add_a_photo, size: 30, color: Colors.grey) 
-                    : null,
-              ),
-            ),
-            const SizedBox(height: 10),
-            const Text("تصویر پرسنلی (اختیاری)", style: TextStyle(fontSize: 12, color: Colors.grey)),
-            
-            const SizedBox(height: 16),
-            CustomInput(
-              label: "نام و نام خانوادگی",
-              hint: "مثال: علی رضایی",
-              icon: Icons.person,
-              controller: _nameCtrl
-            ),
-            CustomInput(
-              label: "کد ملی",
-              hint: "مثال: 0023456789", 
-              icon: Icons.badge,
-              controller: _nationalIdCtrl,
-              keyboardType: TextInputType.number,
-              validator: (v) => (v != null && v.length == 10) ? null : "کد ملی باید ۱۰ رقم باشد",
-            ),
-            CustomInput(
-              label: "شماره تماس",
-              hint: "مثال: 0912...", 
-              icon: Icons.phone,
-              controller: _phoneCtrl,
-              keyboardType: TextInputType.phone
-            ),
-            CustomInput(
-              label: "آدرس",
-              hint: "آدرس سکونت راننده", 
-              icon: Icons.location_on,
-              controller: _addressCtrl,
-              maxLines: 2
-            ),
-            
-            const SizedBox(height: 20),
-            CustomButton(
-              text: "ثبت راننده", 
-              onPressed: _submit, 
-              isLoading: isLoading, 
-              color: AppColors.secondary
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _AddServiceFormState extends State<_AddServiceForm> {
   final _nameCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
@@ -730,3 +531,292 @@ class _AddServiceFormState extends State<_AddServiceForm> {
   }
 }
 
+// ==========================================
+// TAB 2: DRIVERS LIST (UPDATED)
+// ==========================================
+class _DriversTab extends StatefulWidget {
+  const _DriversTab();
+
+  @override
+  State<_DriversTab> createState() => _DriversTabState();
+}
+
+class _DriversTabState extends State<_DriversTab> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<DriverProvider>(context, listen: false).fetchDrivers();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<DriverProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading && provider.drivers.isEmpty) return const Center(child: CircularProgressIndicator());
+        
+        if (provider.drivers.isEmpty) {
+          return const Center(child: Text("راننده‌ای ثبت نشده است."));
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: provider.drivers.length,
+          itemBuilder: (ctx, index) {
+            final driver = provider.drivers[index];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: AppColors.secondary.withOpacity(0.1),
+                  backgroundImage: driver.personnelPhoto != null 
+                      ? NetworkImage(driver.personnelPhoto!) 
+                      : null,
+                  child: driver.personnelPhoto == null 
+                      ? const Icon(Icons.person, color: AppColors.secondary) 
+                      : null,
+                ),
+                title: Text(driver.fullName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text("کدملی: ${driver.nationalId}\nتماس: ${driver.phoneNumber}"),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.blue),
+                      onPressed: () {
+                        final state = context.findAncestorStateOfType<_CarwashHomeScreenState>();
+                        state?._showAddDriverSheet(context, driverToEdit: driver);
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                      onPressed: () => _confirmDelete(context, provider, driver.id!),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _confirmDelete(BuildContext context, DriverProvider provider, int id) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("حذف راننده"),
+        content: const Text("آیا مطمئن هستید؟"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("خیر")),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              provider.deleteDriver(id);
+            },
+            child: const Text("بله، حذف شود", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==========================================
+// FORM: ADD / EDIT DRIVER 
+// ==========================================
+class _AddDriverForm extends StatefulWidget {
+  final DriverModel? driverToEdit;
+
+  const _AddDriverForm({this.driverToEdit});
+
+  @override
+  State<_AddDriverForm> createState() => _AddDriverFormState();
+}
+
+class _AddDriverFormState extends State<_AddDriverForm> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _nameCtrl;
+  late TextEditingController _nationalIdCtrl;
+  late TextEditingController _phoneCtrl;
+  late TextEditingController _addressCtrl;
+  
+  XFile? _imageFile;
+  Uint8List? _pickedImageBytes; 
+
+  @override
+  void initState() {
+    super.initState();
+    final d = widget.driverToEdit;
+    _nameCtrl = TextEditingController(text: d?.fullName ?? '');
+    _nationalIdCtrl = TextEditingController(text: d?.nationalId ?? '');
+    _phoneCtrl = TextEditingController(text: d?.phoneNumber ?? '');
+    _addressCtrl = TextEditingController(text: d?.address ?? '');
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _nationalIdCtrl.dispose();
+    _phoneCtrl.dispose();
+    _addressCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    
+    if (pickedFile != null) {
+      final bytes = await pickedFile.readAsBytes();
+      setState(() {
+        _imageFile = pickedFile;
+        _pickedImageBytes = bytes;
+      });
+    }
+  }
+
+  void _submit() async {
+    if (_formKey.currentState!.validate()) {
+      final provider = Provider.of<DriverProvider>(context, listen: false);
+      
+      final driverData = DriverModel(
+        id: widget.driverToEdit?.id,
+        fullName: _nameCtrl.text,
+        nationalId: _nationalIdCtrl.text,
+        phoneNumber: _phoneCtrl.text,
+        address: _addressCtrl.text,
+      );
+
+      bool success;
+      if (widget.driverToEdit == null) {
+        success = await provider.addDriver(driverData, _imageFile);
+      } else {
+        success = await provider.editDriver(widget.driverToEdit!.id!, driverData, _imageFile);
+      }
+
+      if (success && mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(widget.driverToEdit == null ? "راننده افزوده شد" : "ویرایش موفقیت‌آمیز بود"), 
+            backgroundColor: Colors.green
+          ),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text(provider.error ?? "خطا در عملیات"), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  String _fixImageUrl(String url) {
+    if (url.isEmpty) return "";
+    
+    if (url.startsWith('http://')) {
+      return url.replaceFirst('http://', 'https://');
+    }
+    
+    if (url.startsWith('https://')) {
+      return url;
+    }
+    
+    return 'https://my-project-api.liara.run$url'; 
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isLoading = context.watch<DriverProvider>().isLoading;
+    final isEditing = widget.driverToEdit != null;
+
+    ImageProvider? imageProvider;
+    if (_pickedImageBytes != null) {
+      imageProvider = MemoryImage(_pickedImageBytes!);
+    } else if (widget.driverToEdit?.personnelPhoto != null) {
+      imageProvider = NetworkImage(widget.driverToEdit!.personnelPhoto!);
+    }
+
+    return Form(
+      key: _formKey,
+      child: SingleChildScrollView( 
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(isEditing ? "ویرایش اطلاعات راننده" : "افزودن راننده جدید", 
+                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            const SizedBox(height: 20),
+            
+            GestureDetector(
+              onTap: _pickImage,
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  shape: BoxShape.circle,
+                  image: _pickedImageBytes != null
+                      ? DecorationImage(
+                          image: MemoryImage(_pickedImageBytes!), 
+                          fit: BoxFit.cover,
+                        )
+                      : (widget.driverToEdit?.personnelPhoto != null
+                          ? DecorationImage(
+                              image: NetworkImage(_fixImageUrl(widget.driverToEdit!.personnelPhoto!)),
+                              fit: BoxFit.cover,
+                            )
+                          : null),
+                ),
+                child: (_pickedImageBytes == null && widget.driverToEdit?.personnelPhoto == null)
+                    ? const Icon(Icons.add_a_photo, size: 30, color: Colors.grey)
+                    : null,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text("تصویر پرسنلی", style: TextStyle(fontSize: 12, color: Colors.grey)),
+            
+            const SizedBox(height: 16),
+            CustomInput(label: "نام و نام خانوادگی", hint: "مثال: علی رضایی", icon: Icons.person, controller: _nameCtrl),
+            CustomInput(
+              label: "کد ملی", 
+              hint: "مثال: 0012345678",
+              icon: Icons.badge, 
+              controller: _nationalIdCtrl, 
+              keyboardType: TextInputType.number,
+              validator: (v) {
+                if (v == null || v.isEmpty) return "کد ملی الزامی است";
+                if (v.length != 10) return "کد ملی باید ۱۰ رقم باشد";
+                return null;
+              },
+            ),
+            CustomInput(
+              label: "شماره تماس", 
+              hint: "مثال: 0912...",
+              icon: Icons.phone, 
+              controller: _phoneCtrl, 
+              keyboardType: TextInputType.phone,
+              validator: (v) {
+                if (v == null || v.isEmpty) return "شماره تماس الزامی است";
+                if (v.length != 11) return "شماره تماس باید ۱۱ رقم باشد";
+                if (!v.startsWith("09")) return "شماره باید با 09 شروع شود";
+                return null;
+              },
+            ),
+            CustomInput(label: "آدرس", hint: "آدرس سکونت", icon: Icons.location_on, controller: _addressCtrl, maxLines: 2),
+            
+            const SizedBox(height: 20),
+            CustomButton(
+              text: isEditing ? "ذخیره تغییرات" : "ثبت راننده", 
+              onPressed: _submit, 
+              isLoading: isLoading, 
+              color: AppColors.secondary
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
