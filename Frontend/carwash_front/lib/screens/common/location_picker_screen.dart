@@ -43,9 +43,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
               initialCenter: _currentCenter,
               initialZoom: 16.0, // زوم مناسب برای میدان
               onPositionChanged: (position, hasGesture) {
-                if (position.center != null) {
-                  _currentCenter = position.center!;
-                }
+                _currentCenter = position.center;
               },
             ),
             children: [

@@ -90,7 +90,7 @@ class BookingProvider with ChangeNotifier {
       return draft.orderId;
     } catch (e) {
       print("Error preparing order: ${ErrorHandler.getErrorMessage(e)}");
-      throw e; // پرتاب خطا برای مدیریت در UI
+      rethrow; // پرتاب خطا برای مدیریت در UI
     } finally {
       _isSubmittingOrder = false;
       notifyListeners();
@@ -109,7 +109,7 @@ class BookingProvider with ChangeNotifier {
       return true;
     } catch (e) {
       print("Finalize Error: ${ErrorHandler.getErrorMessage(e)}");
-      throw e;
+      rethrow;
     } finally {
       _isSubmittingOrder = false;
       notifyListeners();
@@ -131,7 +131,7 @@ class BookingProvider with ChangeNotifier {
       }
     } catch (e) {
       print("Error fetching history: ${ErrorHandler.getErrorMessage(e)}");
-      throw e;
+      rethrow;
     } finally {
       _isLoadingHistory = false;
       notifyListeners();

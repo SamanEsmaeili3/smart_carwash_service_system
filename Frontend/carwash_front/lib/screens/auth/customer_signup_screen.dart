@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../widgets/custom_input.dart';
 import '../../widgets/custom_button.dart';
 import '../../constants/app_colors.dart';
+import 'verify_otp_screen.dart';
 
 class CustomerSignupScreen extends StatefulWidget {
   const CustomerSignupScreen({super.key});
@@ -42,23 +42,25 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
       }
 
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      
+      final email = _emailController.text.trim();
+
       bool success = await auth.registerCustomer(
-        _emailController.text.trim(),
+        email,
         _passwordController.text.trim(),
-        _nameController.text.trim(),   
-        _phoneController.text.trim(),  
+        _nameController.text.trim(),
+        _phoneController.text.trim(),
       );
 
       if (success && mounted) {
-        await auth.login(
-            _emailController.text.trim(), 
-            _passwordController.text.trim()
+        // Navigate to OTP verification screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder:
+                (context) =>
+                    VerifyOtpScreen(email: email, userType: 'customer'),
+          ),
         );
-        
-        if (mounted) {
-           Navigator.pushNamedAndRemoveUntil(context, '/customer', (route) => false);
-        }
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -74,50 +76,57 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
   void _showTermsDialog() {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text("قوانین و مقررات", style: TextStyle(fontWeight: FontWeight.bold)),
-        content: SizedBox(
-          width: 400, // Limit width for desktop
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: const [
-                Text(
-                  "۱. تعهدات کاربر\n"
-                  "کاربران موظف هستند اطلاعات صحیح وارد کنند. مسئولیت اشتباه در آدرس بر عهده کاربر است.\n\n"
-                  "۲. حریم خصوصی\n"
-                  "اطلاعات تماس شما نزد ما محفوظ است و تنها برای هماهنگی کارواش استفاده می‌شود.\n\n"
-                  "۳. پرداخت\n"
-                  "هزینه خدمات باید پس از اتمام کار یا به صورت آنلاین پرداخت شود.\n\n"
-                  "۴. لغو سفارش\n"
-                  "لغو سفارش تا ۱ ساعت قبل از زمان رزرو رایگان است.",
-                  style: TextStyle(height: 1.8),
-                ),
-              ],
+      builder:
+          (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
+            title: const Text(
+              "قوانین و مقررات",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            content: SizedBox(
+              width: 400, // Limit width for desktop
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Text(
+                      "۱. تعهدات کاربر\n"
+                      "کاربران موظف هستند اطلاعات صحیح وارد کنند. مسئولیت اشتباه در آدرس بر عهده کاربر است.\n\n"
+                      "۲. حریم خصوصی\n"
+                      "اطلاعات تماس شما نزد ما محفوظ است و تنها برای هماهنگی کارواش استفاده می‌شود.\n\n"
+                      "۳. پرداخت\n"
+                      "هزینه خدمات باید پس از اتمام کار یا به صورت آنلاین پرداخت شود.\n\n"
+                      "۴. لغو سفارش\n"
+                      "لغو سفارش تا ۱ ساعت قبل از زمان رزرو رایگان است.",
+                      style: TextStyle(height: 1.8),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("متوجه شدم"),
+              ),
+            ],
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("متوجه شدم"),
-          ),
-        ],
-      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = context.watch<AuthProvider>().status == AuthStatus.loading;
+    final isLoading =
+        context.watch<AuthProvider>().status == AuthStatus.loading;
     final isDesktop = MediaQuery.of(context).size.width > 650;
 
     return Scaffold(
       // Match Login Screen Theme
       backgroundColor: AppColors.primaryLight,
-      
+
       // Standard AppBar handles the Back Arrow correctly in RTL
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -134,22 +143,27 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 550),
               child: Container(
-                padding: isDesktop 
-                    ? const EdgeInsets.symmetric(horizontal: 40, vertical: 40)
-                    : const EdgeInsets.all(0),
-                decoration: isDesktop 
-                  ? BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.blue.shade900.withOpacity(0.1),
-                          blurRadius: 30,
-                          offset: const Offset(0, 15),
+                padding:
+                    isDesktop
+                        ? const EdgeInsets.symmetric(
+                          horizontal: 40,
+                          vertical: 40,
                         )
-                      ]
-                    )
-                  : null,
+                        : const EdgeInsets.all(0),
+                decoration:
+                    isDesktop
+                        ? BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.blue.shade900.withOpacity(0.1),
+                              blurRadius: 30,
+                              offset: const Offset(0, 15),
+                            ),
+                          ],
+                        )
+                        : null,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -169,7 +183,8 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade600, // Darker grey for readability
+                        color:
+                            Colors.grey.shade600, // Darker grey for readability
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -181,12 +196,47 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
                       key: _formKey,
                       child: Column(
                         children: [
-                          _buildInputCard("نام و نام خانوادگی", "نام کامل خود را وارد کنید", Icons.person_outline, _nameController),
-                          _buildInputCard("ایمیل", "example@email.com", Icons.mail_outline, _emailController, keyboardType: TextInputType.emailAddress),
-                          _buildInputCard("شماره تلفن", "09123456789", Icons.phone_android, _phoneController, keyboardType: TextInputType.phone),
-                          _buildInputCard("آدرس", "آدرس خود را وارد کنید", Icons.location_on_outlined, _addressController, maxLines: 3),
-                          _buildInputCard("رمز عبور", "حداقل ۸ کاراکتر", Icons.lock_outline, _passwordController, isPassword: true),
-                          _buildInputCard("تکرار رمز عبور", "رمز عبور را دوباره وارد کنید", Icons.lock_outline, _confirmPasswordController, isPassword: true),
+                          _buildInputCard(
+                            "نام و نام خانوادگی",
+                            "نام کامل خود را وارد کنید",
+                            Icons.person_outline,
+                            _nameController,
+                          ),
+                          _buildInputCard(
+                            "ایمیل",
+                            "example@email.com",
+                            Icons.mail_outline,
+                            _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                          ),
+                          _buildInputCard(
+                            "شماره تلفن",
+                            "09123456789",
+                            Icons.phone_android,
+                            _phoneController,
+                            keyboardType: TextInputType.phone,
+                          ),
+                          _buildInputCard(
+                            "آدرس",
+                            "آدرس خود را وارد کنید",
+                            Icons.location_on_outlined,
+                            _addressController,
+                            maxLines: 3,
+                          ),
+                          _buildInputCard(
+                            "رمز عبور",
+                            "حداقل ۸ کاراکتر",
+                            Icons.lock_outline,
+                            _passwordController,
+                            isPassword: true,
+                          ),
+                          _buildInputCard(
+                            "تکرار رمز عبور",
+                            "رمز عبور را دوباره وارد کنید",
+                            Icons.lock_outline,
+                            _confirmPasswordController,
+                            isPassword: true,
+                          ),
 
                           const SizedBox(height: 16),
 
@@ -196,15 +246,24 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
                               Checkbox(
                                 value: _acceptedTerms,
                                 activeColor: AppColors.primary,
-                                onChanged: (value) => setState(() => _acceptedTerms = value!),
+                                onChanged:
+                                    (value) =>
+                                        setState(() => _acceptedTerms = value!),
                               ),
                               Expanded(
                                 child: Wrap(
                                   crossAxisAlignment: WrapCrossAlignment.center,
                                   children: [
-                                    Text("با ثبت‌نام، ", style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                                    Text(
+                                      "با ثبت‌نام، ",
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
                                     GestureDetector(
-                                      onTap: _showTermsDialog, // --- FIX 3: Opens Dialog ---
+                                      onTap:
+                                          _showTermsDialog, // --- FIX 3: Opens Dialog ---
                                       child: Text(
                                         "قوانین و مقررات",
                                         style: TextStyle(
@@ -215,7 +274,13 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
                                         ),
                                       ),
                                     ),
-                                    Text(" را می‌پذیرم", style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                                    Text(
+                                      " را می‌پذیرم",
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 12,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -237,10 +302,22 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text("قبلاً حساب کاربری دارید؟ ", style: TextStyle(color: Colors.grey.shade600)),
+                              Text(
+                                "قبلاً حساب کاربری دارید؟ ",
+                                style: TextStyle(color: Colors.grey.shade600),
+                              ),
                               GestureDetector(
-                                onTap: () => Navigator.pop(context), // Goes back to Login/Landing
-                                child: const Text("وارد شوید", style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                                onTap:
+                                    () => Navigator.pop(
+                                      context,
+                                    ), // Goes back to Login/Landing
+                                child: const Text(
+                                  "وارد شوید",
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -258,7 +335,15 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
     );
   }
 
-  Widget _buildInputCard(String label, String hint, IconData icon, TextEditingController controller, {bool isPassword = false, TextInputType keyboardType = TextInputType.text, int maxLines = 1}) {
+  Widget _buildInputCard(
+    String label,
+    String hint,
+    IconData icon,
+    TextEditingController controller, {
+    bool isPassword = false,
+    TextInputType keyboardType = TextInputType.text,
+    int maxLines = 1,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
@@ -266,13 +351,22 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.only(bottom: 8, right: 4),
-            child: Text(label, style: TextStyle(fontSize: 14, color: Colors.grey.shade700, fontWeight: FontWeight.w500)),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12), // Slightly rounder
-              border: Border.all(color: Colors.grey.shade300), // Added border for better visibility
+              border: Border.all(
+                color: Colors.grey.shade300,
+              ), // Added border for better visibility
             ),
             child: TextFormField(
               controller: controller,
@@ -284,11 +378,18 @@ class _CustomerSignupScreenState extends State<CustomerSignupScreen> {
                 hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
                 prefixIcon: Icon(icon, color: Colors.grey.shade500, size: 22),
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
               ),
               validator: (value) {
-                if (value == null || value.isEmpty) return 'این فیلد الزامی است';
-                if (isPassword && value.length < 8) return 'رمز عبور باید حداقل ۸ کاراکتر باشد';
+                if (value == null || value.isEmpty) {
+                  return 'این فیلد الزامی است';
+                }
+                if (isPassword && value.length < 8) {
+                  return 'رمز عبور باید حداقل ۸ کاراکتر باشد';
+                }
                 return null;
               },
             ),

@@ -46,9 +46,9 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
               initialCenter: _currentCenter,
               initialZoom: 14.0,
               onPositionChanged: (camera, hasGesture) {
-                if (hasGesture && camera.center != null) { // Check for null
+                if (hasGesture) {
                   setState(() {
-                    _currentCenter = camera.center!; // Force unwrap
+                    _currentCenter = camera.center;
                   });
                 }
               },
@@ -64,12 +64,10 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
           // 2. The Fixed Center Pin (Target)
           const Center(
             child: Padding(
-              padding: EdgeInsets.only(bottom: 40), // Lift pin slightly so tip touches center
-              child: Icon(
-                Icons.location_on,
-                size: 50,
-                color: Colors.red,
-              ),
+              padding: EdgeInsets.only(
+                bottom: 40,
+              ), // Lift pin slightly so tip touches center
+              child: Icon(Icons.location_on, size: 50, color: Colors.red),
             ),
           ),
 
@@ -86,13 +84,15 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: SizedBox(
-                    width: double.infinity, // Fill the constraints (up to 600px)
+                    width:
+                        double.infinity, // Fill the constraints (up to 600px)
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.secondary,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       onPressed: () {
                         Navigator.pop(context, _currentCenter);
@@ -100,9 +100,10 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                       child: const Text(
                         "تایید موقعیت",
                         style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold),
+                          fontSize: 18,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),

@@ -7,8 +7,7 @@ import '../../models/carwash_service_model.dart';
 import '../../widgets/custom_input.dart';
 import '../../widgets/custom_button.dart';
 import '../../constants/app_colors.dart';
-import '../../providers/auth_provider.dart'; 
-
+import '../../providers/auth_provider.dart';
 
 class CarwashHomeScreen extends StatefulWidget {
   const CarwashHomeScreen({super.key});
@@ -51,26 +50,30 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
             // 1. Log out logic
             Provider.of<AuthProvider>(context, listen: false).logout();
             // 2. Go back to Login Screen
-            Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+            Navigator.of(
+              context,
+            ).pushNamedAndRemoveUntil('/login', (route) => false);
           },
         ),
       ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
-          child: _selectedIndex == 0
-              // Pass the showModal function to the tab so it can open the edit form
-              ? _ServicesTab(onEdit: _showAddServiceSheet) 
-              : const _ProfileTab(),
+          child:
+              _selectedIndex == 0
+                  // Pass the showModal function to the tab so it can open the edit form
+                  ? _ServicesTab(onEdit: _showAddServiceSheet)
+                  : const _ProfileTab(),
         ),
       ),
-      floatingActionButton: _selectedIndex == 0
-          ? FloatingActionButton(
-              onPressed: () => _showAddServiceSheet(context),
-              backgroundColor: AppColors.secondary,
-              child: const Icon(Icons.add, color: Colors.white),
-            )
-          : null,
+      floatingActionButton:
+          _selectedIndex == 0
+              ? FloatingActionButton(
+                onPressed: () => _showAddServiceSheet(context),
+                backgroundColor: AppColors.secondary,
+                child: const Icon(Icons.add, color: Colors.white),
+              )
+              : null,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         selectedItemColor: AppColors.secondary,
@@ -84,7 +87,10 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
   }
 
   // --- MODIFIED: Accepts optional serviceToEdit ---
-  void _showAddServiceSheet(BuildContext context, {CarwashServiceModel? serviceToEdit}) {
+  void _showAddServiceSheet(
+    BuildContext context, {
+    CarwashServiceModel? serviceToEdit,
+  }) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -118,7 +124,7 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
 class _ServicesTab extends StatelessWidget {
   // Add a callback so we can tell the parent to open the modal
   final Function(BuildContext, {CarwashServiceModel? serviceToEdit})? onEdit;
-  
+
   const _ServicesTab({this.onEdit});
 
   @override
@@ -190,8 +196,9 @@ class _ServicesTab extends StatelessWidget {
                           Icons.delete_outline,
                           color: AppColors.error,
                         ),
-                        onPressed: () =>
-                            _confirmDelete(context, provider, service.id!),
+                        onPressed:
+                            () =>
+                                _confirmDelete(context, provider, service.id!),
                       ),
                     ],
                   ),
@@ -211,23 +218,24 @@ class _ServicesTab extends StatelessWidget {
   ) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("حذف سرویس"),
-        content: const Text("آیا از حذف این سرویس مطمئن هستید؟"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("انصراف"),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text("حذف سرویس"),
+            content: const Text("آیا از حذف این سرویس مطمئن هستید؟"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("انصراف"),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  await provider.deleteService(id);
+                },
+                child: const Text("حذف", style: TextStyle(color: Colors.red)),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await provider.deleteService(id);
-            },
-            child: const Text("حذف", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -261,8 +269,7 @@ class _ProfileTabState extends State<_ProfileTab> {
         businessName: _nameCtrl.text.isNotEmpty ? _nameCtrl.text : null,
         phoneNumber: _phoneCtrl.text.isNotEmpty ? _phoneCtrl.text : null,
         address: _addressCtrl.text.isNotEmpty ? _addressCtrl.text : null,
-        newPassword:
-            _passwordCtrl.text.isNotEmpty ? _passwordCtrl.text : null,
+        newPassword: _passwordCtrl.text.isNotEmpty ? _passwordCtrl.text : null,
       );
 
       if (success && mounted) {
@@ -385,7 +392,10 @@ class _AddServiceFormState extends State<_AddServiceForm> {
       _nameCtrl.text = widget.serviceToEdit!.serviceName;
       _descCtrl.text = widget.serviceToEdit!.description;
       // Convert double price to string, removing ".0" if it's a clean integer
-      _priceCtrl.text = widget.serviceToEdit!.price.toString().replaceAll(RegExp(r'\.0$'), '');
+      _priceCtrl.text = widget.serviceToEdit!.price.toString().replaceAll(
+        RegExp(r'\.0$'),
+        '',
+      );
     }
   }
 
@@ -396,8 +406,7 @@ class _AddServiceFormState extends State<_AddServiceForm> {
         listen: false,
       );
 
-      String cleanPriceStr =
-          _priceCtrl.text.replaceAll(RegExp(r'[^0-9.]'), '');
+      String cleanPriceStr = _priceCtrl.text.replaceAll(RegExp(r'[^0-9.]'), '');
       double finalPrice = double.tryParse(cleanPriceStr) ?? 0.0;
 
       if (finalPrice <= 0) {
@@ -425,7 +434,10 @@ class _AddServiceFormState extends State<_AddServiceForm> {
       } else {
         // --- EDIT MODE ---
         // Force unwrap ID because we know it exists in edit mode
-        success = await provider.updateService(widget.serviceToEdit!.id!, serviceData);
+        success = await provider.updateService(
+          widget.serviceToEdit!.id!,
+          serviceData,
+        );
       }
 
       if (success && mounted) {
@@ -433,9 +445,9 @@ class _AddServiceFormState extends State<_AddServiceForm> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-                widget.serviceToEdit == null 
-                ? "سرویس با موفقیت ثبت شد" 
-                : "سرویس با موفقیت ویرایش شد"
+              widget.serviceToEdit == null
+                  ? "سرویس با موفقیت ثبت شد"
+                  : "سرویس با موفقیت ویرایش شد",
             ),
             backgroundColor: AppColors.success,
           ),
@@ -477,8 +489,7 @@ class _AddServiceFormState extends State<_AddServiceForm> {
             hint: "150000",
             icon: Icons.attach_money,
             controller: _priceCtrl,
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             validator: (v) {
               if (v == null || v.isEmpty) return "قیمت الزامی است";
               return null;

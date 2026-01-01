@@ -5,6 +5,7 @@ import '../../models/user_model.dart';
 import '../../widgets/custom_input.dart';
 import '../../widgets/custom_button.dart';
 import '../../constants/app_colors.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -48,45 +49,51 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = context.watch<AuthProvider>().status == AuthStatus.loading;
+    final isLoading =
+        context.watch<AuthProvider>().status == AuthStatus.loading;
     final size = MediaQuery.of(context).size;
     final isDesktop = size.width > 650;
 
     return Scaffold(
       backgroundColor: AppColors.primaryLight,
-      
+
       // --- NEW: ADDING THE BACK BUTTON HERE ---
       appBar: AppBar(
         backgroundColor: Colors.transparent, // Invisible background
         elevation: 0, // No shadow
         iconTheme: const IconThemeData(color: AppColors.primary), // Blue Arrow
       ),
-      // ----------------------------------------
 
+      // ----------------------------------------
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 550), 
+              constraints: const BoxConstraints(maxWidth: 550),
               child: Container(
-                padding: isDesktop 
-                    ? const EdgeInsets.symmetric(horizontal: 50, vertical: 40)
-                    : const EdgeInsets.all(0),
-                decoration: isDesktop 
-                  ? BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.blue.shade900.withOpacity(0.1),
-                          blurRadius: 30,
-                          offset: const Offset(0, 15),
+                padding:
+                    isDesktop
+                        ? const EdgeInsets.symmetric(
+                          horizontal: 50,
+                          vertical: 40,
                         )
-                      ]
-                    )
-                  : null,
-                
+                        : const EdgeInsets.all(0),
+                decoration:
+                    isDesktop
+                        ? BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.blue.shade900.withOpacity(0.1),
+                              blurRadius: 30,
+                              offset: const Offset(0, 15),
+                            ),
+                          ],
+                        )
+                        : null,
+
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -98,14 +105,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
-                        Icons.water_drop_rounded, 
+                        Icons.water_drop_rounded,
                         size: 48,
-                        color: AppColors.primary
+                        color: AppColors.primary,
                       ),
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
+
                     const Text(
                       "کارواش پرو",
                       style: TextStyle(
@@ -123,7 +130,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         color: Colors.grey.shade500,
                       ),
                     ),
-                    
+
                     const SizedBox(height: 30),
 
                     CustomInput(
@@ -141,7 +148,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
 
                     const SizedBox(height: 8),
-                    
+
                     Align(
                       alignment: Alignment.centerLeft,
                       child: TextButton(
@@ -150,16 +157,27 @@ class _LoginScreenState extends State<LoginScreen> {
                           minimumSize: const Size(0, 0),
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => const ForgotPasswordScreen(),
+                            ),
+                          );
+                        },
                         child: const Text(
                           "رمز عبور را فراموش کردید؟",
-                          style: TextStyle(fontSize: 12, color: Colors.grey),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.primary,
+                          ),
                         ),
                       ),
                     ),
 
                     const SizedBox(height: 24),
-                    
+
                     CustomButton(
                       text: "ورود",
                       onPressed: _handleLogin,
@@ -167,37 +185,51 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
 
                     const SizedBox(height: 20),
-                    
+
                     Row(
                       children: [
                         Expanded(child: Divider(color: Colors.grey.shade300)),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text("یا", style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+                          child: Text(
+                            "یا",
+                            style: TextStyle(
+                              color: Colors.grey.shade400,
+                              fontSize: 12,
+                            ),
+                          ),
                         ),
                         Expanded(child: Divider(color: Colors.grey.shade300)),
                       ],
                     ),
 
                     const SizedBox(height: 20),
-                    
+
                     Wrap(
                       alignment: WrapAlignment.center,
                       spacing: 20,
                       runSpacing: 10,
                       children: [
                         TextButton(
-                          onPressed: () => Navigator.pushNamed(context, '/signup'),
+                          onPressed:
+                              () => Navigator.pushNamed(context, '/signup'),
                           child: const Text(
                             "ثبت‌نام مشتری",
-                            style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                         TextButton(
-                          onPressed: () => Navigator.pushNamed(context, '/apply'),
+                          onPressed:
+                              () => Navigator.pushNamed(context, '/apply'),
                           child: const Text(
                             "ثبت کارواش",
-                            style: TextStyle(color: AppColors.secondary, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: AppColors.secondary,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],

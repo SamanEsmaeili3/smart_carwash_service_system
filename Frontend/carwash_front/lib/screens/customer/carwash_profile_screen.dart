@@ -337,7 +337,7 @@ class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
       ),
       child: CheckboxListTile(
         title: Text(
-          "${formatMoney(service.price)}",
+          formatMoney(service.price),
           style: const TextStyle(
             fontWeight: FontWeight.bold,
             color: AppColors.primary,

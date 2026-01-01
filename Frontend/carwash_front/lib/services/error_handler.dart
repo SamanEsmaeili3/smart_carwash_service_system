@@ -92,6 +92,10 @@ class ErrorHandler {
       return 'خطای سمت سرور. لطفاً بعداً تلاش کنید.';
     }
 
+    if (lowerError.contains('no active account found')) {
+      return 'ایمیل یا رمز عبور اشتباه است';
+    }
+
     // حذف بخش‌های اضافی از پیام خطا
     String cleanError =
         error
@@ -103,7 +107,7 @@ class ErrorHandler {
 
     // اگر پیام خطا طولانی است، خلاصه‌اش کن
     if (cleanError.length > 100) {
-      cleanError = cleanError.substring(0, 100) + '...';
+      cleanError = '${cleanError.substring(0, 100)}...';
     }
 
     return cleanError.isNotEmpty ? cleanError : 'خطای ناشناخته‌ای رخ داده است.';

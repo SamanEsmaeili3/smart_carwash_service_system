@@ -28,6 +28,11 @@ class ApiConstants {
   static const String login = '/api/token/';
   static const String register = '/api/accounts/register/';
   static const String refreshToken = '/api/token/refresh/';
+  static const String verifyOtp = '/api/auth/verify-otp/';
+  static const String passwordResetRequest =
+      '/api/auth/password-reset/request/';
+  static const String passwordResetConfirm =
+      '/api/auth/password-reset/confirm/';
 
   // Carwash Endpoints
   static const String apply = '/api/carwash/apply/';
@@ -35,6 +40,8 @@ class ApiConstants {
   static const String services = '/api/carwash/services/';
   // Sprint 2: Carwash edit info
   static const String profileMe = '/api/carwash/profile/me/';
+  // Driver Management
+  static const String drivers = '/api/carwash/drivers/';
 
   // Admin Endpoints
   static const String adminPending = '/api/carwash/admin/list/';

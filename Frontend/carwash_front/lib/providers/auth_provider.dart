@@ -14,10 +14,12 @@ class AuthProvider with ChangeNotifier {
   AuthStatus _status = AuthStatus.initial;
   String? _errorMessage;
   UserModel? _user;
+  String? _userRole; // Store user role for OTP verification
 
   AuthStatus get status => _status;
   String? get errorMessage => _errorMessage;
   UserModel? get user => _user;
+  String? get userRole => _userRole;
   bool get isAuthenticated => _status == AuthStatus.authenticated;
 
   // [Task-F15] & [Task-F16] & [Task-F17]
@@ -159,5 +161,88 @@ class AuthProvider with ChangeNotifier {
       _status = AuthStatus.initial;
     }
     notifyListeners();
+  }
+
+  // [Task-OTP] Verify OTP and handle registration completion
+  Future<bool> verifyOtp(String email, String code) async {
+    _setLoading(true);
+    try {
+      final response = await _api.post(ApiConstants.verifyOtp, {
+        "email": email,
+        "code": code,
+      }, auth: false);
+
+      String? role = response['role'];
+      _userRole = role;
+
+      if (role == 'customer') {
+        // Customer: Save tokens and authenticate
+        final prefs = await SharedPreferences.getInstance();
+        String accessToken = response['access'];
+        await prefs.setString('access_token', accessToken);
+        await prefs.setString('refresh_token', response['refresh']);
+
+        // Decode token to get user details
+        Map<String, dynamic> decodedToken = JwtDecoder.decode(accessToken);
+        decodedToken['email'] = email;
+
+        _user = UserModel.fromToken(decodedToken);
+        _status = AuthStatus.authenticated;
+        _errorMessage = null;
+        notifyListeners();
+        return true;
+      } else if (role == 'carwash_owner') {
+        // Carwash owner: No tokens, just mark as verified
+        _status = AuthStatus.initial;
+        _errorMessage = null;
+        notifyListeners();
+        return true;
+      } else {
+        // Unknown role
+        throw Exception('نقش کاربر نامشخص است');
+      }
+    } catch (e) {
+      final errorMsg = ErrorHandler.getErrorMessage(e);
+      _setError(errorMsg);
+      return false;
+    }
+  }
+
+  // [Task-Forgot-Password] Request password reset code
+  Future<bool> requestPasswordReset(String email) async {
+    _setLoading(true);
+    try {
+      await _api.post(ApiConstants.passwordResetRequest, {
+        "email": email,
+      }, auth: false);
+      _setLoading(false);
+      return true;
+    } catch (e) {
+      final errorMsg = ErrorHandler.getErrorMessage(e);
+      _setError(errorMsg);
+      return false;
+    }
+  }
+
+  // [Task-Forgot-Password] Confirm password reset with code
+  Future<bool> confirmPasswordReset(
+    String email,
+    String code,
+    String newPassword,
+  ) async {
+    _setLoading(true);
+    try {
+      await _api.post(ApiConstants.passwordResetConfirm, {
+        "email": email,
+        "code": code,
+        "new_password": newPassword,
+      }, auth: false);
+      _setLoading(false);
+      return true;
+    } catch (e) {
+      final errorMsg = ErrorHandler.getErrorMessage(e);
+      _setError(errorMsg);
+      return false;
+    }
   }
 }

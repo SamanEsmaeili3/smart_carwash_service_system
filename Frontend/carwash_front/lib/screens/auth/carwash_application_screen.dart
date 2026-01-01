@@ -7,6 +7,7 @@ import '../../widgets/custom_input.dart';
 import '../../widgets/custom_button.dart';
 import '../../constants/app_colors.dart';
 import '../map_picker_screen.dart';
+import 'verify_otp_screen.dart';
 
 class CarwashApplicationScreen extends StatefulWidget {
   const CarwashApplicationScreen({super.key});
@@ -22,7 +23,7 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
   final _addressCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
-  
+
   // Password Controllers
   final _passwordCtrl = TextEditingController();
   final _confirmPasswordCtrl = TextEditingController();
@@ -98,7 +99,7 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
         );
         return;
       }
-      
+
       // 2. Check Password Match
       if (_passwordCtrl.text != _confirmPasswordCtrl.text) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -133,30 +134,17 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
       );
 
       final auth = Provider.of<AuthProvider>(context, listen: false);
+      final email = _emailCtrl.text.trim();
       bool success = await auth.applyForCarwash(model.toJson());
 
       if (success && mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Text("درخواست ثبت شد", textAlign: TextAlign.center),
-            content: const Text(
-              "درخواست شما با موفقیت دریافت شد.\nپس از تایید ادمین، می‌توانید با ایمیل و رمز عبور خود وارد شوید.",
-              textAlign: TextAlign.center,
-            ),
-            actions: [
-              Center(
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
-                  },
-                  child: const Text("متوجه شدم", style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-              ),
-            ],
+        // Navigate to OTP verification screen for carwash owner
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder:
+                (context) =>
+                    VerifyOtpScreen(email: email, userType: 'carwash_owner'),
           ),
         );
       } else if (mounted) {
@@ -173,7 +161,8 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = context.watch<AuthProvider>().status == AuthStatus.loading;
+    final isLoading =
+        context.watch<AuthProvider>().status == AuthStatus.loading;
     final isDesktop = MediaQuery.of(context).size.width > 650;
 
     return Scaffold(
@@ -185,7 +174,10 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
         iconTheme: const IconThemeData(color: AppColors.secondary),
         title: const Text(
           "ثبت کارواش جدید",
-          style: TextStyle(color: AppColors.textMain, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: AppColors.textMain,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
       body: Center(
@@ -195,37 +187,43 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 600),
               child: Container(
-                padding: isDesktop ? const EdgeInsets.all(40) : const EdgeInsets.all(0),
-                decoration: isDesktop 
-                  ? BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.purple.shade900.withOpacity(0.05),
-                          blurRadius: 30,
-                          offset: const Offset(0, 15),
+                padding:
+                    isDesktop
+                        ? const EdgeInsets.all(40)
+                        : const EdgeInsets.all(0),
+                decoration:
+                    isDesktop
+                        ? BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.purple.shade900.withOpacity(0.05),
+                              blurRadius: 30,
+                              offset: const Offset(0, 15),
+                            ),
+                          ],
                         )
-                      ]
-                    )
-                  : null,
+                        : null,
                 child: Form(
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                       _buildSectionTitle("اطلاعات پایه", Icons.info_outline),
+                      _buildSectionTitle("اطلاعات پایه", Icons.info_outline),
                       const SizedBox(height: 16),
-                      
+
                       CustomInput(
                         label: "نام کسب و کار",
                         hint: "کارواش نمونه",
                         icon: Icons.store,
                         controller: _nameCtrl,
                         // NEW: Validate Name Length
-                        validator: (v) => (v == null || v.length < 3) 
-                            ? 'نام کسب و کار باید حداقل ۳ حرف باشد' 
-                            : null,
+                        validator:
+                            (v) =>
+                                (v == null || v.length < 3)
+                                    ? 'نام کسب و کار باید حداقل ۳ حرف باشد'
+                                    : null,
                       ),
                       CustomInput(
                         label: "تلفن تماس",
@@ -235,9 +233,13 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
                         keyboardType: TextInputType.phone,
                         // NEW: Validate Iranian Mobile Format
                         validator: (v) {
-                          if (v == null || v.isEmpty) return 'شماره تلفن الزامی است';
+                          if (v == null || v.isEmpty) {
+                            return 'شماره تلفن الزامی است';
+                          }
                           final phoneRegex = RegExp(r'^09[0-9]{9}$');
-                          if (!phoneRegex.hasMatch(v)) return 'شماره موبایل معتبر نیست (مثال: ۰۹۱۲۳۴۵۶۷۸۹)';
+                          if (!phoneRegex.hasMatch(v)) {
+                            return 'شماره موبایل معتبر نیست (مثال: ۰۹۱۲۳۴۵۶۷۸۹)';
+                          }
                           return null;
                         },
                       ),
@@ -250,8 +252,12 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
                         // NEW: Validate Email Format
                         validator: (v) {
                           if (v == null || v.isEmpty) return 'ایمیل الزامی است';
-                          final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
-                          if (!emailRegex.hasMatch(v)) return 'فرمت ایمیل صحیح نیست';
+                          final emailRegex = RegExp(
+                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                          );
+                          if (!emailRegex.hasMatch(v)) {
+                            return 'فرمت ایمیل صحیح نیست';
+                          }
                           return null;
                         },
                       ),
@@ -263,7 +269,11 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
                         icon: Icons.lock_outline,
                         controller: _passwordCtrl,
                         isPassword: true,
-                        validator: (v) => (v != null && v.length < 8) ? 'رمز عبور کوتاه است' : null,
+                        validator:
+                            (v) =>
+                                (v != null && v.length < 8)
+                                    ? 'رمز عبور کوتاه است'
+                                    : null,
                       ),
                       CustomInput(
                         label: "تکرار رمز عبور",
@@ -279,7 +289,7 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
 
                       _buildSectionTitle("موقعیت و زمان", Icons.map),
                       const SizedBox(height: 16),
-                      
+
                       CustomInput(
                         label: "آدرس دقیق",
                         hint: "تهران، خیابان...",
@@ -299,16 +309,27 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.location_on, color: AppColors.secondary),
+                            const Icon(
+                              Icons.location_on,
+                              color: AppColors.secondary,
+                            ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text("موقعیت روی نقشه", style: TextStyle(fontWeight: FontWeight.bold)),
+                                  const Text(
+                                    "موقعیت روی نقشه",
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                   Text(
                                     "${_selectedLocation.latitude.toStringAsFixed(4)}, ${_selectedLocation.longitude.toStringAsFixed(4)}",
-                                    style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade700,
+                                    ),
                                     textDirection: TextDirection.ltr,
                                   ),
                                 ],
@@ -319,10 +340,13 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
                                 final result = await Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (ctx) => MapPickerScreen(
-                                      initialLat: _selectedLocation.latitude,
-                                      initialLng: _selectedLocation.longitude,
-                                    ),
+                                    builder:
+                                        (ctx) => MapPickerScreen(
+                                          initialLat:
+                                              _selectedLocation.latitude,
+                                          initialLng:
+                                              _selectedLocation.longitude,
+                                        ),
                                   ),
                                 );
 
@@ -331,15 +355,24 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
                                     _selectedLocation = result;
                                   });
                                 }
-                              }, 
-                              child: const Text("انتخاب", style: TextStyle(color: AppColors.secondary)),
-                            )
+                              },
+                              child: const Text(
+                                "انتخاب",
+                                style: TextStyle(color: AppColors.secondary),
+                              ),
+                            ),
                           ],
                         ),
                       ),
 
                       const SizedBox(height: 8),
-                      const Text("ساعات کاری", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                      const Text(
+                        "ساعات کاری",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       Row(
                         children: [
@@ -374,10 +407,15 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
                           Checkbox(
                             value: _acceptedTerms,
                             activeColor: AppColors.secondary,
-                            onChanged: (value) => setState(() => _acceptedTerms = value!),
+                            onChanged:
+                                (value) =>
+                                    setState(() => _acceptedTerms = value!),
                           ),
                           const Expanded(
-                            child: Text("قوانین و شرایط همکاری را می‌پذیرم", style: TextStyle(fontSize: 12)),
+                            child: Text(
+                              "قوانین و شرایط همکاری را می‌پذیرم",
+                              style: TextStyle(fontSize: 12),
+                            ),
                           ),
                         ],
                       ),
@@ -390,7 +428,7 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
                         isLoading: isLoading,
                         color: AppColors.secondary,
                       ),
-                      
+
                       const SizedBox(height: 24),
                     ],
                   ),

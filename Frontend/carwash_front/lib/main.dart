@@ -16,11 +16,14 @@ import 'screens/landing_page.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/customer_signup_screen.dart';
 import 'screens/auth/carwash_application_screen.dart';
+import 'screens/auth/verify_otp_screen.dart';
+import 'screens/auth/forgot_password_screen.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/carwash/carwash_home_screen.dart';
+import 'screens/carwash/drivers_management_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/customer/time_selection_screen.dart';
-import 'screens/customer/order_history_screen.dart'; 
+import 'screens/customer/order_history_screen.dart';
 
 void main() {
   runApp(
@@ -72,9 +75,12 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/signup': (context) => const CustomerSignupScreen(),
         '/apply': (context) => const CarwashApplicationScreen(),
+        '/verify-otp': (context) => const VerifyOtpScreen(email: ''),
+        '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/admin': (context) => const AdminDashboard(),
         '/customer': (context) => const CustomerHomeScreen(),
         '/carwash': (context) => const CarwashHomeScreen(),
+        '/drivers': (context) => const DriversManagementScreen(),
 
         // --- NEW SPRINT 4 ROUTES ---
         '/select_time': (context) {
