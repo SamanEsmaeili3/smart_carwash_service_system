@@ -24,6 +24,8 @@ import 'screens/carwash/drivers_management_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/customer/time_selection_screen.dart';
 import 'screens/customer/order_history_screen.dart';
+import 'screens/customer/order_history_screen.dart';
+import 'providers/driver_provider.dart';
 
 void main() {
   runApp(
@@ -33,6 +35,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => AdminProvider()),
         ChangeNotifierProvider(create: (_) => CarwashServiceProvider()),
         ChangeNotifierProvider(create: (_) => CarwashProfileProvider()),
+        ChangeNotifierProvider(create: (_) => DriverProvider()),
         ChangeNotifierProvider(create: (_) => CustomerProvider()),
         ChangeNotifierProvider(create: (_) => BookingProvider()),
         ChangeNotifierProvider(create: (_) => SearchProvider()),
