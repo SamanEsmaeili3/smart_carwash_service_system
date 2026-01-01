@@ -1,5 +1,11 @@
 {
   "platform": "docker",
   "app": "my-project-api",
-  "port": 8000
+  "port": 8000,
+  "disks": [
+    {
+      "name": "carwash-disk",
+      "mountTo": "/app/media"
+    }
+  ]
 }
