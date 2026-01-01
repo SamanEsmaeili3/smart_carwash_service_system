@@ -4,6 +4,7 @@ import '../models/driver_model.dart';
 import '../services/api_service.dart';
 import '../services/error_handler.dart';
 import '../constants/api_constants.dart';
+import 'package:dio/dio.dart';
 
 enum DriverStatus { initial, loading, success, error }
 
@@ -41,6 +42,7 @@ class DriverProvider with ChangeNotifier {
       final formData = await _buildFormData(driver, photoFile: photoFile);
       await _api.post(ApiConstants.drivers, formData, auth: true);
       await fetchDrivers();
+      notifyListeners();
       return true;
     } catch (e) {
       final errorMsg = ErrorHandler.getErrorMessage(e);
@@ -71,6 +73,7 @@ class DriverProvider with ChangeNotifier {
       final formData = await _buildFormData(driver, photoFile: photoFile);
       await _api.put('${ApiConstants.drivers}$id/', data: formData, auth: true);
       await fetchDrivers();
+      notifyListeners();
       return true;
     } catch (e) {
       final errorMsg = ErrorHandler.getErrorMessage(e);
@@ -79,24 +82,38 @@ class DriverProvider with ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>> _buildFormData(
-    Driver driver, {
-    XFile? photoFile,
-  }) async {
-    final map = <String, dynamic>{
+  // این تابع رو جایگزین _buildFormData قبلی کن
+  Future<FormData> _buildFormData(Driver driver, {XFile? photoFile}) async {
+    // 1. مپ کردن اطلاعات متنی
+    final Map<String, dynamic> map = {
       'full_name': driver.fullName,
       'national_id': driver.nationalId,
       'phone_number': driver.phoneNumber,
       'address': driver.address ?? '',
     };
 
+    final formData = FormData.fromMap(map);
+
+    // 2. مدیریت عکس و تغییر نام به انگلیسی (Fix باگ اسم فارسی)
     if (photoFile != null) {
       final bytes = await photoFile.readAsBytes();
-      map['personnel_photo'] = bytes;
-      map['personnel_photo_filename'] = photoFile.name;
+      
+      // گرفتن پسوند فایل (مثلا jpg)
+      final String ext = photoFile.name.split('.').last; 
+      
+      // ساخت یک اسم امن و انگلیسی با استفاده از زمان
+      final String safeFileName = "driver_${DateTime.now().millisecondsSinceEpoch}.$ext";
+
+      formData.files.add(MapEntry(
+        'personnel_photo',
+        MultipartFile.fromBytes(
+          bytes,
+          filename: safeFileName, // <--- اینجا اسم انگلیسی رو میفرستیم
+        ),
+      ));
     }
 
-    return map;
+    return formData;
   }
 
   void _setLoading(bool val) {

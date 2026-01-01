@@ -7,6 +7,8 @@ import '../../models/driver_model.dart';
 import '../../services/api_service.dart';
 import '../../constants/api_constants.dart';
 import '../../constants/app_colors.dart';
+import 'package:provider/provider.dart';
+import '../../providers/driver_provider.dart'; 
 
 class DriversManagementScreen extends StatefulWidget {
   const DriversManagementScreen({super.key});
@@ -24,7 +26,13 @@ class _DriversManagementScreenState extends State<DriversManagementScreen> {
   @override
   void initState() {
     super.initState();
-    _loadDrivers();
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = Provider.of<DriverProvider>(context, listen: false);
+      if (provider.drivers.isEmpty) {
+        provider.fetchDrivers();
+      }
+    });
   }
 
   Future<void> _loadDrivers() async {
@@ -134,52 +142,60 @@ class _DriversManagementScreenState extends State<DriversManagementScreen> {
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.add),
       ),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : drivers.isEmpty
-              ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.people_outline,
-                      size: 64,
-                      color: Colors.grey[400],
+      body: Consumer<DriverProvider>(
+        builder: (context, driverProvider, child) {
+          
+          if (driverProvider.isLoading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (driverProvider.drivers.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.people_outline,
+                    size: 64,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'هیچ راننده‌ای ثبت نشده است',
+                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: _showAddDriverDialog,
+                    icon: const Icon(Icons.add),
+                    label: const Text('اضافه کردن راننده'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'هیچ رانندگی ثبت نشده است',
-                      style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton.icon(
-                      onPressed: _showAddDriverDialog,
-                      icon: const Icon(Icons.add),
-                      label: const Text('اضافه کردن راننده'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              )
-              : RefreshIndicator(
-                onRefresh: _loadDrivers,
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: drivers.length,
-                  itemBuilder: (context, index) {
-                    final driver = drivers[index];
-                    return DriverCard(
-                      driver: driver,
-                      onEdit: () => _showEditDriverDialog(driver),
-                      onDelete: () => _deleteDriver(driver.id!),
-                    );
-                  },
-                ),
+                  ),
+                ],
               ),
+            );
+          }
+
+          return RefreshIndicator(
+            onRefresh: () => driverProvider.fetchDrivers(), 
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: driverProvider.drivers.length, 
+              itemBuilder: (context, index) {
+                final driver = driverProvider.drivers[index];
+                return DriverCard(
+                  driver: driver,
+                  onEdit: () => _showEditDriverDialog(driver),
+                  onDelete: () => _deleteDriver(driver.id!),
+                );
+              },
+            ),
+          );
+        },
+      ),
     );
   }
 }
@@ -210,14 +226,13 @@ class DriverCard extends StatelessWidget {
             CircleAvatar(
               radius: 40,
               backgroundColor: AppColors.primary.withOpacity(0.1),
-              backgroundImage:
-                  driver.personnelPhotoUrl != null
-                      ? NetworkImage(driver.personnelPhotoUrl!)
-                      : null,
-              child:
-                  driver.personnelPhotoUrl == null
-                      ? Icon(Icons.person, size: 40, color: AppColors.primary)
-                      : null,
+              backgroundImage: driver.personnelPhotoUrl != null
+                  ? NetworkImage(_fixImageUrl(driver.personnelPhotoUrl!))
+                  : null,
+              
+              child: driver.personnelPhotoUrl == null 
+                  ? Icon(Icons.person, size: 40, color: AppColors.primary)
+                  : null,
             ),
             const SizedBox(width: 12),
             // Driver Info
@@ -760,4 +775,21 @@ class SharedPreferencesHelper {
   static Future<dynamic> getInstance() async {
     return await SharedPreferences.getInstance();
   }
+}
+
+String _fixImageUrl(String url) {
+  if (url.isEmpty) return "";
+  if (url.startsWith('https://')) return url;
+  if (url.startsWith('http://')) return url.replaceFirst('http://', 'https://');
+
+  String path = url;
+  if (!path.startsWith('/media')) {
+    if (path.startsWith('/')) {
+      path = '/media$path';
+    } else {
+      path = '/media/$path';
+    }
+  }
+
+  return 'https://my-project-api.liara.run$path';
 }
