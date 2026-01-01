@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../models/driver_model.dart';
 import '../services/error_handler.dart'; // Assuming you have this
-import '../services/storage_service.dart'; // Assuming you use this for Token
 
 class DriverProvider with ChangeNotifier {
   // Use Dio for Multipart requests
@@ -22,9 +21,7 @@ class DriverProvider with ChangeNotifier {
 
   // --- Helper to get Token ---
   Future<String?> _getToken() async {
-    // Replace with however you store token (SharedPreferences or SecureStorage)
-    // Example: return await StorageService.getToken(); 
-    return "YOUR_ACCESS_TOKEN"; 
+    return ""; 
   }
 
   // 1. Fetch Drivers

@@ -561,21 +561,34 @@ class _AddDriverFormState extends State<_AddDriverForm> {
             const Text("تصویر پرسنلی (اختیاری)", style: TextStyle(fontSize: 12, color: Colors.grey)),
             
             const SizedBox(height: 16),
-            CustomInput(label: "نام و نام خانوادگی", icon: Icons.person, controller: _nameCtrl),
             CustomInput(
-              label: "کد ملی", 
-              icon: Icons.badge, 
-              controller: _nationalIdCtrl, 
+              label: "نام و نام خانوادگی",
+              hint: "مثال: علی رضایی",
+              icon: Icons.person,
+              controller: _nameCtrl
+            ),
+            CustomInput(
+              label: "کد ملی",
+              hint: "مثال: 0023456789", 
+              icon: Icons.badge,
+              controller: _nationalIdCtrl,
               keyboardType: TextInputType.number,
               validator: (v) => (v != null && v.length == 10) ? null : "کد ملی باید ۱۰ رقم باشد",
             ),
             CustomInput(
-              label: "شماره تماس", 
-              icon: Icons.phone, 
-              controller: _phoneCtrl, 
+              label: "شماره تماس",
+              hint: "مثال: 0912...", 
+              icon: Icons.phone,
+              controller: _phoneCtrl,
               keyboardType: TextInputType.phone
             ),
-            CustomInput(label: "آدرس", icon: Icons.location_on, controller: _addressCtrl, maxLines: 2),
+            CustomInput(
+              label: "آدرس",
+              hint: "آدرس سکونت راننده", 
+              icon: Icons.location_on,
+              controller: _addressCtrl,
+              maxLines: 2
+            ),
             
             const SizedBox(height: 20),
             CustomButton(
