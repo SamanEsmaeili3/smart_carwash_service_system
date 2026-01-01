@@ -1,94 +1,85 @@
 import 'dart:async';
-import 'dart:convert';
-import 'package:carwash_front/services/error_handler.dart';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/api_constants.dart';
+import 'package:carwash_front/services/error_handler.dart';
 
 class ApiService {
-  // --- تنظیمات Timeout ---
-  static const Duration _timeoutDuration = Duration(seconds: 30);
-
-  // --- نگهداری کلاینت‌های فعال برای امکان لغو ---
-  final Map<String, http.Client> _activeClients = {};
-
-  Future<Map<String, String>> _getHeaders({bool auth = false}) async {
-    Map<String, String> headers = {
+  // تنظیمات اولیه Dio (جایگزین http Client)
+  final Dio _dio = Dio(BaseOptions(
+    baseUrl: ApiConstants.baseUrl,
+    connectTimeout: const Duration(seconds: 30),
+    receiveTimeout: const Duration(seconds: 30),
+    headers: {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-    };
+    },
+  ));
 
+  // نگهداری درخواست‌های فعال برای امکان کنسل کردن (مشابه قبل)
+  final Map<String, CancelToken> _activeTokens = {};
+
+  // --- متد کمکی برای ساخت هدر و آپشن‌ها ---
+  Future<Options> _getOptions({bool auth = false, dynamic data}) async {
+    final Map<String, dynamic> headers = {};
+
+    // 1. تنظیم توکن
     if (auth) {
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('access_token');
-
       if (token != null && token.isNotEmpty) {
         headers['Authorization'] = 'Bearer $token';
       }
     }
-    return headers;
-  }
 
-  // --- متد اصلی مدیریت پاسخ‌ها ---
-  dynamic _handleResponse(http.Response response) {
-    try {
-      // اگر کد وضعیت بین 200 تا 299 باشد (موفقیت)
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        // مدیریت کد 204 (No Content) یا بادی خالی
-        if (response.statusCode == 204 || response.body.isEmpty) {
-          return true;
-        }
-
-        // تلاش برای پارس JSON
-        final decoded = jsonDecode(utf8.decode(response.bodyBytes));
-        return decoded;
-      } else {
-        // استفاده از ErrorHandler برای تولید پیام خطای فارسی
-        return Future.error(Exception(ErrorHandler.getErrorMessage(response)));
-      }
-    } catch (e) {
-      // اگر خطای پارس JSON رخ داد
-      return Future.error(Exception('خطا در پردازش پاسخ سرور'));
+    // 2. نکته حیاتی: اگر دیتا از نوع فایل (FormData) بود، نباید Content-Type جیسون باشه!
+    // دیو خودش Boundary رو تنظیم می‌کنه، پس هدر جیسون رو پاک می‌کنیم.
+    if (data is FormData) {
+      headers.remove('Content-Type'); 
     }
+
+    return Options(headers: headers);
   }
 
-  // --- متد کمکی برای اجرای درخواست با مدیریت خطا ---
+  // --- متد اصلی اجرای درخواست با مدیریت خطا ---
   Future<dynamic> _executeRequest(
-    Future<http.Response> Function() requestFn, {
+    Future<Response> Function(CancelToken? cancelToken) requestFn, {
     String? requestId,
   }) async {
-    final client = http.Client();
+    CancelToken? cancelToken;
 
-    // ثبت کلاینت برای امکان لغو
+    // ایجاد توکن کنسلی اگر شناسه درخواست داده شده باشد
     if (requestId != null) {
-      _activeClients[requestId] = client;
+      cancelToken = CancelToken();
+      _activeTokens[requestId] = cancelToken;
     }
 
     try {
-      // اجرای درخواست با timeout
-      final response = await requestFn().timeout(_timeoutDuration);
-      return _handleResponse(response);
-    } on TimeoutException catch (_) {
-      throw Exception(ErrorHandler.getErrorMessage('Timeout'));
-    } on http.ClientException catch (e) {
+      final response = await requestFn(cancelToken);
+      // دیو به صورت خودکار JSON رو پارس میکنه، پس نیازی به jsonDecode نیست
+      return response.data;
+    } on DioException catch (e) {
+      // اگر ارور از سمت سرور یا شبکه بود
+      if (CancelToken.isCancel(e)) {
+        throw Exception('درخواست لغو شد');
+      }
       throw Exception(ErrorHandler.getErrorMessage(e));
     } catch (e) {
-      // مدیریت سایر خطاها
+      // سایر ارورها
       throw Exception(ErrorHandler.getErrorMessage(e));
     } finally {
-      // پاک‌سازی کلاینت
+      // پاکسازی توکن
       if (requestId != null) {
-        _activeClients.remove(requestId);
+        _activeTokens.remove(requestId);
       }
-      client.close();
     }
   }
 
-  // --- لغو درخواست خاص ---
+  // --- لغو درخواست ---
   void cancelRequest(String requestId) {
-    if (_activeClients.containsKey(requestId)) {
-      _activeClients[requestId]!.close();
-      _activeClients.remove(requestId);
+    if (_activeTokens.containsKey(requestId)) {
+      _activeTokens[requestId]!.cancel("Cancelled by user");
+      _activeTokens.remove(requestId);
     }
   }
 
@@ -97,58 +88,63 @@ class ApiService {
     String endpoint, {
     bool auth = true,
     String? requestId,
-    Map<String, String>? queryParams,
+    Map<String, dynamic>? queryParams,
   }) async {
-    final headers = await _getHeaders(auth: auth);
-
-    // ساخت URL با پارامترهای کوئری
-    Uri url;
-    if (queryParams != null && queryParams.isNotEmpty) {
-      url = Uri.parse(
-        '${ApiConstants.baseUrl}$endpoint',
-      ).replace(queryParameters: queryParams);
-    } else {
-      url = Uri.parse('${ApiConstants.baseUrl}$endpoint');
-    }
-
     return _executeRequest(
-      () => http.get(url, headers: headers),
+      (cancelToken) async {
+        final options = await _getOptions(auth: auth);
+        return _dio.get(
+          endpoint,
+          queryParameters: queryParams,
+          options: options,
+          cancelToken: cancelToken,
+        );
+      },
       requestId: requestId,
     );
   }
 
-  // --- POST ---
+  // --- POST (سازگار با فایل و JSON) ---
   Future<dynamic> post(
     String endpoint,
-    Map<String, dynamic> data, {
+    dynamic data, {
     bool auth = false,
     String? requestId,
   }) async {
-    final url = Uri.parse('${ApiConstants.baseUrl}$endpoint');
-    final headers = await _getHeaders(auth: auth);
-
     return _executeRequest(
-      () => http.post(url, headers: headers, body: jsonEncode(data)),
+      (cancelToken) async {
+        // پاس دادن دیتا به getOptions برای تشخیص FormData
+        final options = await _getOptions(auth: auth, data: data);
+        
+        return _dio.post(
+          endpoint,
+          data: data, // اینجا خود دیتا رو میفرستیم (jsonEncode نمیخواد)
+          options: options,
+          cancelToken: cancelToken,
+        );
+      },
       requestId: requestId,
     );
   }
 
-  // --- PUT ---
+  // --- PUT (سازگار با فایل و JSON) ---
   Future<dynamic> put(
     String endpoint, {
-    Map<String, dynamic>? data,
+    dynamic data,
     bool auth = false,
     String? requestId,
   }) async {
-    final url = Uri.parse('${ApiConstants.baseUrl}$endpoint');
-    final headers = await _getHeaders(auth: auth);
-
     return _executeRequest(
-      () => http.put(
-        url,
-        headers: headers,
-        body: data != null ? jsonEncode(data) : null,
-      ),
+      (cancelToken) async {
+        final options = await _getOptions(auth: auth, data: data);
+        
+        return _dio.put(
+          endpoint,
+          data: data,
+          options: options,
+          cancelToken: cancelToken,
+        );
+      },
       requestId: requestId,
     );
   }
@@ -160,11 +156,16 @@ class ApiService {
     bool auth = false,
     String? requestId,
   }) async {
-    final url = Uri.parse('${ApiConstants.baseUrl}$endpoint');
-    final headers = await _getHeaders(auth: auth);
-
     return _executeRequest(
-      () => http.patch(url, headers: headers, body: jsonEncode(data)),
+      (cancelToken) async {
+        final options = await _getOptions(auth: auth);
+        return _dio.patch(
+          endpoint,
+          data: data,
+          options: options,
+          cancelToken: cancelToken,
+        );
+      },
       requestId: requestId,
     );
   }
@@ -175,16 +176,20 @@ class ApiService {
     bool auth = false,
     String? requestId,
   }) async {
-    final url = Uri.parse('${ApiConstants.baseUrl}$endpoint');
-    final headers = await _getHeaders(auth: auth);
-
     return _executeRequest(
-      () => http.delete(url, headers: headers),
+      (cancelToken) async {
+        final options = await _getOptions(auth: auth);
+        return _dio.delete(
+          endpoint,
+          options: options,
+          cancelToken: cancelToken,
+        );
+      },
       requestId: requestId,
     );
   }
 
-  // --- GET with Query Params (Search) - سازگار با نسخه قبلی ---
+  // --- GET with Query Params (پشتیبانی از متد قدیمی) ---
   Future<dynamic> getWithParams(
     String endpoint,
     Map<String, dynamic> queryParams, {
@@ -195,9 +200,7 @@ class ApiService {
       endpoint,
       auth: auth,
       requestId: requestId,
-      queryParams: queryParams.map(
-        (key, value) => MapEntry(key, value.toString()),
-      ),
+      queryParams: queryParams,
     );
   }
 }
