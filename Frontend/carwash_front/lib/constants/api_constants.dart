@@ -57,6 +57,13 @@ class ApiConstants {
   // User Story 2.4: Start Order (Draft)
   static const String prepareOrder = '/api/order/prepare/';
   static const String orderHistory = "/api/order/history/";
+
+  // Sprint 4: Carwash Owner Order Management
+  static const String ownerOrdersList = '/api/order/owner/list/';
+  static const String ownerOrderStatus = '/api/order/owner/'; // + <id>/status/
+  static const String ownerDriversList = '/api/order/owner/drivers/';
+  static const String ownerAssignDriver =
+      '/api/order/owner/'; // + <order_id>/assign-driver/
 }
 
 // class ApiConstants {

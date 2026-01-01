@@ -1,19 +1,67 @@
 import 'package:carwash_front/services/utiles.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:typed_data';
 import '../../providers/carwash_service_provider.dart';
 import '../../providers/carwash_profile_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/driver_provider.dart';
+import '../../providers/order_owner_provider.dart';
 import '../../models/carwash_service_model.dart';
+import '../../models/driver_model.dart';
+import '../../models/order_owner_model.dart';
 import '../../widgets/custom_input.dart';
 import '../../widgets/custom_button.dart';
 import '../../constants/app_colors.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/auth_provider.dart';
-import 'dart:io';
-import 'package:image_picker/image_picker.dart';
-import '../../providers/driver_provider.dart';
-import '../../models/driver_model.dart';
-import 'dart:typed_data';
+
+// Shared Status Utilities
+class _OrderStatusUtils {
+  static Color getStatusColor(String status) {
+    switch (status.toUpperCase()) {
+      case 'SUBMITTED':
+        return Colors.orange;
+      case 'ACCEPTED':
+        return Colors.blue;
+      case 'EN_ROUTE':
+        return Colors.purple;
+      case 'IN_SERVICE':
+        return Colors.indigo;
+      case 'COMPLETE':
+        return Colors.green;
+      case 'REJECTED':
+      case 'CANCELLED':
+        return Colors.red;
+      case 'PENDING':
+        return Colors.grey;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  static String getStatusText(String status) {
+    switch (status.toUpperCase()) {
+      case 'PENDING':
+        return 'در انتظار';
+      case 'SUBMITTED':
+        return 'در انتظار تایید';
+      case 'ACCEPTED':
+        return 'تایید شده';
+      case 'REJECTED':
+        return 'رد شده';
+      case 'EN_ROUTE':
+        return 'در راه به کارواش';
+      case 'IN_SERVICE':
+        return 'در حال سرویس دهی';
+      case 'COMPLETE':
+        return 'بازگرداندن خودرو به مشتری';
+      case 'CANCELLED':
+        return 'لغو شده';
+      default:
+        return status;
+    }
+  }
+}
 
 class CarwashHomeScreen extends StatefulWidget {
   const CarwashHomeScreen({super.key});
@@ -37,16 +85,25 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
     });
   }
 
+  String get _appBarTitle {
+    const titles = [
+      "مدیریت سرویس‌ها",
+      "مدیریت رانندگان",
+      "پروفایل و تنظیمات",
+      "سفارش‌های ورودی",
+    ];
+    return titles[_selectedIndex.clamp(0, titles.length - 1)];
+  }
+
   @override
   Widget build(BuildContext context) {
-    String title = "مدیریت سرویس‌ها";
-    if (_selectedIndex == 1) title = "مدیریت رانندگان";
-    if (_selectedIndex == 2) title = "پروفایل و تنظیمات";
-
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(
+          _appBarTitle,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: AppColors.secondary,
         foregroundColor: Colors.white,
         centerTitle: true,
@@ -78,9 +135,21 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
               )
               : null,
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
         currentIndex: _selectedIndex,
         selectedItemColor: AppColors.secondary,
-        onTap: (index) => setState(() => _selectedIndex = index),
+        onTap: (index) {
+          setState(() => _selectedIndex = index);
+          // Fetch orders when switching to orders tab
+          if (index == 3) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Provider.of<OrderOwnerProvider>(
+                context,
+                listen: false,
+              ).fetchOrders();
+            });
+          }
+        },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.list), label: "سرویس‌ها"),
           BottomNavigationBarItem(
@@ -88,6 +157,10 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
             label: "رانندگان",
           ),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "پروفایل"),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.shopping_cart),
+            label: "سفارش‌ها",
+          ),
         ],
       ),
     );
@@ -101,12 +174,13 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
         return const _DriversTab();
       case 2:
         return const _ProfileTab();
+      case 3:
+        return const _OrdersTab();
       default:
         return _ServicesTab(onEdit: _showAddServiceSheet);
     }
   }
 
-  // --- MODIFIED: Accepts optional serviceToEdit ---
   void _showAddServiceSheet(
     BuildContext context, {
     CarwashServiceModel? serviceToEdit,
@@ -128,7 +202,6 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
                 20,
                 MediaQuery.of(ctx).viewInsets.bottom + 20,
               ),
-              // Pass the service to the form
               child: _AddServiceForm(serviceToEdit: serviceToEdit),
             ),
           ),
@@ -152,7 +225,6 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
             20,
             MediaQuery.of(ctx).viewInsets.bottom + 20,
           ),
-          // راننده رو پاس میدیم به فرم
           child: _AddDriverForm(driverToEdit: driverToEdit),
         );
       },
@@ -226,11 +298,8 @@ class _ServicesTab extends StatelessWidget {
                       // --- NEW EDIT BUTTON ---
                       IconButton(
                         icon: const Icon(Icons.edit, color: Colors.blue),
-                        onPressed: () {
-                          if (onEdit != null) {
-                            onEdit!(context, serviceToEdit: service);
-                          }
-                        },
+                        onPressed:
+                            () => onEdit?.call(context, serviceToEdit: service),
                       ),
                       // --- EXISTING DELETE BUTTON ---
                       IconButton(
@@ -408,9 +477,6 @@ class _ProfileTabState extends State<_ProfileTab> {
   }
 }
 
-// ==========================================
-// ADD / EDIT SERVICE FORM WIDGET
-// ==========================================
 class _AddServiceForm extends StatefulWidget {
   final CarwashServiceModel? serviceToEdit; // NEW: Optional service for editing
 
@@ -433,7 +499,6 @@ class _AddServiceFormState extends State<_AddServiceForm> {
     if (widget.serviceToEdit != null) {
       _nameCtrl.text = widget.serviceToEdit!.serviceName;
       _descCtrl.text = widget.serviceToEdit!.description;
-      // Convert double price to string, removing ".0" if it's a clean integer
       _priceCtrl.text = widget.serviceToEdit!.price.toString().replaceAll(
         RegExp(r'\.0$'),
         '',
@@ -462,25 +527,19 @@ class _AddServiceFormState extends State<_AddServiceForm> {
       }
 
       final serviceData = CarwashServiceModel(
-        id: widget.serviceToEdit?.id, // Keep ID if editing
+        id: widget.serviceToEdit?.id,
         serviceName: _nameCtrl.text.trim(),
         description: _descCtrl.text.trim(),
         price: finalPrice,
       );
 
-      bool success;
-      // NEW: Check if we are Adding or Updating
-      if (widget.serviceToEdit == null) {
-        // --- ADD MODE ---
-        success = await provider.addService(serviceData);
-      } else {
-        // --- EDIT MODE ---
-        // Force unwrap ID because we know it exists in edit mode
-        success = await provider.updateService(
-          widget.serviceToEdit!.id!,
-          serviceData,
-        );
-      }
+      final success =
+          widget.serviceToEdit == null
+              ? await provider.addService(serviceData)
+              : await provider.updateService(
+                widget.serviceToEdit!.id!,
+                serviceData,
+              );
 
       if (success && mounted) {
         Navigator.pop(context);
@@ -735,16 +794,14 @@ class _AddDriverFormState extends State<_AddDriverForm> {
         address: _addressCtrl.text,
       );
 
-      bool success;
-      if (widget.driverToEdit == null) {
-        success = await provider.addDriver(driverData, _imageFile);
-      } else {
-        success = await provider.editDriver(
-          widget.driverToEdit!.id!,
-          driverData,
-          _imageFile,
-        );
-      }
+      final success =
+          widget.driverToEdit == null
+              ? await provider.addDriver(driverData, _imageFile)
+              : await provider.editDriver(
+                widget.driverToEdit!.id!,
+                driverData,
+                _imageFile,
+              );
 
       if (success && mounted) {
         Navigator.pop(context);
@@ -787,13 +844,6 @@ class _AddDriverFormState extends State<_AddDriverForm> {
   Widget build(BuildContext context) {
     final isLoading = context.watch<DriverProvider>().isLoading;
     final isEditing = widget.driverToEdit != null;
-
-    ImageProvider? imageProvider;
-    if (_pickedImageBytes != null) {
-      imageProvider = MemoryImage(_pickedImageBytes!);
-    } else if (widget.driverToEdit?.personnelPhotoUrl != null) {
-      imageProvider = NetworkImage(widget.driverToEdit!.personnelPhotoUrl!);
-    }
 
     return Form(
       key: _formKey,
@@ -895,6 +945,872 @@ class _AddDriverFormState extends State<_AddDriverForm> {
               onPressed: _submit,
               isLoading: isLoading,
               color: AppColors.secondary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// TAB 4: ORDERS (The Kitchen) - Sprint 4
+// ==========================================
+class _OrdersTab extends StatefulWidget {
+  const _OrdersTab();
+
+  @override
+  State<_OrdersTab> createState() => _OrdersTabState();
+}
+
+class _OrdersTabState extends State<_OrdersTab> {
+  String _filterType = 'all'; // 'all' or 'accepted'
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<OrderOwnerProvider>(context, listen: false).fetchOrders();
+    });
+  }
+
+  List<OrderOwnerModel> _getFilteredOrders(List<OrderOwnerModel> orders) {
+    if (_filterType == 'accepted') {
+      return orders
+          .where((order) => order.status.toUpperCase() == 'ACCEPTED')
+          .toList();
+    }
+    return orders;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<OrderOwnerProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoadingOrders && provider.orders.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final filteredOrders = _getFilteredOrders(provider.orders);
+
+        return Column(
+          children: [
+            _OrderFilterSidebar(
+              currentFilter: _filterType,
+              onFilterChanged: (filter) => setState(() => _filterType = filter),
+            ),
+            Expanded(
+              child:
+                  filteredOrders.isEmpty
+                      ? _EmptyOrdersState(
+                        filterType: _filterType,
+                        onRefresh: () => provider.fetchOrders(),
+                      )
+                      : RefreshIndicator(
+                        onRefresh: () => provider.fetchOrders(),
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: filteredOrders.length,
+                          itemBuilder:
+                              (ctx, index) =>
+                                  _OrderCard(order: filteredOrders[index]),
+                        ),
+                      ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _EmptyOrdersState extends StatelessWidget {
+  final String filterType;
+  final VoidCallback onRefresh;
+
+  const _EmptyOrdersState({required this.filterType, required this.onRefresh});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.shopping_cart_outlined, size: 64, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(
+            filterType == 'accepted'
+                ? "سفارش تایید شده‌ای وجود ندارد"
+                : "هنوز سفارشی ثبت نشده است",
+            style: TextStyle(color: Colors.grey[600], fontSize: 16),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: onRefresh,
+            icon: const Icon(Icons.refresh),
+            label: const Text("بروزرسانی"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.secondary,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Order Filter Sidebar
+class _OrderFilterSidebar extends StatelessWidget {
+  final String currentFilter;
+  final Function(String) onFilterChanged;
+
+  const _OrderFilterSidebar({
+    required this.currentFilter,
+    required this.onFilterChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.filter_list, color: AppColors.secondary),
+          const SizedBox(width: 12),
+          const Text(
+            'فیلتر:',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Row(
+              children: [
+                _FilterChip(
+                  label: 'همه سفارش‌ها',
+                  isSelected: currentFilter == 'all',
+                  onTap: () => onFilterChanged('all'),
+                ),
+                const SizedBox(width: 12),
+                _FilterChip(
+                  label: 'سفارش‌های تایید شده',
+                  isSelected: currentFilter == 'accepted',
+                  onTap: () => onFilterChanged('accepted'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FilterChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _FilterChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.secondary : Colors.grey[200],
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? AppColors.secondary : Colors.grey[300]!,
+            width: 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.grey[700],
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            fontSize: 13,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Order Card Widget
+class _OrderCard extends StatelessWidget {
+  final OrderOwnerModel order;
+
+  const _OrderCard({required this.order});
+
+  String _formatDateTime(DateTime dateTime) {
+    final persianMonths = [
+      'فروردین',
+      'اردیبهشت',
+      'خرداد',
+      'تیر',
+      'مرداد',
+      'شهریور',
+      'مهر',
+      'آبان',
+      'آذر',
+      'دی',
+      'بهمن',
+      'اسفند',
+    ];
+    return '${dateTime.day} ${persianMonths[dateTime.month - 1]} ${dateTime.year} - ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor = _OrderStatusUtils.getStatusColor(order.status);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: statusColor.withOpacity(0.3), width: 2),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header: Order ID and Status
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.receipt, color: AppColors.secondary, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'سفارش #${order.id}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: statusColor, width: 1),
+                  ),
+                  child: Text(
+                    _OrderStatusUtils.getStatusText(order.status),
+                    style: TextStyle(
+                      color: statusColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            // Customer Info
+            Row(
+              children: [
+                Icon(Icons.person, size: 18, color: Colors.grey[600]),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        order.customerName,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.phone, size: 14, color: Colors.grey[600]),
+                          const SizedBox(width: 4),
+                          Text(
+                            order.customerPhone,
+                            style: TextStyle(
+                              color: Colors.grey[700],
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Scheduled Time
+            Row(
+              children: [
+                Icon(Icons.access_time, size: 18, color: Colors.grey[600]),
+                const SizedBox(width: 8),
+                Text(
+                  _formatDateTime(order.scheduledTime),
+                  style: TextStyle(color: Colors.grey[700], fontSize: 13),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Services List
+            if (order.servicesList.isNotEmpty) ...[
+              Row(
+                children: [
+                  Icon(
+                    Icons.cleaning_services,
+                    size: 18,
+                    color: Colors.grey[600],
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'سرویس‌ها:',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children:
+                    order.servicesList
+                        .map(
+                          (service) => Chip(
+                            label: Text(
+                              service,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            backgroundColor: AppColors.secondary.withOpacity(
+                              0.1,
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                          ),
+                        )
+                        .toList(),
+              ),
+              const SizedBox(height: 16),
+            ],
+            // Total Price
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'مبلغ کل:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                Text(
+                  '${formatMoney(order.totalPrice)} تومان',
+                  style: TextStyle(
+                    color: AppColors.success,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Divider(height: 24),
+            _OrderActions(order: order),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OrderActions extends StatefulWidget {
+  final OrderOwnerModel order;
+
+  const _OrderActions({required this.order});
+
+  @override
+  State<_OrderActions> createState() => _OrderActionsState();
+}
+
+class _OrderActionsState extends State<_OrderActions> {
+  bool _isProcessing = false;
+
+  Future<void> _updateStatus(String status) async {
+    setState(() => _isProcessing = true);
+    final provider = Provider.of<OrderOwnerProvider>(context, listen: false);
+
+    final success = await provider.updateOrderStatus(widget.order.id, status);
+
+    if (mounted) {
+      setState(() => _isProcessing = false);
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'وضعیت سفارش به ${_OrderStatusUtils.getStatusText(status)} تغییر یافت',
+            ),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('خطا در تغییر وضعیت'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _assignDriver() async {
+    final provider = Provider.of<OrderOwnerProvider>(context, listen: false);
+
+    // Fetch available drivers first
+    await provider.fetchAvailableDrivers();
+
+    if (provider.availableDrivers.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('راننده‌ای در دسترس نیست'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Show driver selection dialog
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder:
+            (ctx) => _DriverSelectionDialog(
+              orderId: widget.order.id,
+              drivers: provider.availableDrivers,
+            ),
+      );
+    }
+  }
+
+  void _showStatusChangeDialog() {
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => _StatusChangeDialog(
+            currentStatus: widget.order.status,
+            onStatusChanged: (newStatus) {
+              Navigator.pop(ctx);
+              _updateStatus(newStatus);
+            },
+          ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final canAccept = widget.order.status.toUpperCase() == 'SUBMITTED';
+    final canAssignDriver = [
+      'ACCEPTED',
+      'EN_ROUTE',
+    ].contains(widget.order.status.toUpperCase());
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      alignment: WrapAlignment.end,
+      children: [
+        if (canAccept) ...[
+          ElevatedButton.icon(
+            onPressed: _isProcessing ? null : () => _updateStatus('ACCEPTED'),
+            icon: const Icon(Icons.check, size: 18),
+            label: const Text('تایید'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+          ),
+          OutlinedButton.icon(
+            onPressed: _isProcessing ? null : () => _updateStatus('REJECTED'),
+            icon: const Icon(Icons.close, size: 18),
+            label: const Text('رد'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.error,
+              side: BorderSide(color: AppColors.error),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+          ),
+        ],
+        if (canAssignDriver)
+          ElevatedButton.icon(
+            onPressed: _isProcessing ? null : _assignDriver,
+            icon: const Icon(Icons.person_add, size: 18),
+            label: const Text('انتساب راننده'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.secondary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+          ),
+        if (widget.order.status.toUpperCase() == 'ACCEPTED')
+          OutlinedButton.icon(
+            onPressed: _isProcessing ? null : () => _updateStatus('IN_SERVICE'),
+            icon: const Icon(Icons.build, size: 18),
+            label: const Text('شروع سرویس'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.secondary,
+              side: BorderSide(color: AppColors.secondary),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+          ),
+        if (widget.order.status.toUpperCase() == 'IN_SERVICE')
+          ElevatedButton.icon(
+            onPressed: _isProcessing ? null : () => _updateStatus('COMPLETE'),
+            icon: const Icon(Icons.check_circle, size: 18),
+            label: const Text('تکمیل سفارش'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.success,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+          ),
+        // Change Status Button - Always available
+        OutlinedButton.icon(
+          onPressed: _isProcessing ? null : _showStatusChangeDialog,
+          icon: const Icon(Icons.edit, size: 18),
+          label: const Text('تغییر وضعیت'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.secondary,
+            side: BorderSide(color: AppColors.secondary),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// Status Change Dialog
+class _StatusChangeDialog extends StatelessWidget {
+  final String currentStatus;
+  final Function(String) onStatusChanged;
+
+  const _StatusChangeDialog({
+    required this.currentStatus,
+    required this.onStatusChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Only show the three main statuses for service workflow
+    final allStatuses = ['EN_ROUTE', 'IN_SERVICE', 'COMPLETE'];
+
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 400, maxHeight: 500),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'تغییر وضعیت سفارش',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'وضعیت فعلی: ${_OrderStatusUtils.getStatusText(currentStatus)}',
+              style: TextStyle(color: Colors.grey[600], fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            const Divider(),
+            const SizedBox(height: 8),
+            Expanded(
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: allStatuses.length,
+                itemBuilder: (ctx, index) {
+                  final status = allStatuses[index];
+                  final isCurrentStatus =
+                      status.toUpperCase() == currentStatus.toUpperCase();
+                  final statusColor = _OrderStatusUtils.getStatusColor(status);
+
+                  return ListTile(
+                    enabled: !isCurrentStatus,
+                    leading: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color:
+                            isCurrentStatus
+                                ? statusColor
+                                : statusColor.withOpacity(0.5),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    title: Row(
+                      children: [
+                        Text(
+                          _OrderStatusUtils.getStatusText(status),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: isCurrentStatus ? statusColor : null,
+                            fontSize: 15,
+                          ),
+                        ),
+                        if (isCurrentStatus) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: statusColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: statusColor, width: 1),
+                            ),
+                            child: Text(
+                              'فعلی',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: statusColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    subtitle: Text(
+                      status,
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    ),
+                    trailing:
+                        isCurrentStatus
+                            ? Icon(
+                              Icons.check_circle,
+                              color: statusColor,
+                              size: 20,
+                            )
+                            : Icon(
+                              Icons.arrow_forward_ios,
+                              size: 16,
+                              color: AppColors.secondary,
+                            ),
+                    onTap:
+                        isCurrentStatus ? null : () => onStatusChanged(status),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('انصراف'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Driver Selection Dialog
+class _DriverSelectionDialog extends StatelessWidget {
+  final int orderId;
+  final List<DriverModel> drivers;
+
+  const _DriverSelectionDialog({required this.orderId, required this.drivers});
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 400, maxHeight: 500),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'انتخاب راننده',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child:
+                  drivers.isEmpty
+                      ? const Center(child: Text('راننده‌ای در دسترس نیست'))
+                      : ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: drivers.length,
+                        itemBuilder: (ctx, index) {
+                          final driver = drivers[index];
+                          final isAvailable =
+                              driver.status.toUpperCase() == 'AVAILABLE';
+
+                          return ListTile(
+                            enabled: isAvailable,
+                            leading: CircleAvatar(
+                              backgroundColor:
+                                  isAvailable
+                                      ? AppColors.success.withOpacity(0.2)
+                                      : Colors.grey[300],
+                              child: Icon(
+                                Icons.person,
+                                color:
+                                    isAvailable
+                                        ? AppColors.success
+                                        : Colors.grey,
+                              ),
+                            ),
+                            title: Text(
+                              driver.fullName,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isAvailable ? null : Colors.grey,
+                              ),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  driver.phoneNumber,
+                                  style: TextStyle(
+                                    color:
+                                        isAvailable
+                                            ? Colors.grey[600]
+                                            : Colors.grey,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        isAvailable
+                                            ? AppColors.success.withOpacity(0.1)
+                                            : Colors.grey[300],
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    isAvailable ? 'در دسترس' : 'مشغول',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color:
+                                          isAvailable
+                                              ? AppColors.success
+                                              : Colors.grey[600],
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            trailing:
+                                isAvailable
+                                    ? Icon(
+                                      Icons.arrow_forward_ios,
+                                      size: 16,
+                                      color: AppColors.secondary,
+                                    )
+                                    : null,
+                            onTap:
+                                isAvailable
+                                    ? () async {
+                                      final provider =
+                                          Provider.of<OrderOwnerProvider>(
+                                            context,
+                                            listen: false,
+                                          );
+
+                                      final success = await provider
+                                          .assignDriverToOrder(
+                                            orderId,
+                                            driver.id,
+                                          );
+
+                                      if (context.mounted) {
+                                        Navigator.pop(context);
+                                        if (success) {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                'راننده ${driver.fullName} به سفارش اختصاص یافت',
+                                              ),
+                                              backgroundColor:
+                                                  AppColors.success,
+                                            ),
+                                          );
+                                        } else {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'خطا در اختصاص راننده',
+                                              ),
+                                              backgroundColor: AppColors.error,
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    }
+                                    : null,
+                          );
+                        },
+                      ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('انصراف'),
+                ),
+              ],
             ),
           ],
         ),
