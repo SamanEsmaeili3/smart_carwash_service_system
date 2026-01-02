@@ -153,6 +153,7 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
         phoneNumber: _phoneCtrl.text.trim(),
         contactEmail: _emailCtrl.text.trim(),
         workingHours: workingHoursMap,
+        licensePhotoUrl: "",
         latitude: _selectedLocation.latitude,
         longitude: _selectedLocation.longitude,
         password: _passwordCtrl.text.trim(), // Sending Password

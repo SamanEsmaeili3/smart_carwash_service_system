@@ -5,6 +5,8 @@ import '../services/api_service.dart';
 import '../services/error_handler.dart';
 import '../constants/api_constants.dart';
 import '../models/user_model.dart';
+import 'dart:io';                 
+import 'package:dio/dio.dart';    
 
 enum AuthStatus { initial, loading, authenticated, error }
 
