@@ -118,7 +118,7 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
         "Tuesday": workingTime,
         "Wednesday": workingTime,
         "Thursday": workingTime,
-        "Friday": "Closed",
+        "Friday": workingTime,
       };
 
       final model = CarwashModel(
