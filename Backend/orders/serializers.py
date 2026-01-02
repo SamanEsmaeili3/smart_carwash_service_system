@@ -29,29 +29,18 @@ class OrderDraftSerializer(serializers.ModelSerializer):
 class OrderOwnerSerializer(serializers.ModelSerializer):
     customer_name = serializers.CharField(source='customer.full_name', read_only=True)
     customer_phone = serializers.CharField(source='customer.phone_number', read_only=True)
-    customer_email = serializers.CharField(source='customer.user.email', read_only=True)
-    vehicle_plate = serializers.SerializerMethodField()
-    vehicle_info = serializers.SerializerMethodField()
+    # If you have vehicle logic working:
+    # vehicle_plate = serializers.CharField(source='vehicle.plate_number', read_only=True)
     
     services_list = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
         fields = [
-            'id', 'customer_name', 'customer_phone', 'customer_email', 'vehicle_plate', 'vehicle_info',
+            'id', 'customer_name', 'customer_phone', 
             'scheduled_time', 'total_price', 'status', 
             'services_list', 'created_at'
         ]
-    
-    def get_vehicle_plate(self, obj):
-        if obj.vehicle:
-            return obj.vehicle.license_plate
-        return None
-    
-    def get_vehicle_info(self, obj):
-        if obj.vehicle:
-            return f"{obj.vehicle.make} {obj.vehicle.model} ({obj.vehicle.color})"
-        return None
 
     def get_services_list(self, obj):
         # Return a list of strings like ["Basic Wash (x1)", "Wax (x1)"]
