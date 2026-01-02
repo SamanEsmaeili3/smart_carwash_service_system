@@ -10,7 +10,8 @@ from .views import (
     CarwashSearchView,
     CarwashProfileDetailView,
     DriverListCreateView,  
-    DriverDetailView
+    DriverDetailView,
+    AdminCarwashDeleteView
 )
 
 urlpatterns = [
@@ -27,7 +28,8 @@ urlpatterns = [
     
     # /api/carwash/admin/manage/<pk>/ (POST)
     path('admin/manage/<int:pk>/', AdminCarwashApprovalView.as_view(), name='admin-manage-carwash'), 
-    
+    path('admin/delete/<int:pk>/', AdminCarwashDeleteView.as_view(), name='admin-delete-carwash'),
+
     # --- Carwash Owner ---
     # /api/carwash/profile/me/ (PUT)
     path('profile/me/', CarwashProfileUpdateView.as_view(), name='carwash-profile-update'),

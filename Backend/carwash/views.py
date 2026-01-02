@@ -403,3 +403,30 @@ class DriverDetailView(generics.RetrieveUpdateDestroyAPIView):
             return Driver.objects.filter(carwash=self.request.user.carwashprofile)
         except Exception:
             return Driver.objects.none()
+
+# ---------------------------------------------------------
+# SECTION 5: ADMIN DELETE (Added for Cleanup)
+# ---------------------------------------------------------
+class AdminCarwashDeleteView(views.APIView):
+    """
+    Permanently deletes a carwash profile and its associated user.
+    """
+    permission_classes = [IsAdminUser]
+
+    def delete(self, request, pk, *args, **kwargs):
+        try:
+            profile = CarwashProfile.objects.get(pk=pk)
+            user = profile.user
+            
+            # Delete the profile first
+            profile.delete()
+            
+            # Then delete the user account to prevent orphans
+            if user:
+                user.delete()
+                
+            return Response({"message": "Carwash deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        except CarwashProfile.DoesNotExist:
+            return Response({"error": "Carwash not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
