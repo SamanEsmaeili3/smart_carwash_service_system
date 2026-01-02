@@ -140,15 +140,22 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
         selectedItemColor: AppColors.secondary,
         onTap: (index) {
           setState(() => _selectedIndex = index);
-          // Fetch orders when switching to orders tab
-          if (index == 3) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            // Fetch orders when switching to orders tab
+            if (index == 3) {
               Provider.of<OrderOwnerProvider>(
                 context,
                 listen: false,
               ).fetchOrders();
-            });
-          }
+            }
+            // Fetch profile when switching to profile tab
+            if (index == 2) {
+              Provider.of<CarwashProfileProvider>(
+                context,
+                listen: false,
+              ).fetchProfile();
+            }
+          });
         },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.list), label: "سرویس‌ها"),
@@ -368,51 +375,75 @@ class _ProfileTabState extends State<_ProfileTab> {
   final _addressCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
 
-  // --- WORKING HOURS STATE ---
-  // Default values
-  TimeOfDay _openTime = const TimeOfDay(hour: 9, minute: 0);
-  TimeOfDay _closeTime = const TimeOfDay(hour: 21, minute: 0);
-  
-  // Active days map (True = Open, False = Closed)
-  final Map<String, bool> _activeDays = {
-    "Saturday": true,
-    "Sunday": true,
-    "Monday": true,
-    "Tuesday": true,
-    "Wednesday": true,
-    "Thursday": true,
-    "Friday": true, 
+  // Working hours controllers for each day
+  final Map<String, TextEditingController> _workingHoursControllers = {};
+  final Map<String, bool> _openDays = {
+    'saturday': false,
+    'sunday': false,
+    'monday': false,
+    'tuesday': false,
+    'wednesday': false,
+    'thursday': false,
+    'friday': false,
   };
 
-  // Helper to format TimeOfDay to "HH:mm" for API
-  String _formatTime(TimeOfDay time) {
-    final hour = time.hour.toString().padLeft(2, '0');
-    final minute = time.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
+  bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize controllers for all days
+    for (final day in _openDays.keys) {
+      _workingHoursControllers[day] = TextEditingController();
+    }
+    // Fetch profile data
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProfile();
+    });
   }
 
-  // Time Picker Logic
-  Future<void> _pickTime(bool isOpenTime) async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: isOpenTime ? _openTime : _closeTime,
-      builder: (context, child) {
-        // Ensure 24-hour format
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-          child: child!,
-        );
-      },
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _phoneCtrl.dispose();
+    _addressCtrl.dispose();
+    _passwordCtrl.dispose();
+    for (final ctrl in _workingHoursControllers.values) {
+      ctrl.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _loadProfile() async {
+    final provider = Provider.of<CarwashProfileProvider>(
+      context,
+      listen: false,
     );
 
-    if (picked != null) {
-      setState(() {
-        if (isOpenTime) {
-          _openTime = picked;
-        } else {
-          _closeTime = picked;
-        }
-      });
+    final success = await provider.fetchProfile();
+    if (success && provider.currentProfile != null && mounted) {
+      final profile = provider.currentProfile!;
+      
+      // Pre-fill basic info
+      _nameCtrl.text = profile['business_name']?.toString() ?? '';
+      _phoneCtrl.text = profile['phone_number']?.toString() ?? '';
+      _addressCtrl.text = profile['address']?.toString() ?? '';
+
+      // Pre-fill working hours
+      final workingHours = profile['working_hours'];
+      if (workingHours is Map) {
+        workingHours.forEach((day, hours) {
+          final dayKey = day.toString().toLowerCase();
+          if (_workingHoursControllers.containsKey(dayKey)) {
+            _workingHoursControllers[dayKey]!.text = hours.toString();
+            _openDays[dayKey] = hours.toString().isNotEmpty;
+          }
+        });
+      }
+
+      setState(() => _isInitialized = true);
+    } else if (mounted) {
+      setState(() => _isInitialized = true);
     }
   }
 
@@ -420,22 +451,23 @@ class _ProfileTabState extends State<_ProfileTab> {
     if (_formKey.currentState!.validate()) {
       final provider = Provider.of<CarwashProfileProvider>(context, listen: false);
 
-      // 1. Construct Working Hours Map
-      // Format: "09:00-21:00" or "Closed"
-      Map<String, String> newWorkingHours = {};
-      final timeRange = "${_formatTime(_openTime)}-${_formatTime(_closeTime)}";
-      
-      _activeDays.forEach((day, isActive) {
-        newWorkingHours[day] = isActive ? timeRange : "Closed";
-      });
+      // Build working hours map
+      final Map<String, String> workingHours = {};
+      for (final entry in _openDays.entries) {
+        if (entry.value) {
+          final hours = _workingHoursControllers[entry.key]!.text.trim();
+          if (hours.isNotEmpty) {
+            workingHours[entry.key] = hours;
+          }
+        }
+      }
 
-      // 2. Call Update API
       final success = await provider.updateProfile(
         businessName: _nameCtrl.text.isNotEmpty ? _nameCtrl.text : null,
         phoneNumber: _phoneCtrl.text.isNotEmpty ? _phoneCtrl.text : null,
         address: _addressCtrl.text.isNotEmpty ? _addressCtrl.text : null,
         newPassword: _passwordCtrl.text.isNotEmpty ? _passwordCtrl.text : null,
-        workingHours: newWorkingHours, // <--- Passing the schedule
+        workingHours: workingHours.isNotEmpty ? workingHours : null,
       );
 
       if (success && mounted) {
@@ -457,9 +489,76 @@ class _ProfileTabState extends State<_ProfileTab> {
     }
   }
 
+  String _getDayName(String dayKey) {
+    const dayNames = {
+      'saturday': 'شنبه',
+      'sunday': 'یکشنبه',
+      'monday': 'دوشنبه',
+      'tuesday': 'سه‌شنبه',
+      'wednesday': 'چهارشنبه',
+      'thursday': 'پنج‌شنبه',
+      'friday': 'جمعه',
+    };
+    return dayNames[dayKey] ?? dayKey;
+  }
+
+  Future<void> _selectTime(BuildContext context, String dayKey) async {
+    final controller = _workingHoursControllers[dayKey]!;
+    final currentTime = controller.text;
+
+    // Parse existing time if available (format: "09:00-18:00")
+    TimeOfDay? startTime;
+    TimeOfDay? endTime;
+
+    if (currentTime.isNotEmpty && currentTime.contains('-')) {
+      final parts = currentTime.split('-');
+      if (parts.length == 2) {
+        final startParts = parts[0].trim().split(':');
+        final endParts = parts[1].trim().split(':');
+        if (startParts.length == 2 && endParts.length == 2) {
+          startTime = TimeOfDay(
+            hour: int.tryParse(startParts[0]) ?? 9,
+            minute: int.tryParse(startParts[1]) ?? 0,
+          );
+          endTime = TimeOfDay(
+            hour: int.tryParse(endParts[0]) ?? 18,
+            minute: int.tryParse(endParts[1]) ?? 0,
+          );
+        }
+      }
+    }
+
+    // Show time picker for start time
+    final pickedStart = await showTimePicker(
+      context: context,
+      initialTime: startTime ?? const TimeOfDay(hour: 9, minute: 0),
+    );
+
+    if (pickedStart != null) {
+      // Show time picker for end time
+      final pickedEnd = await showTimePicker(
+        context: context,
+        initialTime: endTime ?? const TimeOfDay(hour: 18, minute: 0),
+      );
+
+      if (pickedEnd != null) {
+        final startStr = '${pickedStart.hour.toString().padLeft(2, '0')}:${pickedStart.minute.toString().padLeft(2, '0')}';
+        final endStr = '${pickedEnd.hour.toString().padLeft(2, '0')}:${pickedEnd.minute.toString().padLeft(2, '0')}';
+        controller.text = '$startStr-$endStr';
+        setState(() => _openDays[dayKey] = true);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isLoading = context.watch<CarwashProfileProvider>().isLoading;
+    final provider = context.watch<CarwashProfileProvider>();
+    final isLoading = provider.isLoading;
+    final isLoadingProfile = provider.isLoadingProfile;
+
+    if (isLoadingProfile && !_isInitialized) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
     // Persian labels for UI
     final persianDays = {
@@ -482,20 +581,20 @@ class _ProfileTabState extends State<_ProfileTab> {
             const SizedBox(height: 16),
             CustomInput(
               label: "نام کسب و کار",
-              hint: "نام جدید (اختیاری)",
+              hint: "نام فعلی: ${provider.currentProfile?['business_name'] ?? 'نامشخص'}",
               icon: Icons.store,
               controller: _nameCtrl,
             ),
             CustomInput(
               label: "شماره تماس",
-              hint: "شماره جدید (اختیاری)",
+              hint: "شماره فعلی: ${provider.currentProfile?['phone_number'] ?? 'نامشخص'}",
               icon: Icons.phone,
               controller: _phoneCtrl,
               keyboardType: TextInputType.phone,
             ),
             CustomInput(
               label: "آدرس",
-              hint: "آدرس جدید (اختیاری)",
+              hint: "آدرس فعلی: ${provider.currentProfile?['address'] ?? 'نامشخص'}",
               icon: Icons.map,
               controller: _addressCtrl,
               maxLines: 2,
@@ -571,6 +670,75 @@ class _ProfileTabState extends State<_ProfileTab> {
             const Divider(),
             const SizedBox(height: 16),
 
+            const Text(
+              "ساعات کاری و روزهای باز",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+                color: AppColors.secondary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ..._openDays.keys.map((dayKey) {
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Checkbox(
+                            value: _openDays[dayKey],
+                            onChanged: (value) {
+                              setState(() {
+                                _openDays[dayKey] = value ?? false;
+                                if (!_openDays[dayKey]!) {
+                                  _workingHoursControllers[dayKey]!.clear();
+                                }
+                              });
+                            },
+                          ),
+                          Text(
+                            _getDayName(dayKey),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_openDays[dayKey]!) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: _workingHoursControllers[dayKey],
+                                decoration: InputDecoration(
+                                  labelText: "ساعات کاری (مثال: 09:00-18:00)",
+                                  hintText: "09:00-18:00",
+                                  suffixIcon: IconButton(
+                                    icon: const Icon(Icons.access_time),
+                                    onPressed: () => _selectTime(context, dayKey),
+                                  ),
+                                ),
+                                readOnly: true,
+                                onTap: () => _selectTime(context, dayKey),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            }),
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 24),
             const Text(
               "تغییر رمز عبور (اختیاری)",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
