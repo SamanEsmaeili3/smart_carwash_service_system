@@ -49,6 +49,9 @@ dependencies:
   latlong2: ^0.9.0
   flutter_map_marker_popup: ^7.0.0
 
+  # shamsi date
+  shamsi_date: ^1.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
