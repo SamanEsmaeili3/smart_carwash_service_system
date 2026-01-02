@@ -222,3 +222,23 @@ def assign_driver_to_order(request, order_id):
         "message": f"Driver {driver.full_name} assigned to Order #{order.id}",
         "order_status": order.status
     })
+
+# [NEW] 6. Get Customer Info for Order
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_order_customer_info(request, order_id):
+    try:
+        carwash_profile = request.user.carwashprofile
+        order = Order.objects.get(pk=order_id, carwash=carwash_profile)
+    except Order.DoesNotExist:
+        return Response({"error": "Order not found"}, status=404)
+    except Exception:
+        return Response({"error": "Unauthorized"}, status=403)
+    
+    if not order.customer:
+        return Response({"error": "Customer not found for this order"}, status=404)
+    
+    return Response({
+        "customer_name": order.customer.full_name,
+        "customer_phone": order.customer.phone_number
+    })

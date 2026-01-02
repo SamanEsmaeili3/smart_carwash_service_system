@@ -141,4 +141,25 @@ class OrderOwnerProvider with ChangeNotifier {
     _driversError = null;
     notifyListeners();
   }
+
+  // Get customer info for a specific order
+  Future<Map<String, String>?> fetchOrderCustomerInfo(int orderId) async {
+    try {
+      final response = await _api.get(
+        '${ApiConstants.ownerOrderCustomerInfo}$orderId/customer-info/',
+        auth: true,
+      );
+
+      if (response is Map<String, dynamic>) {
+        return {
+          'customer_name': response['customer_name'] ?? 'مشتری',
+          'customer_phone': response['customer_phone'] ?? '',
+        };
+      }
+      return null;
+    } catch (e) {
+      print("Error fetching customer info: ${ErrorHandler.getErrorMessage(e)}");
+      return null;
+    }
+  }
 }

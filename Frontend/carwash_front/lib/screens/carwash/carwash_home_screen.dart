@@ -1446,10 +1446,47 @@ class _FilterChip extends StatelessWidget {
 }
 
 // Order Card Widget
-class _OrderCard extends StatelessWidget {
+class _OrderCard extends StatefulWidget {
   final OrderOwnerModel order;
 
   const _OrderCard({required this.order});
+
+  @override
+  State<_OrderCard> createState() => _OrderCardState();
+}
+
+class _OrderCardState extends State<_OrderCard> {
+  String? _customerName;
+  String? _customerPhone;
+  bool _isLoadingCustomerInfo = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCustomerInfo();
+  }
+
+  Future<void> _fetchCustomerInfo() async {
+    setState(() => _isLoadingCustomerInfo = true);
+
+    final provider = Provider.of<OrderOwnerProvider>(context, listen: false);
+    final customerInfo = await provider.fetchOrderCustomerInfo(widget.order.id);
+
+    if (mounted && customerInfo != null) {
+      setState(() {
+        _customerName = customerInfo['customer_name'];
+        _customerPhone = customerInfo['customer_phone'];
+        _isLoadingCustomerInfo = false;
+      });
+    } else if (mounted) {
+      // Fallback to order data if API fails
+      setState(() {
+        _customerName = widget.order.customerName;
+        _customerPhone = widget.order.customerPhone;
+        _isLoadingCustomerInfo = false;
+      });
+    }
+  }
 
   String _formatDateTime(DateTime dateTime) {
     final persianMonths = [
@@ -1471,7 +1508,9 @@ class _OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = _OrderStatusUtils.getStatusColor(order.status);
+    final statusColor = _OrderStatusUtils.getStatusColor(widget.order.status);
+    final displayName = _customerName ?? widget.order.customerName;
+    final displayPhone = _customerPhone ?? widget.order.customerPhone;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -1494,7 +1533,7 @@ class _OrderCard extends StatelessWidget {
                     Icon(Icons.receipt, color: AppColors.secondary, size: 20),
                     const SizedBox(width: 8),
                     Text(
-                      'سفارش #${order.id}',
+                      'سفارش #${widget.order.id}',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -1513,7 +1552,7 @@ class _OrderCard extends StatelessWidget {
                     border: Border.all(color: statusColor, width: 1),
                   ),
                   child: Text(
-                    _OrderStatusUtils.getStatusText(order.status),
+                    _OrderStatusUtils.getStatusText(widget.order.status),
                     style: TextStyle(
                       color: statusColor,
                       fontWeight: FontWeight.bold,
@@ -1558,13 +1597,22 @@ class _OrderCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text(
-                          order.customerName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
+                        child:
+                            _isLoadingCustomerInfo
+                                ? const SizedBox(
+                                  height: 15,
+                                  width: 15,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                                : Text(
+                                  displayName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
                       ),
                     ],
                   ),
@@ -1574,18 +1622,25 @@ class _OrderCard extends StatelessWidget {
                       Icon(Icons.phone, size: 16, color: Colors.grey[600]),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Text(
-                          order.customerPhone,
-                          style: TextStyle(
-                            color: Colors.grey[700],
-                            fontSize: 13,
-                          ),
-                        ),
+                        child:
+                            _isLoadingCustomerInfo
+                                ? const SizedBox(
+                                  height: 13,
+                                  width: 100,
+                                  child: LinearProgressIndicator(),
+                                )
+                                : Text(
+                                  displayPhone,
+                                  style: TextStyle(
+                                    color: Colors.grey[700],
+                                    fontSize: 13,
+                                  ),
+                                ),
                       ),
                     ],
                   ),
-                  if (order.customerEmail != null &&
-                      order.customerEmail!.isNotEmpty) ...[
+                  if (widget.order.customerEmail != null &&
+                      widget.order.customerEmail!.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -1593,7 +1648,7 @@ class _OrderCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            order.customerEmail!,
+                            widget.order.customerEmail!,
                             style: TextStyle(
                               color: Colors.grey[700],
                               fontSize: 13,
@@ -1603,8 +1658,8 @@ class _OrderCard extends StatelessWidget {
                       ],
                     ),
                   ],
-                  if (order.vehiclePlate != null &&
-                      order.vehiclePlate!.isNotEmpty) ...[
+                  if (widget.order.vehiclePlate != null &&
+                      widget.order.vehiclePlate!.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -1616,7 +1671,7 @@ class _OrderCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'پلاک: ${order.vehiclePlate}',
+                            'پلاک: ${widget.order.vehiclePlate}',
                             style: TextStyle(
                               color: Colors.grey[700],
                               fontSize: 13,
@@ -1626,13 +1681,13 @@ class _OrderCard extends StatelessWidget {
                       ],
                     ),
                   ],
-                  if (order.vehicleInfo != null &&
-                      order.vehicleInfo!.isNotEmpty) ...[
+                  if (widget.order.vehicleInfo != null &&
+                      widget.order.vehicleInfo!.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Padding(
                       padding: const EdgeInsets.only(left: 24),
                       child: Text(
-                        order.vehicleInfo!,
+                        widget.order.vehicleInfo!,
                         style: TextStyle(color: Colors.grey[600], fontSize: 12),
                       ),
                     ),
@@ -1647,14 +1702,14 @@ class _OrderCard extends StatelessWidget {
                 Icon(Icons.access_time, size: 18, color: Colors.grey[600]),
                 const SizedBox(width: 8),
                 Text(
-                  _formatDateTime(order.scheduledTime),
+                  _formatDateTime(widget.order.scheduledTime),
                   style: TextStyle(color: Colors.grey[700], fontSize: 13),
                 ),
               ],
             ),
             const SizedBox(height: 16),
             // Services List
-            if (order.servicesList.isNotEmpty) ...[
+            if (widget.order.servicesList.isNotEmpty) ...[
               Row(
                 children: [
                   Icon(
@@ -1674,7 +1729,7 @@ class _OrderCard extends StatelessWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children:
-                    order.servicesList
+                    widget.order.servicesList
                         .map(
                           (service) => Chip(
                             label: Text(
@@ -1700,7 +1755,7 @@ class _OrderCard extends StatelessWidget {
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
                 Text(
-                  '${formatMoney(order.totalPrice)} تومان',
+                  '${formatMoney(widget.order.totalPrice)} تومان',
                   style: TextStyle(
                     color: AppColors.success,
                     fontWeight: FontWeight.bold,
@@ -1711,7 +1766,7 @@ class _OrderCard extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             const Divider(height: 24),
-            _OrderActions(order: order),
+            _OrderActions(order: widget.order),
           ],
         ),
       ),

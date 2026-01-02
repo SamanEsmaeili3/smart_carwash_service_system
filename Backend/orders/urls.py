@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import OrderPrepareView, finalize_order, carwash_orders_list, manage_order_status, customer_orders_list, get_my_drivers, assign_driver_to_order
+from .views import OrderPrepareView, finalize_order, carwash_orders_list, manage_order_status, customer_orders_list, get_my_drivers, assign_driver_to_order, get_order_customer_info
 
 urlpatterns = [
     # Customer Routes
@@ -14,4 +14,7 @@ urlpatterns = [
     # Driver Assignment Routes
     path('owner/drivers/', get_my_drivers, name='owner-drivers-list'),
     path('owner/<int:order_id>/assign-driver/', assign_driver_to_order, name='owner-assign-driver'),
+    
+    # Customer Info Route
+    path('owner/<int:order_id>/customer-info/', get_order_customer_info, name='owner-order-customer-info'),
 ]

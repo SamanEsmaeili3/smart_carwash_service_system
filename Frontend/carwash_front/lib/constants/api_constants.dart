@@ -65,6 +65,8 @@ class ApiConstants {
   static const String ownerDriversList = '/api/order/owner/drivers/';
   static const String ownerAssignDriver =
       '/api/order/owner/'; // + <order_id>/assign-driver/
+  static const String ownerOrderCustomerInfo =
+      '/api/order/owner/'; // + <order_id>/customer-info/
 }
 
 // class ApiConstants {
