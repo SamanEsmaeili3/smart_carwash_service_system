@@ -7,6 +7,7 @@ import '../constants/api_constants.dart';
 import '../models/user_model.dart';
 import 'dart:io';                 
 import 'package:dio/dio.dart';    
+import 'package:image_picker/image_picker.dart'; 
 
 enum AuthStatus { initial, loading, authenticated, error }
 
