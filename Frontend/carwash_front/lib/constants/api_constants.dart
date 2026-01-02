@@ -46,7 +46,6 @@ class ApiConstants {
   // Admin Endpoints
   static const String adminPending = '/api/carwash/admin/list/';
   static const String adminManage = '/api/carwash/admin/manage/'; // + <id>/
-  static const String adminDelete = '/api/carwash/admin/delete/';
 
   // User Story 2.1 & 2.2: Search
   static const String search = '/api/carwash/search/';

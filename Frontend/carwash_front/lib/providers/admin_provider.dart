@@ -7,18 +7,17 @@ import '../models/carwash_model.dart';
 class AdminProvider with ChangeNotifier {
   final ApiService _api = ApiService();
   
-  // Lists for our tabs
+  // Lists for our two tabs
   List<CarwashModel> _pendingList = [];
   List<CarwashModel> _approvedList = []; 
   List<CarwashModel> _rejectedList = [];
-  
   bool _isLoading = false;
   String? _error;
 
   // Getters
   List<CarwashModel> get pendingList => _pendingList;
   List<CarwashModel> get approvedList => _approvedList;
-  List<CarwashModel> get rejectedList => _rejectedList;
+  List<CarwashModel> get rejectedList => _rejectedList; // [NEW]
   
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -33,10 +32,8 @@ class AdminProvider with ChangeNotifier {
     await _fetchList(status: 'approved');
   }
 
-  // --- Fetch REJECTED Carwashes ---
-  Future<void> fetchRejectedCarwashes() async {
-    await _fetchList(status: 'rejected');
-  }
+  // [NEW] Fetch Rejected
+  Future<void> fetchRejectedCarwashes() async => await _fetchList(status: 'rejected');
 
   // Helper method to fetch lists based on status
   Future<void> _fetchList({required String status}) async {
@@ -45,7 +42,8 @@ class AdminProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      // Calls: /api/carwash/admin/list/?status=pending
+      // Calls: /api/carwash/admin/list/?status=pending (or approved)
+      // Note: We append the query param manually here
       final String endpoint = '${ApiConstants.adminPending}?status=$status';
       
       final response = await _api.get(endpoint, auth: true);
@@ -56,7 +54,7 @@ class AdminProvider with ChangeNotifier {
 
       if (status == 'approved') {
         _approvedList = data;
-      } else if (status == 'rejected') {
+      } else if (status == 'rejected') { // [NEW]
         _rejectedList = data;
       } else {
         _pendingList = data;
@@ -70,7 +68,7 @@ class AdminProvider with ChangeNotifier {
     }
   }
 
-  // Handle Approve / Reject (Suspend)
+  // [Task-F13] Updated to support rejection reason
   Future<bool> manageRequest(int id, String action, {String? reason}) async {
     _isLoading = true;
     _error = null;
@@ -82,47 +80,19 @@ class AdminProvider with ChangeNotifier {
         "action": action,
       };
       
-      // If there is a reason (for rejection/suspension), add it
+      // If there is a reason (for rejection), add it
       if (reason != null && reason.isNotEmpty) {
         body['rejection_reason'] = reason;
       }
 
       await _api.post('${ApiConstants.adminManage}$id/', body, auth: true);
 
-      // Optimistic Update: Remove from lists locally so UI updates instantly
-      // If we approved it, move from pending/rejected to approved (or just refresh)
-      // For simplicity, we just remove it from current views and let the user refresh to see it in the new tab
+      // Optimistic Update: Remove from pending list
       _pendingList.removeWhere((item) => item.id == id);
-      _approvedList.removeWhere((item) => item.id == id); 
-      // If suspending (rejecting), it technically goes to rejected list
       
-      // Ideally, trigger a fetch for the specific tab, but removing is visually faster
-      return true;
-    } catch (e) {
-      _error = ErrorHandler.getErrorMessage(e);
-      return false;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  // [NEW] DELETE CARWASH (Permanently)
-  Future<bool> deleteCarwash(int id) async {
-    _isLoading = true;
-    _error = null;
-    notifyListeners();
-
-    try {
-      // Assuming your API endpoint is /api/carwash/admin/delete/{id}/
-      // Ensure ApiConstants.adminDelete is defined in your constants file!
-      await _api.delete('${ApiConstants.adminDelete}$id/', auth: true);
-
-      // Remove from ALL lists locally
-      _pendingList.removeWhere((item) => item.id == id);
-      _approvedList.removeWhere((item) => item.id == id);
-      _rejectedList.removeWhere((item) => item.id == id);
-
+      // Note: We don't manually add it to _rejectedList here to keep logic simple.
+      // Refreshing the rejected tab will fetch it from server.
+      
       return true;
     } catch (e) {
       _error = ErrorHandler.getErrorMessage(e);
