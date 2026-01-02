@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shamsi_date/shamsi_date.dart'; // Import for Persian Date
+import 'package:shamsi_date/shamsi_date.dart';
 import '../../providers/booking_provider.dart';
 import '../../constants/app_colors.dart';
 import '../../widgets/custom_button.dart';
@@ -15,15 +15,14 @@ class TimeSelectionScreen extends StatefulWidget {
 }
 
 class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
-  // We will store slots as a simple Map to hold display strings and the actual ISO value
   List<Map<String, dynamic>> _slots = [];
   int _selectedIndex = -1;
   bool _isSubmitting = false;
+  String _debugMessage = ""; // To help us see what's wrong
 
   @override
   void initState() {
     super.initState();
-    // Generate slots after the widget is built to access Provider safely
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _generateSlots();
     });
@@ -33,32 +32,43 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
     final provider = Provider.of<BookingProvider>(context, listen: false);
     final profile = provider.profile;
 
-    if (profile == null) return;
+    // 1. Safety Check: Is profile loaded?
+    if (profile == null) {
+      setState(() => _debugMessage = "خطا: اطلاعات کارواش بارگذاری نشده است (Profile is null)");
+      return;
+    }
 
     List<Map<String, dynamic>> tempSlots = [];
     final now = DateTime.now();
 
-    // ---------------------------------------------------------
-    // 1. FIX: LIMIT TO ONLY TODAY (Loop runs once for i=0)
-    // ---------------------------------------------------------
-    for (int i = 0; i < 1; i++) {
+    // 2. Loop for Today (and maybe tomorrow for safety)
+    // We check 2 days just in case you are testing late at night
+    for (int i = 0; i < 2; i++) {
       final date = now.add(Duration(days: i));
       
-      // Convert to Persian Date (Jalali)
+      // Jalali Date
       final jalaliDate = Jalali.fromDateTime(date);
       final formatter = jalaliDate.formatter;
-      
-      // Example: "شنبه، ۱۴ دی"
       final dateLabel = '${formatter.wN}، ${formatter.d} ${formatter.mN}';
       
-      // Get day name in English for checking working hours logic (e.g., "Saturday")
-      String dayKey = _getDayKey(date.weekday);
+      String dayKey = _getDayKey(date.weekday); // e.g. "Friday"
 
-      // Check if open this day
-      String? hours = profile.workingHours[dayKey];
+      // 3. ROBUST HOUR CHECKING (Case Insensitive)
+      // Checks: "Friday", "friday", "FRIDAY"
+      String? hours = profile.workingHours[dayKey] ?? 
+                      profile.workingHours[dayKey.toLowerCase()] ?? 
+                      profile.workingHours[dayKey.toUpperCase()];
+
+      // Debugging logic
+      if (i == 0) { // If today
+        print("Checking $dayKey: Hours found = $hours");
+        if (hours == null || hours == "Closed") {
+             _debugMessage = "کارواش امروز ($dayKey) بسته است یا ساعات کاری ثبت نشده.";
+        }
+      }
+
       if (hours == null || hours == "Closed") continue;
 
-      // Parse hours string like "09:00-21:00"
       try {
         final parts = hours.split('-');
         if (parts.length != 2) continue;
@@ -66,33 +76,33 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
         final openTime = _parseTime(parts[0]);
         final closeTime = _parseTime(parts[1]);
 
-        // Start generating slots from opening time
-        var currentSlot = openTime;
+        var currentSlot = DateTime(
+          date.year,
+          date.month,
+          date.day,
+          openTime.hour,
+          openTime.minute,
+        );
         
-        // Loop while the slot start hour is before closing hour
-        while (currentSlot.hour < closeTime.hour) {
-          // Create a DateTime object for this specific slot
-          final slotDateTime = DateTime(
-            date.year,
-            date.month,
-            date.day,
-            currentSlot.hour,
-            currentSlot.minute,
-          );
+        final closingDateTime = DateTime(
+          date.year,
+          date.month,
+          date.day,
+          closeTime.hour,
+          closeTime.minute,
+        );
 
-          // ---------------------------------------------------------
-          // 2. FILTER: Don't show past hours for Today
-          // ---------------------------------------------------------
-          if (slotDateTime.isAfter(now)) {
+        while (currentSlot.isBefore(closingDateTime)) {
+          // 4. Time Check: Must be in the future
+          if (currentSlot.isAfter(now)) {
              tempSlots.add({
-              'displayTime': currentSlot.format(context), // e.g. "14:00"
-              'displayDate': dateLabel, // e.g. "شنبه، ۱۴ دی"
-              'isoTime': slotDateTime.toIso8601String(), // For backend
+              'displayTime': _formatTimeOfDay(TimeOfDay.fromDateTime(currentSlot)),
+              'displayDate': dateLabel, 
+              'isoTime': currentSlot.toIso8601String(), 
             });
           }
-
-          // Increment by 1 hour (Change to 2 if you want 2-hour slots)
-          currentSlot = currentSlot.replacing(hour: currentSlot.hour + 1);
+          // Increment by 1 hour
+          currentSlot = currentSlot.add(const Duration(hours: 1));
         }
       } catch (e) {
         print("Error parsing hours: $e");
@@ -101,10 +111,12 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
 
     setState(() {
       _slots = tempSlots;
+      if (_slots.isEmpty && _debugMessage.isEmpty) {
+        _debugMessage = "نوبتی برای امروز باقی نمانده است (زمان گذشته است)";
+      }
     });
   }
 
-  // Helper to convert Gregorian weekday number (1=Mon...7=Sun) to API Key
   String _getDayKey(int weekday) {
     const days = [
       "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
@@ -112,10 +124,15 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
     return days[weekday - 1];
   }
 
-  // Helper to parse "09:00" to TimeOfDay
   TimeOfDay _parseTime(String timeStr) {
     final parts = timeStr.trim().split(':');
     return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+  }
+  
+  String _formatTimeOfDay(TimeOfDay time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
   }
 
   void _submitOrder() async {
@@ -172,7 +189,7 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  "لطفاً یکی از زمان‌های خالی امروز را انتخاب کنید:",
+                  "لطفاً یکی از زمان‌های خالی را انتخاب کنید:",
                   style: TextStyle(color: Colors.grey.shade600),
                 ),
               ],
@@ -180,10 +197,14 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
           ),
           Expanded(
             child: _slots.isEmpty 
-              ? const Center(
-                  child: Text(
-                    "زمانی برای امروز موجود نیست",
-                    style: TextStyle(color: Colors.grey, fontSize: 16),
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Text(
+                      _debugMessage.isNotEmpty ? _debugMessage : "زمانی موجود نیست",
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 )
               : ListView.builder(
@@ -209,7 +230,6 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // Time
                             Text(
                               slot['displayTime'],
                               style: TextStyle(
@@ -218,7 +238,6 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
                                 color: isSelected ? AppColors.primary : Colors.black87,
                               ),
                             ),
-                            // Persian Date Label
                             Row(
                               children: [
                                 Text(
@@ -244,7 +263,6 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
                   },
                 ),
           ),
-          // Bottom Bar
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
