@@ -80,10 +80,36 @@ class AuthProvider with ChangeNotifier {
   }
 
   // [Task-F8]
-  Future<bool> applyForCarwash(Map<String, dynamic> data) async {
+  // نیاز به import 'dart:io'; و 'package:dio/dio.dart'; داری (اگه نداری بالا اضافه کن)
+
+  // [Task-F8] - Updated for File Upload
+  Future<bool> applyForCarwash(
+    Map<String, dynamic> data, 
+    File? licenseFile, 
+    File? ownershipFile
+  ) async {
     _setLoading(true);
     try {
-      await _api.post(ApiConstants.apply, data);
+      final formData = FormData.fromMap(data);
+
+      if (licenseFile != null) {
+        String fileName = "license_${DateTime.now().millisecondsSinceEpoch}.jpg";
+        formData.files.add(MapEntry(
+          'license_image', 
+          await MultipartFile.fromFile(licenseFile.path, filename: fileName),
+        ));
+      }
+
+      if (ownershipFile != null) {
+        String fileName = "ownership_${DateTime.now().millisecondsSinceEpoch}.jpg";
+        formData.files.add(MapEntry(
+          'ownership_image', 
+          await MultipartFile.fromFile(ownershipFile.path, filename: fileName),
+        ));
+      }
+
+      await _api.post(ApiConstants.apply, formData);
+      
       _setLoading(false);
       return true;
     } catch (e) {

@@ -8,6 +8,8 @@ import '../../widgets/custom_button.dart';
 import '../../constants/app_colors.dart';
 import '../map_picker_screen.dart';
 import 'verify_otp_screen.dart';
+import 'dart:io'; 
+import 'package:image_picker/image_picker.dart'; 
 
 class CarwashApplicationScreen extends StatefulWidget {
   const CarwashApplicationScreen({super.key});
@@ -32,10 +34,27 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
   final _openTimeCtrl = TextEditingController(text: "09:00");
   final _closeTimeCtrl = TextEditingController(text: "21:00");
 
+  File? _licenseImage;
+  File? _ownershipImage;
+  final ImagePicker _picker = ImagePicker();
+
   // Location State (Default: Tehran)
   LatLng _selectedLocation = const LatLng(35.7594, 51.4103);
 
   bool _acceptedTerms = false;
+
+  Future<void> _pickImage(bool isLicense) async {
+    final XFile? photo = await _picker.pickImage(source: ImageSource.gallery);
+    if (photo != null) {
+      setState(() {
+        if (isLicense) {
+          _licenseImage = File(photo.path);
+        } else {
+          _ownershipImage = File(photo.path);
+        }
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -108,6 +127,13 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
         return;
       }
 
+      if (_licenseImage == null || _ownershipImage == null) {
+         ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('لطفاً مدارک (جواز و سند) را بارگذاری کنید')),
+        );
+        return;
+      }
+
       String workingTime =
           "${_openTimeCtrl.text.trim()}-${_closeTimeCtrl.text.trim()}";
 
@@ -127,7 +153,6 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
         phoneNumber: _phoneCtrl.text.trim(),
         contactEmail: _emailCtrl.text.trim(),
         workingHours: workingHoursMap,
-        licensePhotoUrl: "https://example.com/license.jpg",
         latitude: _selectedLocation.latitude,
         longitude: _selectedLocation.longitude,
         password: _passwordCtrl.text.trim(), // Sending Password
@@ -135,7 +160,11 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
 
       final auth = Provider.of<AuthProvider>(context, listen: false);
       final email = _emailCtrl.text.trim();
-      bool success = await auth.applyForCarwash(model.toJson());
+      bool success = await auth.applyForCarwash(
+        model.toJson(), 
+        _licenseImage, 
+        _ownershipImage
+      );
 
       if (success && mounted) {
         // Navigate to OTP verification screen for carwash owner
@@ -401,6 +430,33 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
                       ),
 
                       const SizedBox(height: 24),
+                      const Divider(),
+                      const SizedBox(height: 24),
+
+                      _buildSectionTitle("مدارک هویتی", Icons.folder_shared_outlined),
+                      const SizedBox(height: 16),
+                      
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildUploadBox(
+                              title: "جواز کسب",
+                              image: _licenseImage,
+                              onTap: () => _pickImage(true),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildUploadBox(
+                              title: "سند/اجاره‌نامه",
+                              image: _ownershipImage,
+                              onTap: () => _pickImage(false),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
 
                       Row(
                         children: [
@@ -455,6 +511,51 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildUploadBox({
+    required String title,
+    required File? image,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 140,
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.secondary.withOpacity(0.3)),
+        ),
+        child: image != null
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.file(image, fit: BoxFit.cover),
+              )
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.cloud_upload_outlined, 
+                       size: 32, color: AppColors.secondary),
+                  const SizedBox(height: 8),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 12, 
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textMain
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    "انتخاب فایل",
+                    style: TextStyle(fontSize: 10, color: Colors.grey),
+                  ),
+                ],
+              ),
+      ),
     );
   }
 }

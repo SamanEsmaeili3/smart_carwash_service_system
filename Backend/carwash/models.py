@@ -19,7 +19,8 @@ class CarwashProfile(models.Model):
     
     phone_number = models.CharField(max_length=20)
     working_hours = models.JSONField(default=dict) 
-    license_photo_url = models.URLField(max_length=1024, blank=True)
+    license_image = models.ImageField(upload_to='carwash_licenses/', null=True, blank=True)
+    ownership_image = models.ImageField(upload_to='carwash_ownerships/', null=True, blank=True)
     gallery_photos = models.JSONField(default=list)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
     contact_email = models.EmailField(
