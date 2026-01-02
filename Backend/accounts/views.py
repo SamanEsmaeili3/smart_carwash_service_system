@@ -70,7 +70,7 @@ class VerifyOTPView(views.APIView):
             return Response({'error': 'Invalid code.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if not otp_record.is_valid():
-             return Response({'error': 'Code expired.'}, status=status.HTTP_400_BAD_REQUEST)
+             return Response({'error': 'کد تأیید منقضی شده است. لطفاً کد جدید دریافت کنید.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             user = User.objects.get(email=email)
@@ -159,7 +159,7 @@ class ResetPasswordView(generics.GenericAPIView):
             return Response({'error': 'Invalid code.'}, status=status.HTTP_400_BAD_REQUEST)
             
         if not otp_record.is_valid():
-            return Response({'error': 'Code expired.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'کد تأیید منقضی شده است. لطفاً کد جدید دریافت کنید.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # 2. Change password
         try:

@@ -61,7 +61,7 @@ class _OrderHistoryCard extends StatelessWidget {
   const _OrderHistoryCard({required this.order});
 
   Color _getStatusColor(String status) {
-    switch (status) {
+    switch (status.toUpperCase()) {
       case 'PENDING':
       case 'SUBMITTED':
         return Colors.orange;
@@ -69,6 +69,7 @@ class _OrderHistoryCard extends StatelessWidget {
       case 'IN_SERVICE':
       case 'EN_ROUTE':
         return Colors.blue;
+      case 'COMPLETE':
       case 'COMPLETED':
         return Colors.green;
       case 'CANCELLED':
@@ -80,11 +81,13 @@ class _OrderHistoryCard extends StatelessWidget {
   }
 
   String _getStatusText(String status) {
-    switch (status) {
+    switch (status.toUpperCase()) {
+      case 'PENDING': return "در انتظار";
       case 'SUBMITTED': return "در انتظار تایید";
       case 'ACCEPTED': return "تایید شده";
       case 'EN_ROUTE': return "راننده در راه است";
       case 'IN_SERVICE': return "در حال انجام";
+      case 'COMPLETE':
       case 'COMPLETED': return "تکمیل شده";
       case 'REJECTED': return "رد شده";
       case 'CANCELLED': return "لغو شده";

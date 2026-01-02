@@ -2,6 +2,9 @@ class OrderOwnerModel {
   final int id;
   final String customerName;
   final String customerPhone;
+  final String? customerEmail;
+  final String? vehiclePlate;
+  final String? vehicleInfo;
   final DateTime scheduledTime;
   final double totalPrice;
   final String status;
@@ -12,6 +15,9 @@ class OrderOwnerModel {
     required this.id,
     required this.customerName,
     required this.customerPhone,
+    this.customerEmail,
+    this.vehiclePlate,
+    this.vehicleInfo,
     required this.scheduledTime,
     required this.totalPrice,
     required this.status,
@@ -54,6 +60,9 @@ class OrderOwnerModel {
       id: json['id'],
       customerName: json['customer_name'] ?? 'مشتری',
       customerPhone: json['customer_phone'] ?? '',
+      customerEmail: json['customer_email'],
+      vehiclePlate: json['vehicle_plate'],
+      vehicleInfo: json['vehicle_info'],
       scheduledTime: parsedScheduledTime,
       totalPrice: double.tryParse(json['total_price'].toString()) ?? 0.0,
       status: json['status'] ?? 'UNKNOWN',
