@@ -377,14 +377,16 @@ class _ProfileTabState extends State<_ProfileTab> {
 
   // Working hours controllers for each day
   final Map<String, TextEditingController> _workingHoursControllers = {};
+  
+  // ✅ FIX: Keys must be Capitalized to match TimeSelectionScreen logic
   final Map<String, bool> _openDays = {
-    'saturday': false,
-    'sunday': false,
-    'monday': false,
-    'tuesday': false,
-    'wednesday': false,
-    'thursday': false,
-    'friday': false,
+    'Saturday': false,
+    'Sunday': false,
+    'Monday': false,
+    'Tuesday': false,
+    'Wednesday': false,
+    'Thursday': false,
+    'Friday': false,
   };
 
   bool _isInitialized = false;
@@ -433,10 +435,17 @@ class _ProfileTabState extends State<_ProfileTab> {
       final workingHours = profile['working_hours'];
       if (workingHours is Map) {
         workingHours.forEach((day, hours) {
-          final dayKey = day.toString().toLowerCase();
+          // ✅ FIX: Standardize key to Title Case (e.g., "friday" -> "Friday")
+          String dayKey = day.toString();
+          if (dayKey.isNotEmpty) {
+             // Ensure first letter is Uppercase, rest lowercase
+             dayKey = dayKey[0].toUpperCase() + dayKey.substring(1).toLowerCase();
+          }
+
           if (_workingHoursControllers.containsKey(dayKey)) {
             _workingHoursControllers[dayKey]!.text = hours.toString();
-            _openDays[dayKey] = hours.toString().isNotEmpty;
+            // If text is not empty and not "Closed", mark as open
+            _openDays[dayKey] = (hours.toString().isNotEmpty && hours.toString() != "Closed");
           }
         });
       }
@@ -454,11 +463,17 @@ class _ProfileTabState extends State<_ProfileTab> {
       // Build working hours map
       final Map<String, String> workingHours = {};
       for (final entry in _openDays.entries) {
+        // If day is checked and has time, send time. Else send "Closed".
         if (entry.value) {
           final hours = _workingHoursControllers[entry.key]!.text.trim();
           if (hours.isNotEmpty) {
             workingHours[entry.key] = hours;
+          } else {
+             // If checked but no time set, default to 09:00-21:00
+             workingHours[entry.key] = "09:00-21:00"; 
           }
+        } else {
+          workingHours[entry.key] = "Closed";
         }
       }
 
@@ -491,13 +506,13 @@ class _ProfileTabState extends State<_ProfileTab> {
 
   String _getDayName(String dayKey) {
     const dayNames = {
-      'saturday': 'شنبه',
-      'sunday': 'یکشنبه',
-      'monday': 'دوشنبه',
-      'tuesday': 'سه‌شنبه',
-      'wednesday': 'چهارشنبه',
-      'thursday': 'پنج‌شنبه',
-      'friday': 'جمعه',
+      'Saturday': 'شنبه',
+      'Sunday': 'یکشنبه',
+      'Monday': 'دوشنبه',
+      'Tuesday': 'سه‌شنبه',
+      'Wednesday': 'چهارشنبه',
+      'Thursday': 'پنج‌شنبه',
+      'Friday': 'جمعه',
     };
     return dayNames[dayKey] ?? dayKey;
   }
@@ -532,13 +547,26 @@ class _ProfileTabState extends State<_ProfileTab> {
     final pickedStart = await showTimePicker(
       context: context,
       initialTime: startTime ?? const TimeOfDay(hour: 9, minute: 0),
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+          child: child!,
+        );
+      },
     );
 
     if (pickedStart != null) {
+      if (!context.mounted) return;
       // Show time picker for end time
       final pickedEnd = await showTimePicker(
         context: context,
         initialTime: endTime ?? const TimeOfDay(hour: 18, minute: 0),
+        builder: (context, child) {
+          return MediaQuery(
+            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+            child: child!,
+          );
+        },
       );
 
       if (pickedEnd != null) {
@@ -559,13 +587,6 @@ class _ProfileTabState extends State<_ProfileTab> {
     if (isLoadingProfile && !_isInitialized) {
       return const Center(child: CircularProgressIndicator());
     }
-
-    // Persian labels for UI
-    final persianDays = {
-      "Saturday": "شنبه", "Sunday": "یکشنبه", "Monday": "دوشنبه",
-      "Tuesday": "سه‌شنبه", "Wednesday": "چهارشنبه", "Thursday": "پنج‌شنبه",
-      "Friday": "جمعه"
-    };
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -604,81 +625,13 @@ class _ProfileTabState extends State<_ProfileTab> {
             const Divider(),
             const SizedBox(height: 16),
 
-            // --- NEW: WORKING HOURS UI ---
+            // --- WORKING HOURS UI ---
             const Text(
               "ساعات کاری و روزهای فعالیت",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             const SizedBox(height: 16),
             
-            // Time Selectors
-            Row(
-              children: [
-                Expanded(
-                  child: InkWell(
-                    onTap: () => _pickTime(true),
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'ساعت شروع',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.wb_sunny_outlined),
-                      ),
-                      child: Text(_formatTime(_openTime)),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: InkWell(
-                    onTap: () => _pickTime(false),
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'ساعت پایان',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.nightlight_round),
-                      ),
-                      child: Text(_formatTime(_closeTime)),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            
-            // Day Toggles
-            const Text("روزهای فعال:", style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8.0,
-              runSpacing: 4.0,
-              children: _activeDays.keys.map((dayKey) {
-                return FilterChip(
-                  label: Text(persianDays[dayKey] ?? dayKey),
-                  selected: _activeDays[dayKey]!,
-                  selectedColor: AppColors.secondary.withOpacity(0.2),
-                  checkmarkColor: AppColors.secondary,
-                  onSelected: (bool selected) {
-                    setState(() {
-                      _activeDays[dayKey] = selected;
-                    });
-                  },
-                );
-              }).toList(),
-            ),
-
-            const SizedBox(height: 24),
-            const Divider(),
-            const SizedBox(height: 16),
-
-            const Text(
-              "ساعات کاری و روزهای باز",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: AppColors.secondary,
-              ),
-            ),
-            const SizedBox(height: 16),
             ..._openDays.keys.map((dayKey) {
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -696,6 +649,11 @@ class _ProfileTabState extends State<_ProfileTab> {
                                 _openDays[dayKey] = value ?? false;
                                 if (!_openDays[dayKey]!) {
                                   _workingHoursControllers[dayKey]!.clear();
+                                } else {
+                                   // Auto fill if empty when checking
+                                   if (_workingHoursControllers[dayKey]!.text.isEmpty) {
+                                       _workingHoursControllers[dayKey]!.text = "09:00-21:00";
+                                   }
                                 }
                               });
                             },
@@ -717,8 +675,9 @@ class _ProfileTabState extends State<_ProfileTab> {
                               child: TextFormField(
                                 controller: _workingHoursControllers[dayKey],
                                 decoration: InputDecoration(
-                                  labelText: "ساعات کاری (مثال: 09:00-18:00)",
+                                  labelText: "ساعات کاری (مثال: 09:00-21:00)",
                                   hintText: "09:00-18:00",
+                                  border: const OutlineInputBorder(),
                                   suffixIcon: IconButton(
                                     icon: const Icon(Icons.access_time),
                                     onPressed: () => _selectTime(context, dayKey),
@@ -739,6 +698,7 @@ class _ProfileTabState extends State<_ProfileTab> {
             const SizedBox(height: 24),
             const Divider(),
             const SizedBox(height: 24),
+
             const Text(
               "تغییر رمز عبور (اختیاری)",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
