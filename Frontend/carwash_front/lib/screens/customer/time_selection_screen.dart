@@ -18,7 +18,9 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
   List<Map<String, dynamic>> _slots = [];
   int _selectedIndex = -1;
   bool _isSubmitting = false;
-  String _debugMessage = ""; // To help us see what's wrong
+  
+  // Debug variables to show you what is happening
+  String _statusMessage = "در حال بررسی...";
 
   @override
   void initState() {
@@ -32,18 +34,17 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
     final provider = Provider.of<BookingProvider>(context, listen: false);
     final profile = provider.profile;
 
-    // 1. Safety Check: Is profile loaded?
     if (profile == null) {
-      setState(() => _debugMessage = "خطا: اطلاعات کارواش بارگذاری نشده است (Profile is null)");
+      setState(() => _statusMessage = "خطا: اطلاعات کارواش یافت نشد");
       return;
     }
 
     List<Map<String, dynamic>> tempSlots = [];
     final now = DateTime.now();
+    bool todayFound = false;
 
-    // 2. Loop for Today (and maybe tomorrow for safety)
-    // We check 2 days just in case you are testing late at night
-    for (int i = 0; i < 2; i++) {
+    // Loop for the next 7 days
+    for (int i = 0; i < 7; i++) {
       final date = now.add(Duration(days: i));
       
       // Jalali Date
@@ -53,53 +54,57 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
       
       String dayKey = _getDayKey(date.weekday); // e.g. "Friday"
 
-      // 3. ROBUST HOUR CHECKING (Case Insensitive)
-      // Checks: "Friday", "friday", "FRIDAY"
-      String? hours = profile.workingHours[dayKey] ?? 
-                      profile.workingHours[dayKey.toLowerCase()] ?? 
-                      profile.workingHours[dayKey.toUpperCase()];
+      // -----------------------------------------------------------
+      // ✅ FIX: Case Insensitive Lookup (Friday, friday, FRIDAY)
+      // -----------------------------------------------------------
+      String? hours;
+      profile.workingHours.forEach((key, value) {
+        if (key.toString().toLowerCase() == dayKey.toLowerCase()) {
+          hours = value.toString();
+        }
+      });
 
-      // Debugging logic
-      if (i == 0) { // If today
-        print("Checking $dayKey: Hours found = $hours");
+      // Debugging for Today
+      if (i == 0) {
         if (hours == null || hours == "Closed") {
-             _debugMessage = "کارواش امروز ($dayKey) بسته است یا ساعات کاری ثبت نشده.";
+          _statusMessage = "وضعیت امروز ($dayKey): بسته است (Closed)";
+        } else {
+          _statusMessage = "وضعیت امروز ($dayKey): باز ($hours)";
+          todayFound = true;
         }
       }
 
       if (hours == null || hours == "Closed") continue;
 
       try {
-        final parts = hours.split('-');
+        final parts = hours!.split('-');
         if (parts.length != 2) continue;
         
         final openTime = _parseTime(parts[0]);
         final closeTime = _parseTime(parts[1]);
 
         var currentSlot = DateTime(
-          date.year,
-          date.month,
-          date.day,
-          openTime.hour,
-          openTime.minute,
+          date.year, date.month, date.day, openTime.hour, openTime.minute
         );
         
-        final closingDateTime = DateTime(
-          date.year,
-          date.month,
-          date.day,
-          closeTime.hour,
-          closeTime.minute,
+        // Define closing time fully
+        var closingDateTime = DateTime(
+          date.year, date.month, date.day, closeTime.hour, closeTime.minute
         );
 
         while (currentSlot.isBefore(closingDateTime)) {
-          // 4. Time Check: Must be in the future
+          // ---------------------------------------------------------
+          // ✅ FIX: Ensure we only show FUTURE times for Today
+          // ---------------------------------------------------------
           if (currentSlot.isAfter(now)) {
              tempSlots.add({
               'displayTime': _formatTimeOfDay(TimeOfDay.fromDateTime(currentSlot)),
               'displayDate': dateLabel, 
               'isoTime': currentSlot.toIso8601String(), 
             });
+          } else if (i == 0) {
+            // If we are in the loop for today, but time is past
+            _statusMessage = "امروز باز است، اما نوبت‌های نمانده (ساعت گذشته)";
           }
           // Increment by 1 hour
           currentSlot = currentSlot.add(const Duration(hours: 1));
@@ -111,9 +116,6 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
 
     setState(() {
       _slots = tempSlots;
-      if (_slots.isEmpty && _debugMessage.isEmpty) {
-        _debugMessage = "نوبتی برای امروز باقی نمانده است (زمان گذشته است)";
-      }
     });
   }
 
@@ -176,6 +178,19 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
       ),
       body: Column(
         children: [
+          // --- DEBUG / STATUS HEADER ---
+          Container(
+            padding: const EdgeInsets.all(12),
+            color: Colors.amber.shade100,
+            width: double.infinity,
+            child: Text(
+              _statusMessage,
+              style: TextStyle(color: Colors.amber.shade900, fontSize: 12),
+              textAlign: TextAlign.center,
+              textDirection: TextDirection.rtl,
+            ),
+          ),
+          
           Container(
             padding: const EdgeInsets.all(20),
             color: Colors.grey.shade50,
@@ -197,14 +212,10 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
           ),
           Expanded(
             child: _slots.isEmpty 
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Text(
-                      _debugMessage.isNotEmpty ? _debugMessage : "زمانی موجود نیست",
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
-                      textAlign: TextAlign.center,
-                    ),
+              ? const Center(
+                  child: Text(
+                    "زمانی برای رزرو موجود نیست",
+                    style: TextStyle(color: Colors.grey, fontSize: 16),
                   ),
                 )
               : ListView.builder(
