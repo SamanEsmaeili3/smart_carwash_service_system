@@ -7,7 +7,6 @@ import '../models/carwash_model.dart';
 class AdminProvider with ChangeNotifier {
   final ApiService _api = ApiService();
   
-  // Lists for our tabs
   List<CarwashModel> _pendingList = [];
   List<CarwashModel> _approvedList = []; 
   List<CarwashModel> _rejectedList = [];
@@ -15,7 +14,6 @@ class AdminProvider with ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
-  // Getters
   List<CarwashModel> get pendingList => _pendingList;
   List<CarwashModel> get approvedList => _approvedList;
   List<CarwashModel> get rejectedList => _rejectedList;
@@ -23,31 +21,20 @@ class AdminProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  // --- Fetch PENDING Requests ---
-  Future<void> fetchPendingCarwashes() async {
-    await _fetchList(status: 'pending');
-  }
+  // --- Fetch Methods ---
+  Future<void> fetchPendingCarwashes() async => await _fetchList(status: 'pending');
+  Future<void> fetchApprovedCarwashes() async => await _fetchList(status: 'approved');
+  Future<void> fetchRejectedCarwashes() async => await _fetchList(status: 'rejected');
 
-  // --- Fetch APPROVED Carwashes ---
-  Future<void> fetchApprovedCarwashes() async {
-    await _fetchList(status: 'approved');
-  }
-
-  // --- Fetch REJECTED Carwashes ---
-  Future<void> fetchRejectedCarwashes() async {
-    await _fetchList(status: 'rejected');
-  }
-
-  // Helper method to fetch lists based on status
   Future<void> _fetchList({required String status}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      // Calls: /api/carwash/admin/list/?status=pending
       final String endpoint = '${ApiConstants.adminPending}?status=$status';
-      
+      print("AdminProvider: Fetching $status list from $endpoint"); // DEBUG LOG
+
       final response = await _api.get(endpoint, auth: true);
       
       final List<CarwashModel> data = (response as List)
@@ -61,8 +48,10 @@ class AdminProvider with ChangeNotifier {
       } else {
         _pendingList = data;
       }
+      print("AdminProvider: Loaded ${data.length} items for $status"); // DEBUG LOG
+
     } catch (e) {
-      print("Error fetching $status carwashes: $e");
+      print("AdminProvider Error: $e"); // DEBUG LOG
       _error = ErrorHandler.getErrorMessage(e);
     } finally {
       _isLoading = false;
@@ -70,35 +59,32 @@ class AdminProvider with ChangeNotifier {
     }
   }
 
-  // Handle Approve / Reject (Suspend)
+  // --- Manage Request (Approve / Reject / Suspend) ---
   Future<bool> manageRequest(int id, String action, {String? reason}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      // Prepare Payload
-      final Map<String, dynamic> body = {
-        "action": action,
-      };
+      print("AdminProvider: Sending $action request for ID $id..."); // DEBUG LOG
       
-      // If there is a reason (for rejection/suspension), add it
+      final Map<String, dynamic> body = { "action": action };
       if (reason != null && reason.isNotEmpty) {
         body['rejection_reason'] = reason;
       }
 
       await _api.post('${ApiConstants.adminManage}$id/', body, auth: true);
-
-      // Optimistic Update: Remove from lists locally so UI updates instantly
-      // If we approved it, move from pending/rejected to approved (or just refresh)
-      // For simplicity, we just remove it from current views and let the user refresh to see it in the new tab
-      _pendingList.removeWhere((item) => item.id == id);
-      _approvedList.removeWhere((item) => item.id == id); 
-      // If suspending (rejecting), it technically goes to rejected list
       
-      // Ideally, trigger a fetch for the specific tab, but removing is visually faster
+      print("AdminProvider: $action successful. Refreshing lists..."); // DEBUG LOG
+
+      // ✅ FORCE REFRESH: Reload data from server to ensure it actually changed
+      await fetchPendingCarwashes();
+      await fetchApprovedCarwashes();
+      await fetchRejectedCarwashes();
+
       return true;
     } catch (e) {
+      print("AdminProvider Error ($action): $e"); // DEBUG LOG
       _error = ErrorHandler.getErrorMessage(e);
       return false;
     } finally {
@@ -107,24 +93,29 @@ class AdminProvider with ChangeNotifier {
     }
   }
 
-  // [NEW] DELETE CARWASH (Permanently)
+  // --- DELETE CARWASH ---
   Future<bool> deleteCarwash(int id) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      // Assuming your API endpoint is /api/carwash/admin/delete/{id}/
-      // Ensure ApiConstants.adminDelete is defined in your constants file!
+      print("AdminProvider: Deleting carwash ID $id..."); // DEBUG LOG
+      
+      // Call Delete API
       await _api.delete('${ApiConstants.adminDelete}$id/', auth: true);
 
-      // Remove from ALL lists locally
-      _pendingList.removeWhere((item) => item.id == id);
-      _approvedList.removeWhere((item) => item.id == id);
-      _rejectedList.removeWhere((item) => item.id == id);
+      print("AdminProvider: Delete successful. Refreshing lists..."); // DEBUG LOG
+
+      // ✅ FORCE REFRESH: Reload data from server to ensure it is GONE
+      // We purposefully reload ALL lists to ensure it's removed from everywhere
+      await fetchPendingCarwashes();
+      await fetchApprovedCarwashes();
+      await fetchRejectedCarwashes();
 
       return true;
     } catch (e) {
+      print("AdminProvider Delete Error: $e"); // DEBUG LOG
       _error = ErrorHandler.getErrorMessage(e);
       return false;
     } finally {
@@ -133,7 +124,6 @@ class AdminProvider with ChangeNotifier {
     }
   }
 
-  // Clear error
   void clearError() {
     _error = null;
     notifyListeners();
