@@ -378,7 +378,7 @@ class _ProfileTabState extends State<_ProfileTab> {
   // Working hours controllers for each day
   final Map<String, TextEditingController> _workingHoursControllers = {};
   
-  // ✅ FIX: Keys must be Capitalized to match TimeSelectionScreen logic
+  // ✅ FIX: Keys MUST be Capitalized (Saturday, not saturday) to match Booking Logic
   final Map<String, bool> _openDays = {
     'Saturday': false,
     'Sunday': false,
@@ -435,10 +435,9 @@ class _ProfileTabState extends State<_ProfileTab> {
       final workingHours = profile['working_hours'];
       if (workingHours is Map) {
         workingHours.forEach((day, hours) {
-          // ✅ FIX: Standardize key to Title Case (e.g., "friday" -> "Friday")
+          // ✅ FIX: Convert any saved lowercase keys to Title Case for UI
           String dayKey = day.toString();
           if (dayKey.isNotEmpty) {
-             // Ensure first letter is Uppercase, rest lowercase
              dayKey = dayKey[0].toUpperCase() + dayKey.substring(1).toLowerCase();
           }
 
@@ -505,6 +504,7 @@ class _ProfileTabState extends State<_ProfileTab> {
   }
 
   String _getDayName(String dayKey) {
+    // ✅ FIX: Keys here must also match the Capitalized keys above
     const dayNames = {
       'Saturday': 'شنبه',
       'Sunday': 'یکشنبه',
