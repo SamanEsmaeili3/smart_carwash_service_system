@@ -779,16 +779,19 @@ class SharedPreferencesHelper {
 
 String _fixImageUrl(String url) {
   if (url.isEmpty) return "";
-  if (url.startsWith('https://')) return url;
-  if (url.startsWith('http://')) return url.replaceFirst('http://', 'https://');
 
   String path = url;
+  path = path.replaceAll('http://my-project-api.liara.run', '');
+  path = path.replaceAll('https://my-project-api.liara.run', '');
+
+  if (path.startsWith('http')) return path;
+
+  if (!path.startsWith('/')) {
+    path = '/$path';
+  }
+
   if (!path.startsWith('/media')) {
-    if (path.startsWith('/')) {
-      path = '/media$path';
-    } else {
-      path = '/media/$path';
-    }
+    path = '/media$path';
   }
 
   return 'https://my-project-api.liara.run$path';
