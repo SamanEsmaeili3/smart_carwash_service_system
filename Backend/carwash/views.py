@@ -92,10 +92,10 @@ class AdminCarwashListView(generics.ListAPIView):
         else:
             return CarwashProfile.objects.filter(status=CarwashProfile.Status.PENDING)
             
-# User Story 4.1: Admin Approves Carwash
+# User Story 4.1: Admin Approves/Rejects/Suspends Carwash
 class AdminCarwashApprovalView(views.APIView):
     """
-    API view for Admins to Approve or Reject a pending carwash application.
+    API view for Admins to Approve or Reject/Suspend a carwash application.
     """
     permission_classes = [IsAdminUser]
 
@@ -105,30 +105,26 @@ class AdminCarwashApprovalView(views.APIView):
         except CarwashProfile.DoesNotExist:
             return Response({"error": "Profile not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        if profile.status != CarwashProfile.Status.PENDING:
-            return Response(
-                {"error": f"Profile is already {profile.status}."}, 
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        action = request.data.get('action') # e.g., {"action": "approve"}
+        action = request.data.get('action') # e.g., {"action": "approve"} or {"action": "reject"}
         rejection_reason = request.data.get('rejection_reason', 'دلیلی ذکر نشده است.')
 
         if action == "approve":
-            user = profile.user
-            
-            if not user:
-                 return Response(
-                    {"error": "This application has no linked user. Cannot approve automatically."}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+            # Can only approve if not already approved
+            if profile.status == CarwashProfile.Status.APPROVED:
+                return Response({"error": "Profile is already approved."}, status=status.HTTP_400_BAD_REQUEST)
 
+            user = profile.user
+            if not user:
+                 return Response({"error": "This application has no linked user. Cannot approve automatically."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Activate User & Approve Profile
             user.is_active = True
             user.save()
             
             profile.status = CarwashProfile.Status.APPROVED
             profile.save()
             
+            # Send Approval Email
             try:
                 subject = '🎉 تبریک! کارواش شما تایید شد'
                 message = f"""
@@ -149,7 +145,7 @@ class AdminCarwashApprovalView(views.APIView):
                     recipient_list=[user.email],
                     fail_silently=False,
                 )
-                print(f"✅ Email sent to {user.email}")
+                print(f"✅ Approval email sent to {user.email}")
             except Exception as e:
                 print(f"❌ Failed to send email: {e}")
             
@@ -162,24 +158,28 @@ class AdminCarwashApprovalView(views.APIView):
             )
 
         elif action == "reject":
-            # 1. Update Status
+            # --- UPDATED LOGIC: Allow Rejecting/Suspending ANY status (except already rejected) ---
+            if profile.status == CarwashProfile.Status.REJECTED:
+                return Response({"error": "Profile is already rejected."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # 1. Update Status to REJECTED (Suspended)
             profile.status = CarwashProfile.Status.REJECTED
             profile.save()
             
-            # 2. Send Rejection Email
+            # 2. Send Rejection/Suspension Email
             user = profile.user
             if user and user.email:
                 try:
-                    subject = '❌ درخواست ثبت کارواش رد شد'
+                    subject = '❌ وضعیت حساب کارواش: تعلیق/رد شده'
                     message = f"""
                     سلام {profile.business_name} عزیز،
                     
-                    متاسفانه درخواست ثبت‌نام شما در سامانه «کارواش پرو» تایید نشد.
+                    وضعیت حساب کاربری شما به «رد شده/معلق» تغییر یافت.
                     
-                    دلیل رد درخواست:
+                    دلیل:
                     {rejection_reason}
                     
-                    در صورت رفع مشکل، می‌توانید مجددا درخواست دهید.
+                    در صورت رفع مشکل، می‌توانید مجددا درخواست دهید یا با پشتیبانی تماس بگیرید.
                     با احترام، تیم پشتیبانی.
                     """
                     send_mail(
@@ -189,14 +189,15 @@ class AdminCarwashApprovalView(views.APIView):
                         recipient_list=[user.email],
                         fail_silently=False,
                     )
-                    print(f"✅ Rejection email sent to {user.email}")
+                    print(f"✅ Rejection/Suspension email sent to {user.email}")
                 except Exception as e:
                     print(f"❌ Failed to send rejection email: {e}")
                         
-            return Response({"message": "Rejected successfully."}, status=status.HTTP_200_OK)
+            return Response({"message": "Rejected/Suspended successfully."}, status=status.HTTP_200_OK)
 
         else:
             return Response({"error": "Invalid action."}, status=status.HTTP_400_BAD_REQUEST)
+
 
 # ---------------------------------------------------------
 # SECTION 3: CARWASH OWNER PANEL (Sprint 2)
