@@ -18,7 +18,23 @@
   <link rel="manifest" href="manifest.json">
 
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://*; connect-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://*; img-src 'self' data: blob: https://*;">
+</head>
 <body>
+  
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+            console.log("Service Worker Unregistered manually."); 
+          }
+        });
+      });
+    }
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
+
 </body>
 </html>
