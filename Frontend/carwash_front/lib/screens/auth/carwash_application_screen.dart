@@ -10,6 +10,7 @@ import '../map_picker_screen.dart';
 import 'verify_otp_screen.dart';
 import 'dart:io'; 
 import 'package:image_picker/image_picker.dart'; 
+import 'package:flutter/foundation.dart' show kIsWeb; 
 
 class CarwashApplicationScreen extends StatefulWidget {
   const CarwashApplicationScreen({super.key});
@@ -34,8 +35,8 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
   final _openTimeCtrl = TextEditingController(text: "09:00");
   final _closeTimeCtrl = TextEditingController(text: "21:00");
 
-  File? _licenseImage;
-  File? _ownershipImage;
+  XFile? _licenseImage;
+  XFile? _ownershipImage;
   final ImagePicker _picker = ImagePicker();
 
   // Location State (Default: Tehran)
@@ -48,9 +49,9 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
     if (photo != null) {
       setState(() {
         if (isLicense) {
-          _licenseImage = File(photo.path);
+          _licenseImage = photo; 
         } else {
-          _ownershipImage = File(photo.path);
+          _ownershipImage = photo;
         }
       });
     }
@@ -517,7 +518,7 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
 
   Widget _buildUploadBox({
     required String title,
-    required File? image,
+    required XFile? image, 
     required VoidCallback onTap,
   }) {
     return GestureDetector(
@@ -532,7 +533,9 @@ class _CarwashApplicationScreenState extends State<CarwashApplicationScreen> {
         child: image != null
             ? ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: Image.file(image, fit: BoxFit.cover),
+                child: kIsWeb
+                    ? Image.network(image.path, fit: BoxFit.cover) 
+                    : Image.file(File(image.path), fit: BoxFit.cover), 
               )
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
