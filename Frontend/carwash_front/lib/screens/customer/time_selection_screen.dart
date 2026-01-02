@@ -18,13 +18,11 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
   List<Map<String, dynamic>> _slots = [];
   int _selectedIndex = -1;
   bool _isSubmitting = false;
-  
-  // Debug variables to show you what is happening
-  String _statusMessage = "در حال بررسی...";
 
   @override
   void initState() {
     super.initState();
+    // Force refresh data when screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _generateSlots();
     });
@@ -34,28 +32,26 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
     final provider = Provider.of<BookingProvider>(context, listen: false);
     final profile = provider.profile;
 
-    if (profile == null) {
-      setState(() => _statusMessage = "خطا: اطلاعات کارواش یافت نشد");
-      return;
-    }
+    if (profile == null) return;
 
     List<Map<String, dynamic>> tempSlots = [];
     final now = DateTime.now();
-    bool todayFound = false;
 
-    // Loop for the next 7 days
-    for (int i = 0; i < 7; i++) {
+    // ---------------------------------------------------------
+    // 1. LIMIT TO ONLY TODAY (Loop runs once: i=0)
+    // ---------------------------------------------------------
+    for (int i = 0; i < 1; i++) {
       final date = now.add(Duration(days: i));
       
-      // Jalali Date
+      // Jalali Date Conversion
       final jalaliDate = Jalali.fromDateTime(date);
       final formatter = jalaliDate.formatter;
       final dateLabel = '${formatter.wN}، ${formatter.d} ${formatter.mN}';
       
-      String dayKey = _getDayKey(date.weekday); // e.g. "Friday"
+      String dayKey = _getDayKey(date.weekday);
 
       // -----------------------------------------------------------
-      // ✅ FIX: Case Insensitive Lookup (Friday, friday, FRIDAY)
+      // 2. ROBUST KEY CHECK (Case Insensitive)
       // -----------------------------------------------------------
       String? hours;
       profile.workingHours.forEach((key, value) {
@@ -63,16 +59,6 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
           hours = value.toString();
         }
       });
-
-      // Debugging for Today
-      if (i == 0) {
-        if (hours == null || hours == "Closed") {
-          _statusMessage = "وضعیت امروز ($dayKey): بسته است (Closed)";
-        } else {
-          _statusMessage = "وضعیت امروز ($dayKey): باز ($hours)";
-          todayFound = true;
-        }
-      }
 
       if (hours == null || hours == "Closed") continue;
 
@@ -87,14 +73,13 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
           date.year, date.month, date.day, openTime.hour, openTime.minute
         );
         
-        // Define closing time fully
         var closingDateTime = DateTime(
           date.year, date.month, date.day, closeTime.hour, closeTime.minute
         );
 
         while (currentSlot.isBefore(closingDateTime)) {
           // ---------------------------------------------------------
-          // ✅ FIX: Ensure we only show FUTURE times for Today
+          // 3. FILTER: Only show FUTURE times for Today
           // ---------------------------------------------------------
           if (currentSlot.isAfter(now)) {
              tempSlots.add({
@@ -102,9 +87,6 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
               'displayDate': dateLabel, 
               'isoTime': currentSlot.toIso8601String(), 
             });
-          } else if (i == 0) {
-            // If we are in the loop for today, but time is past
-            _statusMessage = "امروز باز است، اما نوبت‌های نمانده (ساعت گذشته)";
           }
           // Increment by 1 hour
           currentSlot = currentSlot.add(const Duration(hours: 1));
@@ -178,19 +160,6 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
       ),
       body: Column(
         children: [
-          // --- DEBUG / STATUS HEADER ---
-          Container(
-            padding: const EdgeInsets.all(12),
-            color: Colors.amber.shade100,
-            width: double.infinity,
-            child: Text(
-              _statusMessage,
-              style: TextStyle(color: Colors.amber.shade900, fontSize: 12),
-              textAlign: TextAlign.center,
-              textDirection: TextDirection.rtl,
-            ),
-          ),
-          
           Container(
             padding: const EdgeInsets.all(20),
             color: Colors.grey.shade50,
@@ -204,7 +173,7 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  "لطفاً یکی از زمان‌های خالی را انتخاب کنید:",
+                  "لطفاً یکی از زمان‌های خالی امروز را انتخاب کنید:",
                   style: TextStyle(color: Colors.grey.shade600),
                 ),
               ],
@@ -214,7 +183,7 @@ class _TimeSelectionScreenState extends State<TimeSelectionScreen> {
             child: _slots.isEmpty 
               ? const Center(
                   child: Text(
-                    "زمانی برای رزرو موجود نیست",
+                    "نوبتی برای امروز باقی نمانده است",
                     style: TextStyle(color: Colors.grey, fontSize: 16),
                   ),
                 )
