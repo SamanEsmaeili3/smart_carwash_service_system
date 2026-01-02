@@ -2,10 +2,41 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 
 class ErrorHandler {
   /// این متد هر نوع خطایی را دریافت کرده و متن فارسی مناسب برمی‌گرداند
   static String getErrorMessage(dynamic error) {
+    // Handle DioException specifically to extract error from response body
+    if (error is DioException) {
+      if (error.response != null && error.response!.data != null) {
+        try {
+          final data = error.response!.data;
+          if (data is Map<String, dynamic>) {
+            // Try to extract error message from common fields
+            if (data.containsKey('error')) {
+              return data['error'].toString();
+            }
+            if (data.containsKey('message')) {
+              return data['message'].toString();
+            }
+            if (data.containsKey('detail')) {
+              return data['detail'].toString();
+            }
+          } else if (data is String) {
+            return _parseErrorMessage(data);
+          }
+        } catch (_) {
+          // If parsing fails, fall through to default handling
+        }
+      }
+      // If no response body, use status code or default message
+      if (error.response != null) {
+        return _handleDioResponse(error.response!);
+      }
+      return _parseErrorMessage(error.toString());
+    }
+
     // اگر خطا یک Exception یا String مستقیم باشد
     if (error is String) {
       return _parseErrorMessage(error);
@@ -192,6 +223,62 @@ class ErrorHandler {
           return 'خطای کلاینت (کد ${response.statusCode}). لطفاً ورودی‌ها را بررسی کنید.';
         }
         return 'خطای ارتباط با سرور (کد ${response.statusCode})';
+    }
+  }
+
+  /// Handle Dio Response errors
+  static String _handleDioResponse(Response response) {
+    // Try to extract error from response data
+    if (response.data != null) {
+      try {
+        if (response.data is Map<String, dynamic>) {
+          final data = response.data as Map<String, dynamic>;
+          if (data.containsKey('error')) {
+            return data['error'].toString();
+          }
+          if (data.containsKey('message')) {
+            return data['message'].toString();
+          }
+          if (data.containsKey('detail')) {
+            return data['detail'].toString();
+          }
+        }
+      } catch (_) {
+        // If parsing fails, continue to status code handling
+      }
+    }
+
+    // Fall back to status code based messages
+    switch (response.statusCode) {
+      case 400:
+        return 'درخواست نامعتبر است. لطفاً ورودی‌ها را بررسی کنید.';
+      case 401:
+        return 'ایمیل یا رمز عبور اشتباه است';
+      case 403:
+        return 'شما مجوز دسترسی به این بخش را ندارید.';
+      case 404:
+        return 'اطلاعات مورد نظر یافت نشد.';
+      case 409:
+        return 'این اطلاعات قبلاً ثبت شده است.';
+      case 422:
+        return 'اطلاعات وارد شده معتبر نیست.';
+      case 429:
+        return 'تعداد درخواست‌ها زیاد است. لطفاً چند لحظه صبر کنید.';
+      case 500:
+        return 'خطای سمت سرور. تیم فنی در حال بررسی است.';
+      case 502:
+      case 503:
+      case 504:
+        return 'سرویس موقتاً در دسترس نیست. لطفاً چند دقیقه دیگر تلاش کنید.';
+      default:
+        if (response.statusCode != null) {
+          if (response.statusCode! >= 500) {
+            return 'خطای سرور (کد ${response.statusCode}). لطفاً بعداً تلاش کنید.';
+          } else if (response.statusCode! >= 400) {
+            return 'خطای کلاینت (کد ${response.statusCode}). لطفاً ورودی‌ها را بررسی کنید.';
+          }
+        }
+        return 'خطای ارتباط با سرور';
     }
   }
 }

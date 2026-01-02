@@ -377,7 +377,7 @@ class _ProfileTabState extends State<_ProfileTab> {
 
   // Working hours controllers for each day
   final Map<String, TextEditingController> _workingHoursControllers = {};
-  
+
   // ✅ FIX: Keys MUST be Capitalized (Saturday, not saturday) to match Booking Logic
   final Map<String, bool> _openDays = {
     'Saturday': false,
@@ -425,7 +425,7 @@ class _ProfileTabState extends State<_ProfileTab> {
     final success = await provider.fetchProfile();
     if (success && provider.currentProfile != null && mounted) {
       final profile = provider.currentProfile!;
-      
+
       // Pre-fill basic info
       _nameCtrl.text = profile['business_name']?.toString() ?? '';
       _phoneCtrl.text = profile['phone_number']?.toString() ?? '';
@@ -438,13 +438,15 @@ class _ProfileTabState extends State<_ProfileTab> {
           // ✅ FIX: Convert any saved lowercase keys to Title Case for UI
           String dayKey = day.toString();
           if (dayKey.isNotEmpty) {
-             dayKey = dayKey[0].toUpperCase() + dayKey.substring(1).toLowerCase();
+            dayKey =
+                dayKey[0].toUpperCase() + dayKey.substring(1).toLowerCase();
           }
 
           if (_workingHoursControllers.containsKey(dayKey)) {
             _workingHoursControllers[dayKey]!.text = hours.toString();
             // If text is not empty and not "Closed", mark as open
-            _openDays[dayKey] = (hours.toString().isNotEmpty && hours.toString() != "Closed");
+            _openDays[dayKey] =
+                (hours.toString().isNotEmpty && hours.toString() != "Closed");
           }
         });
       }
@@ -457,7 +459,10 @@ class _ProfileTabState extends State<_ProfileTab> {
 
   void _updateProfile() async {
     if (_formKey.currentState!.validate()) {
-      final provider = Provider.of<CarwashProfileProvider>(context, listen: false);
+      final provider = Provider.of<CarwashProfileProvider>(
+        context,
+        listen: false,
+      );
 
       // Build working hours map
       final Map<String, String> workingHours = {};
@@ -468,8 +473,8 @@ class _ProfileTabState extends State<_ProfileTab> {
           if (hours.isNotEmpty) {
             workingHours[entry.key] = hours;
           } else {
-             // If checked but no time set, default to 09:00-21:00
-             workingHours[entry.key] = "09:00-21:00"; 
+            // If checked but no time set, default to 09:00-21:00
+            workingHours[entry.key] = "09:00-21:00";
           }
         } else {
           workingHours[entry.key] = "Closed";
@@ -547,10 +552,19 @@ class _ProfileTabState extends State<_ProfileTab> {
     final pickedStart = await showTimePicker(
       context: context,
       initialTime: startTime ?? const TimeOfDay(hour: 9, minute: 0),
-      builder: (context, child) {
+      builder: (BuildContext context, Widget? child) {
         return MediaQuery(
           data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-          child: child!,
+          child: Theme(
+            data: ThemeData.light().copyWith(
+              colorScheme: const ColorScheme.light(
+                primary: AppColors.secondary,
+                onPrimary: Colors.white,
+                onSurface: AppColors.textMain,
+              ),
+            ),
+            child: child!,
+          ),
         );
       },
     );
@@ -561,17 +575,28 @@ class _ProfileTabState extends State<_ProfileTab> {
       final pickedEnd = await showTimePicker(
         context: context,
         initialTime: endTime ?? const TimeOfDay(hour: 18, minute: 0),
-        builder: (context, child) {
+        builder: (BuildContext context, Widget? child) {
           return MediaQuery(
             data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-            child: child!,
+            child: Theme(
+              data: ThemeData.light().copyWith(
+                colorScheme: const ColorScheme.light(
+                  primary: AppColors.secondary,
+                  onPrimary: Colors.white,
+                  onSurface: AppColors.textMain,
+                ),
+              ),
+              child: child!,
+            ),
           );
         },
       );
 
       if (pickedEnd != null) {
-        final startStr = '${pickedStart.hour.toString().padLeft(2, '0')}:${pickedStart.minute.toString().padLeft(2, '0')}';
-        final endStr = '${pickedEnd.hour.toString().padLeft(2, '0')}:${pickedEnd.minute.toString().padLeft(2, '0')}';
+        final startStr =
+            '${pickedStart.hour.toString().padLeft(2, '0')}:${pickedStart.minute.toString().padLeft(2, '0')}';
+        final endStr =
+            '${pickedEnd.hour.toString().padLeft(2, '0')}:${pickedEnd.minute.toString().padLeft(2, '0')}';
         controller.text = '$startStr-$endStr';
         setState(() => _openDays[dayKey] = true);
       }
@@ -602,25 +627,28 @@ class _ProfileTabState extends State<_ProfileTab> {
             const SizedBox(height: 16),
             CustomInput(
               label: "نام کسب و کار",
-              hint: "نام فعلی: ${provider.currentProfile?['business_name'] ?? 'نامشخص'}",
+              hint:
+                  "نام فعلی: ${provider.currentProfile?['business_name'] ?? 'نامشخص'}",
               icon: Icons.store,
               controller: _nameCtrl,
             ),
             CustomInput(
               label: "شماره تماس",
-              hint: "شماره فعلی: ${provider.currentProfile?['phone_number'] ?? 'نامشخص'}",
+              hint:
+                  "شماره فعلی: ${provider.currentProfile?['phone_number'] ?? 'نامشخص'}",
               icon: Icons.phone,
               controller: _phoneCtrl,
               keyboardType: TextInputType.phone,
             ),
             CustomInput(
               label: "آدرس",
-              hint: "آدرس فعلی: ${provider.currentProfile?['address'] ?? 'نامشخص'}",
+              hint:
+                  "آدرس فعلی: ${provider.currentProfile?['address'] ?? 'نامشخص'}",
               icon: Icons.map,
               controller: _addressCtrl,
               maxLines: 2,
             ),
-            
+
             const SizedBox(height: 24),
             const Divider(),
             const SizedBox(height: 16),
@@ -631,7 +659,7 @@ class _ProfileTabState extends State<_ProfileTab> {
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             const SizedBox(height: 16),
-            
+
             ..._openDays.keys.map((dayKey) {
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -650,10 +678,13 @@ class _ProfileTabState extends State<_ProfileTab> {
                                 if (!_openDays[dayKey]!) {
                                   _workingHoursControllers[dayKey]!.clear();
                                 } else {
-                                   // Auto fill if empty when checking
-                                   if (_workingHoursControllers[dayKey]!.text.isEmpty) {
-                                       _workingHoursControllers[dayKey]!.text = "09:00-21:00";
-                                   }
+                                  // Auto fill if empty when checking
+                                  if (_workingHoursControllers[dayKey]!
+                                      .text
+                                      .isEmpty) {
+                                    _workingHoursControllers[dayKey]!.text =
+                                        "09:00-21:00";
+                                  }
                                 }
                               });
                             },
@@ -680,7 +711,8 @@ class _ProfileTabState extends State<_ProfileTab> {
                                   border: const OutlineInputBorder(),
                                   suffixIcon: IconButton(
                                     icon: const Icon(Icons.access_time),
-                                    onPressed: () => _selectTime(context, dayKey),
+                                    onPressed:
+                                        () => _selectTime(context, dayKey),
                                   ),
                                 ),
                                 readOnly: true,
@@ -1492,40 +1524,121 @@ class _OrderCard extends StatelessWidget {
               ],
             ),
             const Divider(height: 24),
-            // Customer Info
-            Row(
-              children: [
-                Icon(Icons.person, size: 18, color: Colors.grey[600]),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            // Customer Info Section
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Text(
-                        order.customerName,
-                        style: const TextStyle(
+                      Icon(Icons.person, size: 20, color: AppColors.primary),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'اطلاعات مشتری',
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 15,
+                          fontSize: 14,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.phone, size: 14, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
-                          Text(
-                            order.customerPhone,
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.person_outline,
+                        size: 16,
+                        color: Colors.grey[600],
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          order.customerName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(Icons.phone, size: 16, color: Colors.grey[600]),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          order.customerPhone,
+                          style: TextStyle(
+                            color: Colors.grey[700],
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (order.customerEmail != null &&
+                      order.customerEmail!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.email, size: 16, color: Colors.grey[600]),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            order.customerEmail!,
                             style: TextStyle(
                               color: Colors.grey[700],
                               fontSize: 13,
                             ),
                           ),
-                        ],
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (order.vehiclePlate != null &&
+                      order.vehiclePlate!.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.directions_car,
+                          size: 16,
+                          color: Colors.grey[600],
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'پلاک: ${order.vehiclePlate}',
+                            style: TextStyle(
+                              color: Colors.grey[700],
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  if (order.vehicleInfo != null &&
+                      order.vehicleInfo!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 24),
+                      child: Text(
+                        order.vehicleInfo!,
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
                       ),
-                    ],
-                  ),
-                ),
-              ],
+                    ),
+                  ],
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             // Scheduled Time
@@ -1636,10 +1749,13 @@ class _OrderActionsState extends State<_OrderActions> {
           ),
         );
       } else {
+        final errorMessage =
+            provider.lastStatusUpdateError ?? 'خطا در تغییر وضعیت';
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('خطا در تغییر وضعیت'),
+          SnackBar(
+            content: Text(errorMessage),
             backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 4),
           ),
         );
       }
@@ -1730,7 +1846,7 @@ class _OrderActionsState extends State<_OrderActions> {
           ElevatedButton.icon(
             onPressed: _isProcessing ? null : _assignDriver,
             icon: const Icon(Icons.person_add, size: 18),
-            label: const Text('انتساب راننده'),
+            label: const Text('انتصاب راننده'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.secondary,
               foregroundColor: Colors.white,

@@ -20,6 +20,7 @@ class OrderOwnerProvider with ChangeNotifier {
   // Action State
   bool _isUpdatingStatus = false;
   bool _isAssigningDriver = false;
+  String? _lastStatusUpdateError;
 
   // Getters
   List<OrderOwnerModel> get orders => _orders;
@@ -30,6 +31,7 @@ class OrderOwnerProvider with ChangeNotifier {
   String? get driversError => _driversError;
   bool get isUpdatingStatus => _isUpdatingStatus;
   bool get isAssigningDriver => _isAssigningDriver;
+  String? get lastStatusUpdateError => _lastStatusUpdateError;
 
   // Fetch incoming orders (The Kitchen)
   Future<void> fetchOrders() async {
@@ -57,6 +59,7 @@ class OrderOwnerProvider with ChangeNotifier {
   // Change order status (Accept/Reject/etc.)
   Future<bool> updateOrderStatus(int orderId, String status) async {
     _isUpdatingStatus = true;
+    _lastStatusUpdateError = null;
     notifyListeners();
 
     try {
@@ -68,7 +71,8 @@ class OrderOwnerProvider with ChangeNotifier {
       await fetchOrders();
       return true;
     } catch (e) {
-      print("Error updating order status: ${ErrorHandler.getErrorMessage(e)}");
+      _lastStatusUpdateError = ErrorHandler.getErrorMessage(e);
+      print("Error updating order status: $_lastStatusUpdateError");
       return false;
     } finally {
       _isUpdatingStatus = false;

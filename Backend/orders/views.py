@@ -143,10 +143,25 @@ def manage_order_status(request, pk):
 
     current_status = order.status
     
-    # Check if the transition is allowed (Optional but professional)
-    # allowed_next = valid_transitions.get(current_status, [])
-    # if new_status not in allowed_next:
-    #    return Response({"error": f"Cannot go from {current_status} to {new_status}"}, status=400)
+    # Enforce driver assignment requirement: orders must be assigned to a driver 
+    # before status can change (except SUBMITTED -> ACCEPTED/CANCELLED)
+    statuses_requiring_driver = ['IN_SERVICE', 'COMPLETE']
+    transitions_allowing_no_driver = [
+        ('SUBMITTED', 'ACCEPTED'),
+        ('SUBMITTED', 'CANCELLED'),
+        ('ACCEPTED', 'CANCELLED'),
+    ]
+    
+    # Check if this transition requires a driver
+    transition_key = (current_status, new_status)
+    requires_driver = new_status in statuses_requiring_driver or \
+                      (current_status == 'ACCEPTED' and new_status == 'IN_SERVICE')
+    
+    if requires_driver and transition_key not in transitions_allowing_no_driver:
+        if not order.driver:
+            return Response({
+                "error": "Order must be assigned to a driver before status can be changed. Please assign a driver first."
+            }, status=400)
 
     # Apply Change
     if new_status in Order.Status.values:
