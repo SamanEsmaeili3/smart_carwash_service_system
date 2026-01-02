@@ -18,6 +18,7 @@ class CarwashProfileProvider with ChangeNotifier {
     String? address,
     String? phoneNumber,
     String? newPassword,
+    Map<String, String>? workingHours, 
   }) async {
     _isLoading = true;
     _error = null;
@@ -29,6 +30,9 @@ class CarwashProfileProvider with ChangeNotifier {
     if (phoneNumber != null) body['phone_number'] = phoneNumber;
     if (newPassword != null && newPassword.isNotEmpty) {
       body['new_password'] = newPassword;
+    }
+    if (workingHours != null) { // <--- ADD THIS BLOCK
+      body['working_hours'] = workingHours;
     }
 
     try {

@@ -354,7 +354,6 @@ class _ServicesTab extends StatelessWidget {
 // ==========================================
 // TAB 2: PROFILE & PASSWORD UPDATE
 // ==========================================
-// (KEEP THIS PART THE SAME AS YOUR ORIGINAL CODE - NO CHANGES NEEDED HERE)
 class _ProfileTab extends StatefulWidget {
   const _ProfileTab();
 
@@ -369,24 +368,80 @@ class _ProfileTabState extends State<_ProfileTab> {
   final _addressCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
 
+  // --- WORKING HOURS STATE ---
+  // Default values
+  TimeOfDay _openTime = const TimeOfDay(hour: 9, minute: 0);
+  TimeOfDay _closeTime = const TimeOfDay(hour: 21, minute: 0);
+  
+  // Active days map (True = Open, False = Closed)
+  final Map<String, bool> _activeDays = {
+    "Saturday": true,
+    "Sunday": true,
+    "Monday": true,
+    "Tuesday": true,
+    "Wednesday": true,
+    "Thursday": true,
+    "Friday": true, 
+  };
+
+  // Helper to format TimeOfDay to "HH:mm" for API
+  String _formatTime(TimeOfDay time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  // Time Picker Logic
+  Future<void> _pickTime(bool isOpenTime) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: isOpenTime ? _openTime : _closeTime,
+      builder: (context, child) {
+        // Ensure 24-hour format
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        if (isOpenTime) {
+          _openTime = picked;
+        } else {
+          _closeTime = picked;
+        }
+      });
+    }
+  }
+
   void _updateProfile() async {
     if (_formKey.currentState!.validate()) {
-      final provider = Provider.of<CarwashProfileProvider>(
-        context,
-        listen: false,
-      );
+      final provider = Provider.of<CarwashProfileProvider>(context, listen: false);
 
+      // 1. Construct Working Hours Map
+      // Format: "09:00-21:00" or "Closed"
+      Map<String, String> newWorkingHours = {};
+      final timeRange = "${_formatTime(_openTime)}-${_formatTime(_closeTime)}";
+      
+      _activeDays.forEach((day, isActive) {
+        newWorkingHours[day] = isActive ? timeRange : "Closed";
+      });
+
+      // 2. Call Update API
       final success = await provider.updateProfile(
         businessName: _nameCtrl.text.isNotEmpty ? _nameCtrl.text : null,
         phoneNumber: _phoneCtrl.text.isNotEmpty ? _phoneCtrl.text : null,
         address: _addressCtrl.text.isNotEmpty ? _addressCtrl.text : null,
         newPassword: _passwordCtrl.text.isNotEmpty ? _passwordCtrl.text : null,
+        workingHours: newWorkingHours, // <--- Passing the schedule
       );
 
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("اطلاعات با موفقیت بروزرسانی شد"),
+            content: Text("اطلاعات و ساعات کاری با موفقیت بروزرسانی شد"),
             backgroundColor: AppColors.success,
           ),
         );
@@ -406,6 +461,13 @@ class _ProfileTabState extends State<_ProfileTab> {
   Widget build(BuildContext context) {
     final isLoading = context.watch<CarwashProfileProvider>().isLoading;
 
+    // Persian labels for UI
+    final persianDays = {
+      "Saturday": "شنبه", "Sunday": "یکشنبه", "Monday": "دوشنبه",
+      "Tuesday": "سه‌شنبه", "Wednesday": "چهارشنبه", "Thursday": "پنج‌شنبه",
+      "Friday": "جمعه"
+    };
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Form(
@@ -414,40 +476,104 @@ class _ProfileTabState extends State<_ProfileTab> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              "ویرایش اطلاعات کارواش",
+              "اطلاعات عمومی",
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             const SizedBox(height: 16),
             CustomInput(
-              label: "نام جدید کسب و کار",
-              hint: "خالی بگذارید اگر تغییری ندارد",
+              label: "نام کسب و کار",
+              hint: "نام جدید (اختیاری)",
               icon: Icons.store,
               controller: _nameCtrl,
             ),
             CustomInput(
-              label: "شماره تماس جدید",
-              hint: "خالی بگذارید اگر تغییری ندارد",
+              label: "شماره تماس",
+              hint: "شماره جدید (اختیاری)",
               icon: Icons.phone,
               controller: _phoneCtrl,
               keyboardType: TextInputType.phone,
             ),
             CustomInput(
-              label: "آدرس جدید",
-              hint: "خالی بگذارید اگر تغییری ندارد",
+              label: "آدرس",
+              hint: "آدرس جدید (اختیاری)",
               icon: Icons.map,
               controller: _addressCtrl,
               maxLines: 2,
             ),
+            
             const SizedBox(height: 24),
             const Divider(),
+            const SizedBox(height: 16),
+
+            // --- NEW: WORKING HOURS UI ---
+            const Text(
+              "ساعات کاری و روزهای فعالیت",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            const SizedBox(height: 16),
+            
+            // Time Selectors
+            Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () => _pickTime(true),
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'ساعت شروع',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.wb_sunny_outlined),
+                      ),
+                      child: Text(_formatTime(_openTime)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: InkWell(
+                    onTap: () => _pickTime(false),
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'ساعت پایان',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.nightlight_round),
+                      ),
+                      child: Text(_formatTime(_closeTime)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            
+            // Day Toggles
+            const Text("روزهای فعال:", style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8.0,
+              runSpacing: 4.0,
+              children: _activeDays.keys.map((dayKey) {
+                return FilterChip(
+                  label: Text(persianDays[dayKey] ?? dayKey),
+                  selected: _activeDays[dayKey]!,
+                  selectedColor: AppColors.secondary.withOpacity(0.2),
+                  checkmarkColor: AppColors.secondary,
+                  onSelected: (bool selected) {
+                    setState(() {
+                      _activeDays[dayKey] = selected;
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+
             const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 16),
+
             const Text(
               "تغییر رمز عبور (اختیاری)",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: AppColors.secondary,
-              ),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             const SizedBox(height: 16),
             CustomInput(
@@ -464,11 +590,14 @@ class _ProfileTabState extends State<_ProfileTab> {
               },
             ),
             const SizedBox(height: 24),
-            CustomButton(
-              text: "ذخیره تغییرات",
-              onPressed: _updateProfile,
-              isLoading: isLoading,
-              color: AppColors.secondary,
+            SizedBox(
+              width: double.infinity,
+              child: CustomButton(
+                text: "ذخیره تغییرات",
+                onPressed: _updateProfile,
+                isLoading: isLoading,
+                color: AppColors.secondary,
+              ),
             ),
           ],
         ),
