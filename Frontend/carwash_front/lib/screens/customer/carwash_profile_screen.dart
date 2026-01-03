@@ -16,6 +16,8 @@ class CarwashProfileScreen extends StatefulWidget {
 }
 
 class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
+  final _detailsController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -25,6 +27,12 @@ class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
         listen: false,
       ).fetchCarwashProfile(widget.carwashId);
     });
+  }
+
+  @override
+  void dispose() {
+    _detailsController.dispose();
+    super.dispose();
   }
 
   void _onContinuePressed() async {
@@ -144,6 +152,33 @@ class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
               ),
             ),
             SliverToBoxAdapter(child: _buildInfoSection(profile)),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "توضیحات سفارش (اختیاری)",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _detailsController,
+                      onChanged: (value) {
+                        context.read<BookingProvider>().setOrderDetails(value);
+                      },
+                      decoration: const InputDecoration(
+                        hintText: "مثال: لطفا روی خط و خش درب عقب تمرکز کنید...",
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 12.0),
+                      ),
+                      maxLines: 3,
+                    ),
+                  ],
+                ),
+              ),
+            ),
             SliverList(
               delegate: SliverChildBuilderDelegate((context, index) {
                 return _buildServiceItem(profile.services[index], provider);
@@ -229,6 +264,29 @@ class _CarwashProfileScreenState extends State<CarwashProfileScreen> {
                           const SizedBox(height: 16),
                           _buildInfoSection(profile),
                           const Divider(height: 40),
+
+                          const Text(
+                            "توضیحات سفارش (اختیاری)",
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: _detailsController,
+                            onChanged: (value) {
+                              // Update the provider as the user types
+                              context.read<BookingProvider>().setOrderDetails(value);
+                            },
+                            decoration: const InputDecoration(
+                              hintText: "مثال: لطفا روی خط و خش درب عقب تمرکز کنید...",
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(vertical: 10.0, horizontal: 12.0),
+                            ),
+                            maxLines: 3,
+                          ),
+                          const SizedBox(height: 24),
 
                           const Text(
                             "انتخاب سرویس‌ها",

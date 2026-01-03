@@ -19,6 +19,7 @@ class OrderPrepareView(generics.CreateAPIView):
     def create(self, request, *args, **kwargs):
         carwash_id = request.data.get('carwash_id')
         service_ids = request.data.get('service_ids', [])
+        details_text = request.data.get('details', '')
 
         if not carwash_id or not service_ids:
             return Response(
@@ -37,7 +38,8 @@ class OrderPrepareView(generics.CreateAPIView):
             customer=customer,
             carwash=carwash,
             status=Order.Status.PENDING, 
-            total_price=0 
+            total_price=0,
+            details=details_text
         )
 
         total_price = 0

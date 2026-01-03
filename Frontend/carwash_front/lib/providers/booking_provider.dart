@@ -18,6 +18,7 @@ class BookingProvider with ChangeNotifier {
   final Set<int> _selectedServiceIds = {};
   double _localTotalPrice = 0.0;
   bool _isSubmittingOrder = false;
+  String _orderDetails = '';
 
   // History State
   List<OrderHistoryModel> _history = [];
@@ -30,8 +31,14 @@ class BookingProvider with ChangeNotifier {
   Set<int> get selectedServiceIds => _selectedServiceIds;
   double get localTotalPrice => _localTotalPrice;
   bool get isSubmittingOrder => _isSubmittingOrder;
+  String get orderDetails => _orderDetails;
   List<OrderHistoryModel> get history => _history;
   bool get isLoadingHistory => _isLoadingHistory;
+
+  void setOrderDetails(String details) {
+    _orderDetails = details;
+    notifyListeners();
+  }
 
   // --- Task: Fetch Carwash Profile (User Story 2.3) ---
   Future<void> fetchCarwashProfile(int id) async {
@@ -78,6 +85,7 @@ class BookingProvider with ChangeNotifier {
       final Map<String, dynamic> body = {
         "carwash_id": _profile!.id,
         "service_ids": _selectedServiceIds.toList(),
+        "details": _orderDetails,
       };
 
       final response = await _api.post(

@@ -23,7 +23,7 @@ class OrderDraftSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Order
-        fields = ['id', 'carwash_id', 'service_ids', 'total_price', 'status', 'created_at', 'order_services', 'scheduled_time']
+        fields = ['id', 'carwash_id', 'service_ids', 'total_price', 'status', 'created_at', 'order_services', 'scheduled_time', 'details']
         read_only_fields = ['id', 'total_price', 'status', 'created_at', 'order_services']
 
 class OrderOwnerSerializer(serializers.ModelSerializer):
@@ -40,7 +40,7 @@ class OrderOwnerSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'customer_name', 'customer_phone', 'customer_email', 'vehicle_plate', 'vehicle_info',
             'scheduled_time', 'total_price', 'status', 
-            'services_list', 'created_at'
+            'services_list', 'created_at', 'details'
         ]
     
     def get_vehicle_plate(self, obj):

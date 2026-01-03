@@ -9,7 +9,8 @@ class OrderOwnerModel {
   final double totalPrice;
   final String status;
   final List<String> servicesList;
-  final DateTime? createdAt;
+  final DateTime createdAt;
+  final String? details;
 
   OrderOwnerModel({
     required this.id,
@@ -22,52 +23,41 @@ class OrderOwnerModel {
     required this.totalPrice,
     required this.status,
     required this.servicesList,
-    this.createdAt,
+    required this.createdAt,
+    this.details,
   });
 
   factory OrderOwnerModel.fromJson(Map<String, dynamic> json) {
-    // Safe date parsing
-    DateTime parsedScheduledTime;
-    try {
-      if (json['scheduled_time'] != null) {
-        parsedScheduledTime = DateTime.parse(json['scheduled_time'].toString());
-      } else {
-        parsedScheduledTime = DateTime.now();
+    // Helper function to safely parse date strings
+    DateTime parseDate(String? dateStr) {
+      if (dateStr == null) {
+        return DateTime.now(); // Fallback to current time
       }
-    } catch (e) {
-      print("Date parsing error for order ID ${json['id']}: $e");
-      parsedScheduledTime = DateTime.now();
+      return DateTime.tryParse(dateStr) ?? DateTime.now(); // Fallback
     }
 
-    DateTime? parsedCreatedAt;
-    if (json['created_at'] != null) {
-      try {
-        parsedCreatedAt = DateTime.parse(json['created_at'].toString());
-      } catch (e) {
-        parsedCreatedAt = null;
+    // Safely parse the list of services
+    List<String> parseServices(dynamic serviceData) {
+      if (serviceData is List) {
+        // Use whereType to filter out any non-string elements just in case
+        return serviceData.whereType<String>().toList();
       }
-    }
-
-    // Parse services list
-    List<String> services = [];
-    if (json['services_list'] != null) {
-      if (json['services_list'] is List) {
-        services = List<String>.from(json['services_list']);
-      }
+      return []; // Return an empty list if it's not a list
     }
 
     return OrderOwnerModel(
-      id: json['id'],
+      id: json['id'] ?? 0,
       customerName: json['customer_name'] ?? 'مشتری',
-      customerPhone: json['customer_phone'] ?? '',
+      customerPhone: json['customer_phone'] ?? 'نامشخص',
       customerEmail: json['customer_email'],
       vehiclePlate: json['vehicle_plate'],
       vehicleInfo: json['vehicle_info'],
-      scheduledTime: parsedScheduledTime,
-      totalPrice: double.tryParse(json['total_price'].toString()) ?? 0.0,
+      scheduledTime: parseDate(json['scheduled_time']),
+      totalPrice: (json['total_price'] as num?)?.toDouble() ?? 0.0,
       status: json['status'] ?? 'UNKNOWN',
-      servicesList: services,
-      createdAt: parsedCreatedAt,
+      servicesList: parseServices(json['services_list']),
+      createdAt: parseDate(json['created_at']),
+      details: json['details'],
     );
   }
 }
