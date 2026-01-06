@@ -1559,7 +1559,9 @@ class _OrderCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          order.customerName,
+                          order.customerName.isNotEmpty
+                              ? order.customerName
+                              : (order.customerEmail ?? 'مشتری'),
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
@@ -1569,24 +1571,30 @@ class _OrderCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(Icons.phone, size: 16, color: Colors.grey[600]),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          order.customerPhone,
-                          style: TextStyle(
-                            color: Colors.grey[700],
-                            fontSize: 13,
+                  if (order.customerPhone.isNotEmpty &&
+                      order.customerPhone != 'نامشخص')
+                    Row(
+                      children: [
+                        Icon(Icons.phone, size: 16, color: Colors.grey[600]),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            order.customerPhone,
+                            style: TextStyle(
+                              color: Colors.grey[700],
+                              fontSize: 13,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
                   if (order.customerEmail != null &&
                       order.customerEmail!.isNotEmpty) ...[
-                    const SizedBox(height: 8),
+                    if (order.customerPhone.isEmpty ||
+                        order.customerPhone == 'نامشخص')
+                      const SizedBox(height: 0)
+                    else
+                      const SizedBox(height: 8),
                     Row(
                       children: [
                         Icon(Icons.email, size: 16, color: Colors.grey[600]),

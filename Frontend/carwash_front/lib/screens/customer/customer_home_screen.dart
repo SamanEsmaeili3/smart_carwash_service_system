@@ -8,7 +8,7 @@ import '../../constants/app_colors.dart';
 import '../../models/carwash_model.dart';
 import 'carwash_profile_screen.dart';
 import '../common/location_picker_screen.dart';
-import 'dart:async'; 
+import 'dart:async';
 
 class CustomerHomeScreen extends StatefulWidget {
   const CustomerHomeScreen({super.key});
@@ -65,12 +65,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
     _debounce = Timer(const Duration(milliseconds: 800), () {
       if (query.isNotEmpty) {
         // Trigger search automatically
-        Provider.of<SearchProvider>(context, listen: false).searchCarwashes(query: query);
+        Provider.of<SearchProvider>(
+          context,
+          listen: false,
+        ).searchCarwashes(query: query);
       } else {
         _onClearSearch(); // Reset if empty
       }
     });
-    
+
     // Update UI immediately (e.g., show/hide X button)
     setState(() {});
   }
@@ -215,10 +218,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
 
     return FlutterMap(
       mapController: _mapController,
-      options: MapOptions(
-        initialCenter: userLocation,
-        initialZoom: 14.0, 
-      ),
+      options: MapOptions(initialCenter: userLocation, initialZoom: 14.0),
       children: [
         TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -313,9 +313,13 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                   IconButton(
                     icon: const Icon(Icons.logout, color: Colors.white),
                     onPressed: () {
-                      Provider.of<AuthProvider>(context, listen: false).logout();
-                      Navigator.of(context).pushNamedAndRemoveUntil(
-                          '/login', (route) => false);
+                      Provider.of<AuthProvider>(
+                        context,
+                        listen: false,
+                      ).logout();
+                      Navigator.of(
+                        context,
+                      ).pushNamedAndRemoveUntil('/login', (route) => false);
                     },
                   ),
                   IconButton(
@@ -344,7 +348,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       Text(
                         "سلام، $displayName",
                         style: const TextStyle(
-                            color: Colors.white70, fontSize: 14),
+                          color: Colors.white70,
+                          fontSize: 14,
+                        ),
                       ),
                     ],
                   ),
@@ -366,14 +372,17 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               final LatLng? result = await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => LocationPickerScreen(
-                    initialLat: searchProvider.lat != 0
-                        ? searchProvider.lat
-                        : 35.7544,
-                    initialLon: searchProvider.lon != 0
-                        ? searchProvider.lon
-                        : 51.4105,
-                  ),
+                  builder:
+                      (_) => LocationPickerScreen(
+                        initialLat:
+                            searchProvider.lat != 0
+                                ? searchProvider.lat
+                                : 35.7544,
+                        initialLon:
+                            searchProvider.lon != 0
+                                ? searchProvider.lon
+                                : 51.4105,
+                      ),
                 ),
               );
 
@@ -429,7 +438,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
               textDirection: TextDirection.rtl,
               textInputAction: TextInputAction.search,
               onSubmitted: _onSearchSubmitted,
-              
+
               // [NEW] Use the debounce function here
               onChanged: _onSearchChanged,
 
@@ -437,18 +446,19 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                 border: InputBorder.none,
                 hintText: "جستجوی سرویس (مثلاً روشویی...)",
                 prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchCtrl.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.close, color: Colors.grey),
-                        onPressed: _onClearSearch,
-                      )
-                    : IconButton(
-                        icon: const Icon(
-                          Icons.filter_list,
-                          color: AppColors.primary,
+                suffixIcon:
+                    _searchCtrl.text.isNotEmpty
+                        ? IconButton(
+                          icon: const Icon(Icons.close, color: Colors.grey),
+                          onPressed: _onClearSearch,
+                        )
+                        : IconButton(
+                          icon: const Icon(
+                            Icons.filter_list,
+                            color: AppColors.primary,
+                          ),
+                          onPressed: () => _showFilterBottomSheet(context),
                         ),
-                        onPressed: () => _showFilterBottomSheet(context),
-                      ),
               ),
             ),
           ),
@@ -637,23 +647,60 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
   }
 
   void _showCarwashPreview(BuildContext context, CarwashModel carwash) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [_CarwashResultCard(carwash: carwash)],
-          ),
-        );
-      },
-    );
+    // گرفتن مشخصات صفحه
+    final size = MediaQuery.of(context).size;
+    final bool isWideScreen = size.width > 800;
+
+    if (isWideScreen) {
+      // نمایش به صورت دیالوگ برای حالت وب
+      showDialog(
+        context: context,
+        builder:
+            (ctx) => Dialog(
+              backgroundColor: Colors.transparent,
+              // حذف حاشیه پیش‌فرض برای کنترل دقیق عرض
+              insetPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 24,
+              ),
+              child: SizedBox(
+                // تغییر اصلی: عرض ویجت را برابر با ۵۰٪ عرض کل صفحه قرار می‌دهیم
+                width: size.width * 0.5,
+                child: _CarwashResultCard(carwash: carwash),
+              ),
+            ),
+      );
+    } else {
+      // نمایش به صورت BottomSheet برای موبایل (بدون تغییر)
+      showModalBottomSheet(
+        context: context,
+        backgroundColor: Colors.transparent,
+        builder: (ctx) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                _CarwashResultCard(carwash: carwash),
+              ],
+            ),
+          );
+        },
+      );
+    }
   }
 }
 

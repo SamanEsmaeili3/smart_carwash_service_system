@@ -71,7 +71,7 @@ class CarwashProfileUpdateSerializer(serializers.ModelSerializer):
             'working_hours',
             'latitude',
             'longitude',
-            'license_photo_url',
+            'license_image',
             'gallery_photos',
             'new_password', 
         ]
@@ -116,7 +116,7 @@ class CarwashListSerializer(serializers.ModelSerializer):
             'working_hours',
             'latitude',
             'longitude',
-            'license_photo_url',
+            'license_image',
             'gallery_photos',
         ]
 
@@ -134,7 +134,7 @@ class CarwashSearchSerializer(serializers.ModelSerializer):
             'address', 
             'latitude', 
             'longitude', 
-            'license_photo_url', 
+            'license_image', 
             'min_price', 
             'distance', 
             'rating'
@@ -179,7 +179,7 @@ class CarwashFullProfileSerializer(serializers.ModelSerializer):
             'working_hours',
             'latitude',
             'longitude',
-            'license_photo_url',
+            'license_image',
             'gallery_photos',
             'services', # <-- Shows the menu
             'rating',

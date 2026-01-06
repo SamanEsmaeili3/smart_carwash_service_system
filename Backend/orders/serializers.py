@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import Order, OrderService
 from carwash.models import CarwashService
-from accounts.serializers import CustomerProfileSerializer 
+from accounts.serializers import CustomerProfileSerializer
 
 class OrderServiceSerializer(serializers.ModelSerializer):
     service_name = serializers.CharField(source='service.service_name', read_only=True)
@@ -27,9 +27,12 @@ class OrderDraftSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'total_price', 'status', 'created_at', 'order_services']
 
 class OrderOwnerSerializer(serializers.ModelSerializer):
+    # Provide both flattened fields for backwards compatibility
     customer_name = serializers.CharField(source='customer.full_name', read_only=True)
     customer_phone = serializers.CharField(source='customer.phone_number', read_only=True)
     customer_email = serializers.CharField(source='customer.user.email', read_only=True)
+    # New: include full nested customer object (email, full_name, phone_number)
+    customer = CustomerProfileSerializer(read_only=True)
     vehicle_plate = serializers.SerializerMethodField()
     vehicle_info = serializers.SerializerMethodField()
     
@@ -38,7 +41,7 @@ class OrderOwnerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            'id', 'customer_name', 'customer_phone', 'customer_email', 'vehicle_plate', 'vehicle_info',
+            'id', 'customer_name', 'customer_phone', 'customer_email', 'customer', 'vehicle_plate', 'vehicle_info',
             'scheduled_time', 'total_price', 'status', 
             'services_list', 'created_at', 'details'
         ]

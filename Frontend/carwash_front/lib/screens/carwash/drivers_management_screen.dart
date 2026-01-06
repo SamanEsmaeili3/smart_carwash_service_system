@@ -8,7 +8,7 @@ import '../../services/api_service.dart';
 import '../../constants/api_constants.dart';
 import '../../constants/app_colors.dart';
 import 'package:provider/provider.dart';
-import '../../providers/driver_provider.dart'; 
+import '../../providers/driver_provider.dart';
 
 class DriversManagementScreen extends StatefulWidget {
   const DriversManagementScreen({super.key});
@@ -26,7 +26,7 @@ class _DriversManagementScreenState extends State<DriversManagementScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = Provider.of<DriverProvider>(context, listen: false);
       if (provider.drivers.isEmpty) {
@@ -144,7 +144,6 @@ class _DriversManagementScreenState extends State<DriversManagementScreen> {
       ),
       body: Consumer<DriverProvider>(
         builder: (context, driverProvider, child) {
-          
           if (driverProvider.isLoading) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -154,11 +153,7 @@ class _DriversManagementScreenState extends State<DriversManagementScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.people_outline,
-                    size: 64,
-                    color: Colors.grey[400],
-                  ),
+                  Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
                     'هیچ راننده‌ای ثبت نشده است',
@@ -180,10 +175,10 @@ class _DriversManagementScreenState extends State<DriversManagementScreen> {
           }
 
           return RefreshIndicator(
-            onRefresh: () => driverProvider.fetchDrivers(), 
+            onRefresh: () => driverProvider.fetchDrivers(),
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: driverProvider.drivers.length, 
+              itemCount: driverProvider.drivers.length,
               itemBuilder: (context, index) {
                 final driver = driverProvider.drivers[index];
                 return DriverCard(
@@ -226,13 +221,15 @@ class DriverCard extends StatelessWidget {
             CircleAvatar(
               radius: 40,
               backgroundColor: AppColors.primary.withOpacity(0.1),
-              backgroundImage: driver.personnelPhotoUrl != null
-                  ? NetworkImage(_fixImageUrl(driver.personnelPhotoUrl!))
-                  : null,
-              
-              child: driver.personnelPhotoUrl == null 
-                  ? Icon(Icons.person, size: 40, color: AppColors.primary)
-                  : null,
+              backgroundImage:
+                  driver.personnelPhotoUrl != null
+                      ? NetworkImage(_fixImageUrl(driver.personnelPhotoUrl!))
+                      : null,
+
+              child:
+                  driver.personnelPhotoUrl == null
+                      ? Icon(Icons.person, size: 40, color: AppColors.primary)
+                      : null,
             ),
             const SizedBox(width: 12),
             // Driver Info

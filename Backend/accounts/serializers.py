@@ -6,18 +6,28 @@ from .models import User, CustomerProfile
 
 class CustomerRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    full_name = serializers.CharField(required=False, allow_blank=True)
+    phone_number = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = User
-        fields = ['email', 'password'] 
+        fields = ['email', 'password', 'full_name', 'phone_number'] 
 
     def create(self, validated_data):
+        # Extract customer profile fields
+        full_name = validated_data.pop('full_name', '')
+        phone_number = validated_data.pop('phone_number', '')
+        
         user = User.objects.create_user(
             email=validated_data['email'],
             password=validated_data['password'],
             is_customer=True  
         )
-        CustomerProfile.objects.create(user=user)
+        CustomerProfile.objects.create(
+            user=user,
+            full_name=full_name,
+            phone_number=phone_number
+        )
         return user
     
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):

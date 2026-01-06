@@ -50,103 +50,106 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   ResetPasswordScreen(email: _emailController.text.trim()),
         ),
       );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(auth.errorMessage ?? 'خطا در درخواست بازنشانی رمز'),
-          backgroundColor: AppColors.error,
-        ),
-      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final bool isWideScreen = size.width > 800;
+
     return Scaffold(
+      backgroundColor: isWideScreen ? Colors.grey[100] : Colors.white,
       appBar: AppBar(
-        title: const Text('فراموشی رمز عبور'),
-        centerTitle: true,
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+        leading: const BackButton(color: Colors.black),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
+      body: Center(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 40),
-              // Icon
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.lock_outline,
-                  size: 50,
+          child: Container(
+            width: isWideScreen ? 450 : double.infinity,
+            padding: isWideScreen ? const EdgeInsets.all(40) : EdgeInsets.zero,
+            decoration:
+                isWideScreen
+                    ? BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    )
+                    : null,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Icon(
+                  Icons.lock_reset,
+                  size: 80,
                   color: AppColors.primary,
                 ),
-              ),
-              const SizedBox(height: 30),
-              // Title
-              const Text(
-                'بازنشانی رمز عبور',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              // Description
-              Text(
-                'ایمیل خود را وارد کنید. کد تأیید برای تعیین رمز جدید برای شما ارسال خواهد شد',
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 40),
-              // Email Input
-              TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  labelText: 'آدرس ایمیل',
-                  hintText: 'example@email.com',
-                  prefixIcon: const Icon(Icons.email_outlined),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: AppColors.primary,
-                      width: 2,
+                const SizedBox(height: 24),
+                const Text(
+                  'فراموشی رمز عبور',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'ایمیل خود را وارد کنید تا کد بازنشانی برای شما ارسال شود',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey),
+                ),
+                const SizedBox(height: 40),
+                // Email Field
+                TextField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  textAlign: TextAlign.right,
+                  decoration: InputDecoration(
+                    labelText: 'آدرس ایمیل',
+                    hintText: 'example@email.com',
+                    prefixIcon: const Icon(Icons.email_outlined),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: AppColors.primary,
+                        width: 2,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 40),
-              // Submit Button
-              CustomButton(
-                text: 'درخواست کد تأیید',
-                onPressed: _isLoading ? null : _handleRequestReset,
-                isLoading: _isLoading,
-              ),
-              const SizedBox(height: 20),
-              // Go Back
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'بازگشت',
-                  style: TextStyle(color: Colors.grey),
+                const SizedBox(height: 40),
+                // Submit Button
+                CustomButton(
+                  text: 'درخواست کد تأیید',
+                  onPressed: _isLoading ? null : _handleRequestReset,
+                  isLoading: _isLoading,
                 ),
-              ),
-            ],
+                const SizedBox(height: 20),
+                // Go Back
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'بازگشت',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

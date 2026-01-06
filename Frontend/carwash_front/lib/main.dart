@@ -24,7 +24,6 @@ import 'screens/carwash/drivers_management_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/customer/time_selection_screen.dart';
 import 'screens/customer/order_history_screen.dart';
-import 'screens/customer/order_history_screen.dart';
 import 'providers/driver_provider.dart';
 import 'providers/order_owner_provider.dart';
 
