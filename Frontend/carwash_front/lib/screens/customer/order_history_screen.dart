@@ -150,7 +150,7 @@ class _OrderHistoryCard extends StatelessWidget {
                       Text(
                         dateStr,
                         style: const TextStyle(color: Colors.grey, fontSize: 12),
-                        textDirection: TextDirection.rtl,
+                        // FIXED: Removed textDirection to prevent build error
                       ),
                     ],
                   ),
