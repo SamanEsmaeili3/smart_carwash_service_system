@@ -150,7 +150,6 @@ class _OrderHistoryCard extends StatelessWidget {
                       Text(
                         dateStr,
                         style: const TextStyle(color: Colors.grey, fontSize: 12),
-                        // FIXED: Removed textDirection to prevent build error
                       ),
                     ],
                   ),
@@ -193,13 +192,19 @@ class _OrderHistoryCard extends StatelessWidget {
                 if (isCompleted)
                   SizedBox(
                     height: 36,
-                    child: ElevatedButton.icon(
+                    child: ElevatedButton(
                       onPressed: () => _showRatingDialog(context),
-                      icon: const Icon(Icons.star_rounded, size: 18),
-                      label: const Text("ثبت امتیاز", style: TextStyle(fontSize: 13)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.amber[700],
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: Row(
+                        children: const [
+                          // Using standard character here too for consistency in the button
+                          Text("★", style: TextStyle(color: Colors.white, fontSize: 18)),
+                          SizedBox(width: 4),
+                          Text("ثبت امتیاز", style: TextStyle(fontSize: 13)),
+                        ],
                       ),
                     ),
                   ),
@@ -239,10 +244,13 @@ class _ReviewDialogState extends State<_ReviewDialog> {
               onTap: () => onRatingChanged(index + 1),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                child: Icon(
-                  index < currentRating ? Icons.star_rounded : Icons.star_outline_rounded,
-                  color: Colors.amber,
-                  size: 42,
+                child: Text(
+                  index < currentRating ? "★" : "☆",
+                  style: const TextStyle(
+                    color: Colors.amber,
+                    fontSize: 44,
+                    height: 1.0, // Ensures standard alignment on web
+                  ),
                 ),
               ),
             );
