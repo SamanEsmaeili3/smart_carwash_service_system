@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from django.db.models import Min, Avg
+from django.db.models import Min
 from accounts.models import User
 from .models import CarwashProfile, Driver, CarwashService
 from orders.models import Rating, Order
@@ -101,7 +101,7 @@ class CarwashServiceSerializer(serializers.ModelSerializer):
         fields = ['id', 'service_name', 'description', 'price']
 
 # ---------------------------------------------------------
-# SECTION 3: CUSTOMER & SEARCH (Sprint 3 Features)
+# SECTION 3: CUSTOMER & SEARCH (Sprint 3 & 5 Features)
 # ---------------------------------------------------------
 
 # Sprint 2 Task-B2.8 (Simple List for Customers)
@@ -118,13 +118,14 @@ class CarwashListSerializer(serializers.ModelSerializer):
             'longitude',
             'license_image',
             'gallery_photos',
+            'average_rating', # Included for visibility
         ]
 
-# Sprint 3 Task-B2.8 (Search with REAL Rating & Price)
+# Sprint 3 Task-B2.8 (Updated for Sprint 5: Fast Rating & Price)
 class CarwashSearchSerializer(serializers.ModelSerializer):
     min_price = serializers.SerializerMethodField()
     distance = serializers.SerializerMethodField()
-    rating = serializers.SerializerMethodField() # Calculated from DB
+    rating = serializers.SerializerMethodField() # FAST: Now uses model field
 
     class Meta:
         model = CarwashProfile
@@ -152,11 +153,8 @@ class CarwashSearchSerializer(serializers.ModelSerializer):
         return None
 
     def get_rating(self, obj):
-        # Calculate Average Rating from 'Rating' table
-        avg_rating = Rating.objects.filter(order__carwash=obj).aggregate(Avg('carwash_rating'))['carwash_rating__avg']
-        if avg_rating:
-            return round(avg_rating, 1)
-        return 0 
+        # Optimized: Returns pre-calculated average from model 
+        return float(round(obj.average_rating, 1)) if obj.average_rating else 0.0
 
 # Sprint 3 Task-B2.16 (Full Profile with Services List)
 class CarwashFullProfileSerializer(serializers.ModelSerializer):
@@ -164,7 +162,7 @@ class CarwashFullProfileSerializer(serializers.ModelSerializer):
     Shows EVERYTHING about a carwash:
     - Basic Info
     - List of Services (Crucial for Booking)
-    - Rating
+    - Rating (Optimized)
     """
     services = CarwashServiceSerializer(many=True, read_only=True) 
     rating = serializers.SerializerMethodField()
@@ -181,22 +179,23 @@ class CarwashFullProfileSerializer(serializers.ModelSerializer):
             'longitude',
             'license_image',
             'gallery_photos',
-            'services', # <-- Shows the menu
+            'services', 
             'rating',
+            'review_count',
         ]
 
     def get_rating(self, obj):
-        avg_rating = Rating.objects.filter(order__carwash=obj).aggregate(Avg('carwash_rating'))['carwash_rating__avg']
-        return round(avg_rating, 1) if avg_rating else 0
+        # Optimized: Returns pre-calculated average from model 
+        return float(round(obj.average_rating, 1)) if obj.average_rating else 0.0
     
-# Simple Driver Serializer for Selection
+# Simple Driver Serializer for Selection (Updated for Rating Badge)
 class DriverSelectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Driver
-        fields = ['id', 'full_name', 'phone_number', 'status']
+        fields = ['id', 'full_name', 'phone_number', 'status', 'average_rating']
 
 # ---------------------------------------------------------
-# SECTION 4: DRIVER MANAGEMENT (Sprint 4)
+# SECTION 4: DRIVER MANAGEMENT (Sprint 4 & 5)
 # ---------------------------------------------------------
 
 class DriverSerializer(serializers.ModelSerializer):
@@ -210,8 +209,10 @@ class DriverSerializer(serializers.ModelSerializer):
             'address', 
             'personnel_photo', 
             'status', 
+            'average_rating', # For Task-F5.6 Rating Badge 
+            'review_count',   # For Task-F5.6 Rating Badge 
             'created_at'
         ]
         # 'status' is read-only during creation (defaults to AVAILABLE)
         # 'created_at' is always read-only
-        read_only_fields = ['id', 'created_at', 'status']
+        read_only_fields = ['id', 'created_at', 'status', 'average_rating', 'review_count']

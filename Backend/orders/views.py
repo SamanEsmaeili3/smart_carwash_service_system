@@ -5,11 +5,13 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 
 from .models import Order, OrderService
-from .serializers import OrderDraftSerializer, OrderOwnerSerializer, OrderHistorySerializer
+from .serializers import OrderDraftSerializer, OrderOwnerSerializer, OrderHistorySerializer, RatingSerializer
 from carwash.models import CarwashProfile, CarwashService, Driver
 from carwash.serializers import DriverSelectionSerializer 
 
 from django.utils.dateparse import parse_datetime
+
+
 
 # Task-B2.18: Prepare Order (Calculate Price & Create Draft)
 class OrderPrepareView(generics.CreateAPIView):
@@ -239,3 +241,16 @@ def assign_driver_to_order(request, order_id):
         "message": f"Driver {driver.full_name} assigned to Order #{order.id}",
         "order_status": order.status
     })
+
+# Task-B5.5: Submit Review API
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def submit_review(request):
+    serializer = RatingSerializer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        serializer.save()
+        return Response({
+            "message": "امتیاز شما با موفقیت ثبت شد.",
+            "data": serializer.data
+        }, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

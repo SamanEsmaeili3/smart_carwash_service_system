@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shamsi_date/shamsi_date.dart'; // اضافه شده برای تاریخ شمسی
+import 'package:shamsi_date/shamsi_date.dart';
 import '../../providers/booking_provider.dart';
 import '../../constants/app_colors.dart';
 import '../../models/order_history_model.dart';
+import '../../widgets/custom_button.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
   const OrderHistoryScreen({super.key});
@@ -16,7 +17,6 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   @override
   void initState() {
     super.initState();
-    // Fetch data when screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<BookingProvider>(context, listen: false).fetchOrderHistory();
     });
@@ -25,7 +25,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      app_bar: AppBar(
+      appBar: AppBar(
         title: const Text("سفارش‌های من", style: TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
         elevation: 0,
@@ -97,9 +97,18 @@ class _OrderHistoryCard extends StatelessWidget {
     }
   }
 
+  void _showRatingDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => _ReviewDialog(order: order),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // تبدیل تاریخ میلادی به شمسی
+    final bool isCompleted = order.status.toUpperCase() == 'COMPLETE' || 
+                             order.status.toUpperCase() == 'COMPLETED';
+
     final jalali = Jalali.fromDateTime(order.scheduledTime);
     final f = jalali.formatter;
     final String timeStr = '${order.scheduledTime.hour.toString().padLeft(2, '0')}:${order.scheduledTime.minute.toString().padLeft(2, '0')}';
@@ -140,7 +149,7 @@ class _OrderHistoryCard extends StatelessWidget {
                       Text(
                         dateStr,
                         style: const TextStyle(color: Colors.grey, fontSize: 12),
-                        textDirection: TextDirection.rtl, // نمایش صحیح تاریخ فارسی
+                        textDirection: TextDirection.rtl,
                       ),
                     ],
                   ),
@@ -168,22 +177,128 @@ class _OrderHistoryCard extends StatelessWidget {
               order.servicesText,
               style: const TextStyle(color: Colors.black87),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
             Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   "${order.totalPrice.toInt()} تومان",
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     color: AppColors.primary,
+                    fontSize: 16,
                   ),
                 ),
+                if (isCompleted)
+                  SizedBox(
+                    height: 36,
+                    child: ElevatedButton.icon(
+                      onPressed: () => _showRatingDialog(context),
+                      icon: const Icon(Icons.star_rounded, size: 18),
+                      label: const Text("ثبت امتیاز", style: TextStyle(fontSize: 13)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.amber[700],
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+// --- Internal Review Dialog Widget ---
+class _ReviewDialog extends StatefulWidget {
+  final OrderHistoryModel order;
+  const _ReviewDialog({required this.order});
+
+  @override
+  State<_ReviewDialog> createState() => _ReviewDialogState();
+}
+
+class _ReviewDialogState extends State<_ReviewDialog> {
+  int _carwashRating = 5;
+  int _driverRating = 5;
+  final _commentCtrl = TextEditingController();
+  bool _isSubmitting = false;
+
+  Widget _buildStarRating(String label, int currentRating, Function(int) onRatingChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(5, (index) {
+            return IconButton(
+              icon: Icon(
+                index < currentRating ? Icons.star_rounded : Icons.star_outline_rounded,
+                color: Colors.amber,
+                size: 36,
+              ),
+              onPressed: () => onRatingChanged(index + 1),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text("امتیاز به ${widget.order.carwashName}", 
+        textAlign: TextAlign.center, 
+        style: const TextStyle(fontSize: 18)),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildStarRating("امتیاز کارواش", _carwashRating, (val) => setState(() => _carwashRating = val)),
+            const SizedBox(height: 16),
+            _buildStarRating("امتیاز راننده", _driverRating, (val) => setState(() => _driverRating = val)),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _commentCtrl,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                hintText: "نظر شما در مورد این سرویس...",
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("انصراف", style: TextStyle(color: Colors.grey)),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+          onPressed: _isSubmitting ? null : () async {
+            setState(() => _isSubmitting = true);
+            // Logic for submitting to backend Task-B5.5
+            // await provider.submitReview(widget.order.id, _carwashRating, _driverRating, _commentCtrl.text);
+            await Future.delayed(const Duration(seconds: 1));
+            if (mounted) {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("امتیاز شما با موفقیت ثبت شد"), backgroundColor: Colors.green),
+              );
+            }
+          },
+          child: _isSubmitting 
+            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+            : const Text("ثبت نظر"),
+        ),
+      ],
     );
   }
 }

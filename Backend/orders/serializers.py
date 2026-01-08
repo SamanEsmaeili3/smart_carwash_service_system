@@ -2,6 +2,8 @@ from rest_framework import serializers
 from .models import Order, OrderService
 from carwash.models import CarwashService
 from accounts.serializers import CustomerProfileSerializer
+from .models import Rating
+
 
 class OrderServiceSerializer(serializers.ModelSerializer):
     service_name = serializers.CharField(source='service.service_name', read_only=True)
@@ -85,3 +87,24 @@ class OrderHistorySerializer(serializers.ModelSerializer):
         # Returns string like: "Basic Wash, Wax, Interior Cleaning"
         services = [os.service.service_name for os in obj.order_services.all()]
         return ", ".join(services)
+    
+class RatingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Rating
+        fields = ['order', 'carwash_rating', 'carwash_comment', 'driver_rating', 'driver_comment']
+
+    def validate_order(self, value):
+        # Check if the order is already rated (since it's a OneToOneField)
+        if Rating.objects.filter(order=value).exists():
+            raise serializers.ValidationError("این سفارش قبلاً امتیازدهی شده است.")
+        
+        # Ensure only the customer who placed the order can rate it
+        request = self.context.get('request')
+        if value.customer.user != request.user:
+            raise serializers.ValidationError("شما اجازه ثبت امتیاز برای این سفارش را ندارید.")
+            
+        # Ensure order is COMPLETE before rating
+        if value.status != 'COMPLETE':
+             raise serializers.ValidationError("فقط برای سفارش‌های تکمیل شده می‌توانید نظر ثبت کنید.")
+             
+        return value
