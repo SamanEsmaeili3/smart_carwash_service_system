@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shamsi_date/shamsi_date.dart';
+import 'package:intl/intl.dart';
 import '../../providers/booking_provider.dart';
 import '../../constants/app_colors.dart';
 import '../../models/order_history_model.dart';
-import '../../widgets/custom_button.dart';
+import '../../services/api_service.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
   const OrderHistoryScreen({super.key});
@@ -211,7 +212,6 @@ class _OrderHistoryCard extends StatelessWidget {
   }
 }
 
-// --- Internal Review Dialog Widget ---
 class _ReviewDialog extends StatefulWidget {
   final OrderHistoryModel order;
   const _ReviewDialog({required this.order});
@@ -230,24 +230,19 @@ class _ReviewDialogState extends State<_ReviewDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label, 
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)
-        ),
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(5, (index) {
-            return InkWell( // Using InkWell instead of IconButton for better web compatibility
+            return InkWell(
               onTap: () => onRatingChanged(index + 1),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4.0),
                 child: Icon(
                   index < currentRating ? Icons.star_rounded : Icons.star_outline_rounded,
-                  color: Colors.amber, 
+                  color: Colors.amber,
                   size: 42,
-                  // Explicitly defining the font family for Material Icons
-                  fontFamily: 'MaterialIcons', 
                 ),
               ),
             );
@@ -292,14 +287,34 @@ class _ReviewDialogState extends State<_ReviewDialog> {
           style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
           onPressed: _isSubmitting ? null : () async {
             setState(() => _isSubmitting = true);
-            // Logic for submitting to backend Task-B5.5
-            // await provider.submitReview(widget.order.id, _carwashRating, _driverRating, _commentCtrl.text);
-            await Future.delayed(const Duration(seconds: 1));
-            if (mounted) {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("امتیاز شما با موفقیت ثبت شد"), backgroundColor: Colors.green),
-              );
+            
+            try {
+              final api = ApiService(); 
+              await api.post('/api/order/reviews/submit/', {
+                "order": widget.order.id,
+                "carwash_rating": _carwashRating,
+                "carwash_comment": _commentCtrl.text,
+                "driver_rating": _driverRating,
+                "driver_comment": "", 
+              }, auth: true);
+
+              if (mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text("امتیاز شما با موفقیت ثبت شد"), 
+                    backgroundColor: Colors.green
+                  ),
+                );
+                Provider.of<BookingProvider>(context, listen: false).fetchOrderHistory();
+              }
+            } catch (e) {
+              if (mounted) {
+                setState(() => _isSubmitting = false);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("خطا در ثبت امتیاز: ${e.toString()}"), backgroundColor: Colors.red),
+                );
+              }
             }
           },
           child: _isSubmitting 
