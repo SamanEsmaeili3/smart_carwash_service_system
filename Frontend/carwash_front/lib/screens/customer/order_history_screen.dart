@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shamsi_date/shamsi_date.dart'; // اضافه شده برای تاریخ شمسی
 import '../../providers/booking_provider.dart';
 import '../../constants/app_colors.dart';
 import '../../models/order_history_model.dart';
@@ -24,10 +25,11 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      app_bar: AppBar(
         title: const Text("سفارش‌های من", style: TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
         elevation: 0,
+        centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.black),
       ),
       body: Consumer<BookingProvider>(
@@ -97,8 +99,11 @@ class _OrderHistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Simple date formatting
-    String dateStr = order.scheduledTime.toString().split('.')[0]; 
+    // تبدیل تاریخ میلادی به شمسی
+    final jalali = Jalali.fromDateTime(order.scheduledTime);
+    final f = jalali.formatter;
+    final String timeStr = '${order.scheduledTime.hour.toString().padLeft(2, '0')}:${order.scheduledTime.minute.toString().padLeft(2, '0')}';
+    final String dateStr = '${f.wN}، ${f.d} ${f.mN} ${f.yyyy} - ساعت $timeStr';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -132,10 +137,10 @@ class _OrderHistoryCard extends StatelessWidget {
                           fontSize: 16,
                         ),
                       ),
-                      // Removed explicit textDirection to fix build error
                       Text(
                         dateStr,
                         style: const TextStyle(color: Colors.grey, fontSize: 12),
+                        textDirection: TextDirection.rtl, // نمایش صحیح تاریخ فارسی
                       ),
                     ],
                   ),
