@@ -230,18 +230,24 @@ class _ReviewDialogState extends State<_ReviewDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+        Text(
+          label, 
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)
+        ),
         const SizedBox(height: 8),
         Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center, // Center the stars
           children: List.generate(5, (index) {
             return IconButton(
+              // Use star_rounded for a filled star and star_outline_rounded for empty
               icon: Icon(
                 index < currentRating ? Icons.star_rounded : Icons.star_outline_rounded,
-                color: Colors.amber,
-                size: 36,
+                color: Colors.amber, // This makes it yellow/gold
+                size: 40, // Increased size for better visibility
               ),
               onPressed: () => onRatingChanged(index + 1),
+              padding: EdgeInsets.zero, // Reduce padding to fit 5 stars easily
+              constraints: const BoxConstraints(), // Helps with spacing in small dialogs
             );
           }),
         ),
