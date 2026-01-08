@@ -110,8 +110,7 @@ class _OrderHistoryCard extends StatelessWidget {
     final bool isCompleted = order.status.toUpperCase() == 'COMPLETE' || 
                              order.status.toUpperCase() == 'COMPLETED';
 
-    // FIX: Hide button if order already has a rating
-    final bool showRatingButton = isCompleted && !(order.hasRating ?? false);
+    final bool showRatingButton = isCompleted && !order.hasRating;
 
     final jalali = Jalali.fromDateTime(order.scheduledTime);
     final f = jalali.formatter;
@@ -192,7 +191,6 @@ class _OrderHistoryCard extends StatelessWidget {
                     fontSize: 16,
                   ),
                 ),
-                // Only show the button if order is completed AND not yet rated
                 if (showRatingButton)
                   SizedBox(
                     height: 36,
@@ -213,6 +211,49 @@ class _OrderHistoryCard extends StatelessWidget {
                   ),
               ],
             ),
+
+            // --- Show Customer Review if already rated ---
+            if (order.hasRating)
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                padding: const EdgeInsets.all(12),
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey[200]!),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "امتیاز ثبت شده شما:",
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        Text(
+                          "★" * (order.carwashRating ?? 0),
+                          style: const TextStyle(color: Colors.amber, fontSize: 16),
+                        ),
+                      ],
+                    ),
+                    if (order.carwashComment != null && order.carwashComment!.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text(
+                          order.carwashComment!,
+                          style: TextStyle(
+                            color: Colors.grey[700],
+                            fontSize: 13,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
@@ -317,7 +358,6 @@ class _ReviewDialogState extends State<_ReviewDialog> {
                     backgroundColor: Colors.green
                   ),
                 );
-                // Trigger a refresh of the order history list
                 Provider.of<BookingProvider>(context, listen: false).fetchOrderHistory();
               }
             } catch (e) {

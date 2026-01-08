@@ -60,21 +60,17 @@ class OrderHistorySerializer(serializers.ModelSerializer):
     carwash_name = serializers.CharField(source='carwash.business_name', read_only=True)
     carwash_image = serializers.CharField(source='carwash.license_photo_url', read_only=True) 
     services_text = serializers.SerializerMethodField()
-    # ADDED: Boolean field to tell the frontend if this order has been rated
     has_rating = serializers.SerializerMethodField()
+    
+    # NEW: Include the actual rating data
+    rating_details = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
         fields = [
-            'id', 
-            'carwash_name', 
-            'carwash_image',
-            'scheduled_time', 
-            'total_price', 
-            'status', 
-            'services_text',
-            'has_rating',
-            'created_at'
+            'id', 'carwash_name', 'carwash_image', 'scheduled_time', 
+            'total_price', 'status', 'services_text', 'has_rating', 
+            'rating_details', 'created_at'
         ]
 
     def get_services_text(self, obj):
@@ -82,9 +78,18 @@ class OrderHistorySerializer(serializers.ModelSerializer):
         return ", ".join(services)
 
     def get_has_rating(self, obj):
-        # Checks for the existence of the OneToOne relation from the Order model
         return hasattr(obj, 'rating')
-    
+
+    def get_rating_details(self, obj):
+        # Returns the rating data if it exists, otherwise null
+        if hasattr(obj, 'rating'):
+            return {
+                "carwash_rating": obj.rating.carwash_rating,
+                "carwash_comment": obj.rating.carwash_comment,
+                "driver_rating": obj.rating.driver_rating,
+            }
+        return None
+        
 class RatingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Rating

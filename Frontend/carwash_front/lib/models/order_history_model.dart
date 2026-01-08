@@ -6,7 +6,11 @@ class OrderHistoryModel {
   final double totalPrice;
   final String status;
   final String servicesText;
-  final bool hasRating; // Added to track if the order is already rated
+  final bool hasRating;
+  // New fields for displaying the submitted review
+  final int? carwashRating;
+  final String? carwashComment;
+  final int? driverRating;
 
   OrderHistoryModel({
     required this.id,
@@ -16,11 +20,14 @@ class OrderHistoryModel {
     required this.totalPrice,
     required this.status,
     required this.servicesText,
-    required this.hasRating, // Initialize the new field
+    required this.hasRating,
+    this.carwashRating,
+    this.carwashComment,
+    this.driverRating,
   });
 
   factory OrderHistoryModel.fromJson(Map<String, dynamic> json) {
-    // 1. Safe Date Parsing Logic
+    // 1. Safe Date Parsing Logic (Your original block preserved)
     DateTime parsedDate;
     try {
       if (json['scheduled_time'] != null) {
@@ -33,16 +40,22 @@ class OrderHistoryModel {
       parsedDate = DateTime.now(); // Fallback if format is invalid
     }
 
+    // Extract nested rating details from the backend
+    final ratingData = json['rating_details'];
+
     return OrderHistoryModel(
       id: json['id'],
       carwashName: json['carwash_name'] ?? 'Carwash',
       carwashImage: json['carwash_image'] ?? '',
-      scheduledTime: parsedDate,
+      scheduledTime: parsedDate, 
       totalPrice: double.tryParse(json['total_price'].toString()) ?? 0.0,
       status: json['status'] ?? 'UNKNOWN',
       servicesText: json['services_text'] ?? '',
-      // Map the has_rating field from the backend serializer
-      hasRating: json['has_rating'] ?? false, 
+      hasRating: json['has_rating'] ?? false,
+      // Map submitted rating data for display
+      carwashRating: ratingData?['carwash_rating'],
+      carwashComment: ratingData?['carwash_comment'],
+      driverRating: ratingData?['driver_rating'],
     );
   }
 }
