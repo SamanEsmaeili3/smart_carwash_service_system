@@ -1,9 +1,7 @@
 from rest_framework import serializers
-from .models import Order, OrderService
+from .models import Order, OrderService, Rating
 from carwash.models import CarwashService
 from accounts.serializers import CustomerProfileSerializer
-from .models import Rating
-
 
 class OrderServiceSerializer(serializers.ModelSerializer):
     service_name = serializers.CharField(source='service.service_name', read_only=True)
@@ -29,15 +27,12 @@ class OrderDraftSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'total_price', 'status', 'created_at', 'order_services']
 
 class OrderOwnerSerializer(serializers.ModelSerializer):
-    # Provide both flattened fields for backwards compatibility
     customer_name = serializers.CharField(source='customer.full_name', read_only=True)
     customer_phone = serializers.CharField(source='customer.phone_number', read_only=True)
     customer_email = serializers.CharField(source='customer.user.email', read_only=True)
-    # New: include full nested customer object (email, full_name, phone_number)
     customer = CustomerProfileSerializer(read_only=True)
     vehicle_plate = serializers.SerializerMethodField()
     vehicle_info = serializers.SerializerMethodField()
-    
     services_list = serializers.SerializerMethodField()
 
     class Meta:
@@ -59,16 +54,14 @@ class OrderOwnerSerializer(serializers.ModelSerializer):
         return None
 
     def get_services_list(self, obj):
-        # Return a list of strings like ["Basic Wash (x1)", "Wax (x1)"]
         return [f"{os.service.service_name}" for os in obj.order_services.all()]
     
 class OrderHistorySerializer(serializers.ModelSerializer):
-    # Flatten Carwash details directly from the related model
     carwash_name = serializers.CharField(source='carwash.business_name', read_only=True)
-    # Note: Using 'license_photo_url' to match your Carwash model
     carwash_image = serializers.CharField(source='carwash.license_photo_url', read_only=True) 
-    
     services_text = serializers.SerializerMethodField()
+    # ADDED: Boolean field to tell the frontend if this order has been rated
+    has_rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
@@ -80,13 +73,17 @@ class OrderHistorySerializer(serializers.ModelSerializer):
             'total_price', 
             'status', 
             'services_text',
+            'has_rating',
             'created_at'
         ]
 
     def get_services_text(self, obj):
-        # Returns string like: "Basic Wash, Wax, Interior Cleaning"
         services = [os.service.service_name for os in obj.order_services.all()]
         return ", ".join(services)
+
+    def get_has_rating(self, obj):
+        # Checks for the existence of the OneToOne relation from the Order model
+        return hasattr(obj, 'rating')
     
 class RatingSerializer(serializers.ModelSerializer):
     class Meta:
@@ -94,16 +91,15 @@ class RatingSerializer(serializers.ModelSerializer):
         fields = ['order', 'carwash_rating', 'carwash_comment', 'driver_rating', 'driver_comment']
 
     def validate_order(self, value):
-        # Check if the order is already rated (since it's a OneToOneField)
+        # Check if the order is already rated (OneToOneField protection)
         if Rating.objects.filter(order=value).exists():
             raise serializers.ValidationError("این سفارش قبلاً امتیازدهی شده است.")
         
-        # Ensure only the customer who placed the order can rate it
         request = self.context.get('request')
         if value.customer.user != request.user:
             raise serializers.ValidationError("شما اجازه ثبت امتیاز برای این سفارش را ندارید.")
             
-        # Ensure order is COMPLETE before rating
+        # Ensure status is COMPLETE as per Sprint 5 AC
         if value.status != 'COMPLETE':
              raise serializers.ValidationError("فقط برای سفارش‌های تکمیل شده می‌توانید نظر ثبت کنید.")
              

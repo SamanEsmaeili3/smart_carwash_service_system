@@ -110,6 +110,9 @@ class _OrderHistoryCard extends StatelessWidget {
     final bool isCompleted = order.status.toUpperCase() == 'COMPLETE' || 
                              order.status.toUpperCase() == 'COMPLETED';
 
+    // FIX: Hide button if order already has a rating
+    final bool showRatingButton = isCompleted && !(order.hasRating ?? false);
+
     final jalali = Jalali.fromDateTime(order.scheduledTime);
     final f = jalali.formatter;
     final String timeStr = '${order.scheduledTime.hour.toString().padLeft(2, '0')}:${order.scheduledTime.minute.toString().padLeft(2, '0')}';
@@ -189,7 +192,8 @@ class _OrderHistoryCard extends StatelessWidget {
                     fontSize: 16,
                   ),
                 ),
-                if (isCompleted)
+                // Only show the button if order is completed AND not yet rated
+                if (showRatingButton)
                   SizedBox(
                     height: 36,
                     child: ElevatedButton(
@@ -200,7 +204,6 @@ class _OrderHistoryCard extends StatelessWidget {
                       ),
                       child: Row(
                         children: const [
-                          // Using standard character here too for consistency in the button
                           Text("★", style: TextStyle(color: Colors.white, fontSize: 18)),
                           SizedBox(width: 4),
                           Text("ثبت امتیاز", style: TextStyle(fontSize: 13)),
@@ -249,7 +252,7 @@ class _ReviewDialogState extends State<_ReviewDialog> {
                   style: const TextStyle(
                     color: Colors.amber,
                     fontSize: 44,
-                    height: 1.0, // Ensures standard alignment on web
+                    height: 1.0,
                   ),
                 ),
               ),
@@ -314,6 +317,7 @@ class _ReviewDialogState extends State<_ReviewDialog> {
                     backgroundColor: Colors.green
                   ),
                 );
+                // Trigger a refresh of the order history list
                 Provider.of<BookingProvider>(context, listen: false).fetchOrderHistory();
               }
             } catch (e) {
