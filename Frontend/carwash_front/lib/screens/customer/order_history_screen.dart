@@ -236,18 +236,20 @@ class _ReviewDialogState extends State<_ReviewDialog> {
         ),
         const SizedBox(height: 8),
         Row(
-          mainAxisAlignment: MainAxisAlignment.center, // Center the stars
+          mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(5, (index) {
-            return IconButton(
-              // Use star_rounded for a filled star and star_outline_rounded for empty
-              icon: Icon(
-                index < currentRating ? Icons.star_rounded : Icons.star_outline_rounded,
-                color: Colors.amber, // This makes it yellow/gold
-                size: 40, // Increased size for better visibility
+            return InkWell( // Using InkWell instead of IconButton for better web compatibility
+              onTap: () => onRatingChanged(index + 1),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                child: Icon(
+                  index < currentRating ? Icons.star_rounded : Icons.star_outline_rounded,
+                  color: Colors.amber, 
+                  size: 42,
+                  // Explicitly defining the font family for Material Icons
+                  fontFamily: 'MaterialIcons', 
+                ),
               ),
-              onPressed: () => onRatingChanged(index + 1),
-              padding: EdgeInsets.zero, // Reduce padding to fit 5 stars easily
-              constraints: const BoxConstraints(), // Helps with spacing in small dialogs
             );
           }),
         ),
