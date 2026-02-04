@@ -28,7 +28,7 @@ class AdminDashboard extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => AdminProvider(),
       child: DefaultTabController(
-        length: 3, // 3 Tabs: Pending, Active, Rejected
+        length: 4, // UPDATED: 4 Tabs to include Overview Metrics 
         child: Scaffold(
           appBar: AppBar(
             title: const Text('داشبورد ادمین'),
@@ -47,7 +47,9 @@ class AdminDashboard extends StatelessWidget {
               labelColor: Colors.white,
               unselectedLabelColor: Colors.white60,
               indicatorColor: Colors.white,
+              isScrollable: true, // Better for 4 tabs on mobile
               tabs: [
+                Tab(text: "آمار کلی", icon: Icon(Icons.dashboard_outlined)), // User Story 4.1 
                 Tab(text: "جدید", icon: Icon(Icons.hourglass_empty)),
                 Tab(text: "فعال", icon: Icon(Icons.check_circle_outline)),
                 Tab(text: "رد شده", icon: Icon(Icons.cancel_outlined)),
@@ -59,6 +61,7 @@ class AdminDashboard extends StatelessWidget {
               constraints: const BoxConstraints(maxWidth: 800),
               child: const TabBarView(
                 children: [
+                  _DashboardMetricsTab(), // Implementation of User Story 4.1 cards [cite: 78]
                   _PendingListTab(),
                   _ApprovedListTab(),
                   _RejectedListTab(),
@@ -66,6 +69,115 @@ class AdminDashboard extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// TAB 0: Dashboard Metrics Overview (User Story 4.1) 
+// -----------------------------------------------------------------------------
+class _DashboardMetricsTab extends StatefulWidget {
+  const _DashboardMetricsTab();
+
+  @override
+  State<_DashboardMetricsTab> createState() => _DashboardMetricsTabState();
+}
+
+class _DashboardMetricsTabState extends State<_DashboardMetricsTab> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Calls Task-B5.10 backend logic [cite: 81]
+      Provider.of<AdminProvider>(context, listen: false).fetchAdminStats(); 
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AdminProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading && provider.adminStats == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final stats = provider.adminStats ?? {
+          "total_users": 0,
+          "active_carwashes": 0,
+          "completed_orders": 0
+        };
+
+        return RefreshIndicator(
+          onRefresh: () => provider.fetchAdminStats(),
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              const Text(
+                "خلاصه وضعیت پلتفرم",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.right,
+              ),
+              const SizedBox(height: 20),
+              
+              // Metric Cards based on AC [cite: 78]
+              _buildStatCard(
+                "کل کاربران", 
+                stats["total_users"].toString(), 
+                Icons.people_alt_outlined, 
+                Colors.blue
+              ),
+              _buildStatCard(
+                "کارواش‌های فعال", 
+                stats["active_carwashes"].toString(), 
+                Icons.local_car_wash_outlined, 
+                Colors.green
+              ),
+              _buildStatCard(
+                "سفارش‌های تکمیل شده", 
+                stats["completed_orders"].toString(), 
+                Icons.shopping_bag_outlined, 
+                Colors.orange
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 30),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                  Text(
+                    value, 
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -178,7 +290,6 @@ class _ApprovedListTabState extends State<_ApprovedListTab> {
             itemCount: provider.approvedList.length,
             itemBuilder: (context, index) {
               final carwash = provider.approvedList[index];
-              // UPDATED: Pass isActiveTab: true
               return CarwashApplicationCard(
                 carwash: carwash, 
                 isPending: false, 
@@ -230,7 +341,6 @@ class _RejectedListTabState extends State<_RejectedListTab> {
             itemCount: provider.rejectedList.length,
             itemBuilder: (context, index) {
               final carwash = provider.rejectedList[index];
-              // UPDATED: Use Full Card UI with isRejectedTab: true
               return CarwashApplicationCard(
                 carwash: carwash,
                 isPending: false,
@@ -326,7 +436,6 @@ class CarwashApplicationCard extends StatelessWidget {
 
             Row(
               children: [
-                // INFO BUTTON (Always Visible)
                 Expanded(
                   child: CustomButton(
                     onPressed: () => _showDetailsDialog(context),
@@ -346,7 +455,6 @@ class CarwashApplicationCard extends StatelessWidget {
 
                 const SizedBox(width: 8),
 
-                // PENDING ACTIONS
                 if (isPending) ...[
                   Expanded(
                     child: CustomButton(
@@ -370,7 +478,6 @@ class CarwashApplicationCard extends StatelessWidget {
                   ),
                 ],
 
-                // ACTIVE ACTIONS
                 if (isActiveTab) ...[
                   IconButton(
                     tooltip: "تعلیق (رد کردن)",
@@ -384,7 +491,6 @@ class CarwashApplicationCard extends StatelessWidget {
                   ),
                 ],
 
-                // REJECTED ACTIONS
                 if (isRejectedTab) ...[
                    IconButton(
                     tooltip: "حذف کامل",
@@ -530,7 +636,6 @@ class CarwashApplicationCard extends StatelessWidget {
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () {
               Navigator.pop(ctx);
-              // Ensure you have this method in AdminProvider!
               provider.deleteCarwash(carwash.id!); 
             },
             child: const Text("حذف", style: TextStyle(color: Colors.white)),
