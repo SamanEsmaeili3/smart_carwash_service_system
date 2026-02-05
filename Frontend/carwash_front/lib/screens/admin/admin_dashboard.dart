@@ -28,7 +28,7 @@ class AdminDashboard extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => AdminProvider(),
       child: DefaultTabController(
-        length: 4, // UPDATED: 4 Tabs to include Overview Metrics
+        length: 4, // 4 Tabs: Metrics, Pending, Active, Rejected
         child: Scaffold(
           appBar: AppBar(
             title: const Text('داشبورد ادمین'),
@@ -47,13 +47,14 @@ class AdminDashboard extends StatelessWidget {
               labelColor: Colors.white,
               unselectedLabelColor: Colors.white60,
               indicatorColor: Colors.white,
-              // FIX: isScrollable is false so 4 tabs stretch to fill width evenly
+              // FIX: isScrollable is false so tabs space out evenly across the screen width
               isScrollable: false, 
               tabs: [
-                Tab(text: "آمار", icon: Icon(Icons.dashboard)), // User Story 4.1 
-                Tab(text: "جدید", icon: Icon(Icons.hourglass_empty)),
-                Tab(text: "فعال", icon: Icon(Icons.check_circle_outline)),
-                Tab(text: "رد شده", icon: Icon(Icons.cancel_outlined)),
+                // Fulfilling User Story 4.1: Admin Dashboard Metrics [cite: 76]
+                Tab(text: "آمار", icon: Text("📊", style: TextStyle(fontSize: 18))), 
+                Tab(text: "جدید", icon: Text("⏳", style: TextStyle(fontSize: 18))),
+                Tab(text: "فعال", icon: Text("✅", style: TextStyle(fontSize: 18))),
+                Tab(text: "رد شده", icon: Text("❌", style: TextStyle(fontSize: 18))),
               ],
             ),
           ),
@@ -62,7 +63,7 @@ class AdminDashboard extends StatelessWidget {
               constraints: const BoxConstraints(maxWidth: 800),
               child: const TabBarView(
                 children: [
-                  _DashboardMetricsTab(), // Metrics implementation [cite: 83]
+                  _DashboardMetricsTab(), // Real data metrics 
                   _PendingListTab(),
                   _ApprovedListTab(),
                   _RejectedListTab(),
@@ -77,7 +78,7 @@ class AdminDashboard extends StatelessWidget {
 }
 
 // -----------------------------------------------------------------------------
-// TAB 0: Dashboard Metrics Overview (User Story 4.1) 
+// TAB 0: Dashboard Metrics Overview (User Story 4.1) [cite: 75]
 // -----------------------------------------------------------------------------
 class _DashboardMetricsTab extends StatefulWidget {
   const _DashboardMetricsTab();
@@ -91,7 +92,7 @@ class _DashboardMetricsTabState extends State<_DashboardMetricsTab> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Calls Task-B5.10 backend logic [cite: 81]
+      // Calls Task-B5.10 backend logic via the provider [cite: 81]
       Provider.of<AdminProvider>(context, listen: false).fetchAdminStats(); 
     });
   }
@@ -122,23 +123,23 @@ class _DashboardMetricsTabState extends State<_DashboardMetricsTab> {
               ),
               const SizedBox(height: 20),
               
-              // Metric Cards based on AC 
+              // Metric Cards for Total Users, Active Carwashes, Total Orders Completed [cite: 78]
               _buildStatCard(
                 "کل کاربران", 
                 stats["total_users"].toString(), 
-                Icons.people, 
+                "👥", 
                 Colors.blue
               ),
               _buildStatCard(
                 "کارواش‌های فعال", 
                 stats["active_carwashes"].toString(), 
-                Icons.local_car_wash, 
+                "🚿", 
                 Colors.green
               ),
               _buildStatCard(
                 "سفارش‌های تکمیل شده", 
                 stats["completed_orders"].toString(), 
-                Icons.shopping_bag, 
+                "🛍️", 
                 Colors.orange
               ),
             ],
@@ -148,7 +149,7 @@ class _DashboardMetricsTabState extends State<_DashboardMetricsTab> {
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
+  Widget _buildStatCard(String label, String value, String iconChar, Color color) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 4,
@@ -163,7 +164,8 @@ class _DashboardMetricsTabState extends State<_DashboardMetricsTab> {
                 color: color.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: color, size: 36),
+              // Use text emoji to ensure visibility despite Chrome CSP issues
+              child: Text(iconChar, style: const TextStyle(fontSize: 32)),
             ),
             const SizedBox(width: 24),
             Expanded(
