@@ -11,6 +11,9 @@ class AdminProvider with ChangeNotifier {
   List<CarwashModel> _approvedList = []; 
   List<CarwashModel> _rejectedList = [];
   
+  // NEW: State for User Story 4.1 metrics [cite: 75, 83]
+  Map<String, dynamic>? _adminStats;
+  
   bool _isLoading = false;
   String? _error;
 
@@ -18,8 +21,35 @@ class AdminProvider with ChangeNotifier {
   List<CarwashModel> get approvedList => _approvedList;
   List<CarwashModel> get rejectedList => _rejectedList;
   
+  // NEW: Getter for the Dashboard cards [cite: 78, 83]
+  Map<String, dynamic>? get adminStats => _adminStats;
+  
   bool get isLoading => _isLoading;
   String? get error => _error;
+
+  // --- NEW: Fetch Aggregated Metrics (User Story 4.1) ---
+  // Implements [Task-F5.9] to fetch real data for the Dashboard 
+  Future<void> fetchAdminStats() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      print("AdminProvider: Fetching dashboard metrics..."); 
+      // This calls the GET /api/admin/stats/ endpoint 
+      final response = await _api.get('/api/accounts/admin/stats/', auth: true);
+      
+      _adminStats = response as Map<String, dynamic>;
+      print("AdminProvider: Dashboard stats loaded successfully"); 
+
+    } catch (e) {
+      print("AdminProvider Metrics Error: $e"); 
+      _error = ErrorHandler.getErrorMessage(e);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 
   // --- Fetch Methods ---
   Future<void> fetchPendingCarwashes() async => await _fetchList(status: 'pending');
@@ -33,7 +63,7 @@ class AdminProvider with ChangeNotifier {
 
     try {
       final String endpoint = '${ApiConstants.adminPending}?status=$status';
-      print("AdminProvider: Fetching $status list from $endpoint"); // DEBUG LOG
+      print("AdminProvider: Fetching $status list from $endpoint"); 
 
       final response = await _api.get(endpoint, auth: true);
       
@@ -48,10 +78,10 @@ class AdminProvider with ChangeNotifier {
       } else {
         _pendingList = data;
       }
-      print("AdminProvider: Loaded ${data.length} items for $status"); // DEBUG LOG
+      print("AdminProvider: Loaded ${data.length} items for $status"); 
 
     } catch (e) {
-      print("AdminProvider Error: $e"); // DEBUG LOG
+      print("AdminProvider Error: $e"); 
       _error = ErrorHandler.getErrorMessage(e);
     } finally {
       _isLoading = false;
@@ -66,7 +96,7 @@ class AdminProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      print("AdminProvider: Sending $action request for ID $id..."); // DEBUG LOG
+      print("AdminProvider: Sending $action request for ID $id..."); 
       
       final Map<String, dynamic> body = { "action": action };
       if (reason != null && reason.isNotEmpty) {
@@ -75,16 +105,17 @@ class AdminProvider with ChangeNotifier {
 
       await _api.post('${ApiConstants.adminManage}$id/', body, auth: true);
       
-      print("AdminProvider: $action successful. Refreshing lists..."); // DEBUG LOG
+      print("AdminProvider: $action successful. Refreshing lists..."); 
 
-      // ✅ FORCE REFRESH: Reload data from server to ensure it actually changed
+      // Force refresh data and metrics to ensure Dashboard is accurate 
       await fetchPendingCarwashes();
       await fetchApprovedCarwashes();
       await fetchRejectedCarwashes();
+      await fetchAdminStats(); 
 
       return true;
     } catch (e) {
-      print("AdminProvider Error ($action): $e"); // DEBUG LOG
+      print("AdminProvider Error ($action): $e"); 
       _error = ErrorHandler.getErrorMessage(e);
       return false;
     } finally {
@@ -100,22 +131,20 @@ class AdminProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      print("AdminProvider: Deleting carwash ID $id..."); // DEBUG LOG
+      print("AdminProvider: Deleting carwash ID $id..."); 
       
-      // Call Delete API
       await _api.delete('${ApiConstants.adminDelete}$id/', auth: true);
 
-      print("AdminProvider: Delete successful. Refreshing lists..."); // DEBUG LOG
+      print("AdminProvider: Delete successful. Refreshing lists and stats..."); 
 
-      // ✅ FORCE REFRESH: Reload data from server to ensure it is GONE
-      // We purposefully reload ALL lists to ensure it's removed from everywhere
       await fetchPendingCarwashes();
       await fetchApprovedCarwashes();
       await fetchRejectedCarwashes();
+      await fetchAdminStats(); // Sync metrics after deletion 
 
       return true;
     } catch (e) {
-      print("AdminProvider Delete Error: $e"); // DEBUG LOG
+      print("AdminProvider Delete Error: $e"); 
       _error = ErrorHandler.getErrorMessage(e);
       return false;
     } finally {
