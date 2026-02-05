@@ -28,7 +28,7 @@ class AdminDashboard extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => AdminProvider(),
       child: DefaultTabController(
-        length: 4, // UPDATED: 4 Tabs to include Overview Metrics 
+        length: 4, // UPDATED: 4 Tabs to include Overview Metrics
         child: Scaffold(
           appBar: AppBar(
             title: const Text('داشبورد ادمین'),
@@ -47,9 +47,10 @@ class AdminDashboard extends StatelessWidget {
               labelColor: Colors.white,
               unselectedLabelColor: Colors.white60,
               indicatorColor: Colors.white,
-              isScrollable: true, // Better for 4 tabs on mobile
+              // FIX: isScrollable is false so 4 tabs stretch to fill width evenly
+              isScrollable: false, 
               tabs: [
-                Tab(text: "آمار کلی", icon: Icon(Icons.dashboard_outlined)), // User Story 4.1 
+                Tab(text: "آمار", icon: Icon(Icons.dashboard)), // User Story 4.1 
                 Tab(text: "جدید", icon: Icon(Icons.hourglass_empty)),
                 Tab(text: "فعال", icon: Icon(Icons.check_circle_outline)),
                 Tab(text: "رد شده", icon: Icon(Icons.cancel_outlined)),
@@ -61,7 +62,7 @@ class AdminDashboard extends StatelessWidget {
               constraints: const BoxConstraints(maxWidth: 800),
               child: const TabBarView(
                 children: [
-                  _DashboardMetricsTab(), // Implementation of User Story 4.1 cards [cite: 78]
+                  _DashboardMetricsTab(), // Metrics implementation [cite: 83]
                   _PendingListTab(),
                   _ApprovedListTab(),
                   _RejectedListTab(),
@@ -121,23 +122,23 @@ class _DashboardMetricsTabState extends State<_DashboardMetricsTab> {
               ),
               const SizedBox(height: 20),
               
-              // Metric Cards based on AC [cite: 78]
+              // Metric Cards based on AC 
               _buildStatCard(
                 "کل کاربران", 
                 stats["total_users"].toString(), 
-                Icons.people_alt_outlined, 
+                Icons.people, 
                 Colors.blue
               ),
               _buildStatCard(
                 "کارواش‌های فعال", 
                 stats["active_carwashes"].toString(), 
-                Icons.local_car_wash_outlined, 
+                Icons.local_car_wash, 
                 Colors.green
               ),
               _buildStatCard(
                 "سفارش‌های تکمیل شده", 
                 stats["completed_orders"].toString(), 
-                Icons.shopping_bag_outlined, 
+                Icons.shopping_bag, 
                 Colors.orange
               ),
             ],
@@ -150,10 +151,10 @@ class _DashboardMetricsTabState extends State<_DashboardMetricsTab> {
   Widget _buildStatCard(String label, String value, IconData icon, Color color) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
+      elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         child: Row(
           children: [
             Container(
@@ -162,9 +163,9 @@ class _DashboardMetricsTabState extends State<_DashboardMetricsTab> {
                 color: color.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: color, size: 30),
+              child: Icon(icon, color: color, size: 36),
             ),
-            const SizedBox(width: 20),
+            const SizedBox(width: 24),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -172,7 +173,7 @@ class _DashboardMetricsTabState extends State<_DashboardMetricsTab> {
                   Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
                   Text(
                     value, 
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)
+                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)
                   ),
                 ],
               ),
@@ -426,9 +427,9 @@ class CarwashApplicationCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            _buildInfoRow(Icons.location_on_outlined, carwash.address),
+            _buildInfoRow(Icons.location_on, carwash.address),
             const SizedBox(height: 4),
-            _buildInfoRow(Icons.phone_outlined, carwash.phoneNumber),
+            _buildInfoRow(Icons.phone, carwash.phoneNumber),
 
             const SizedBox(height: 12),
             const Divider(),
