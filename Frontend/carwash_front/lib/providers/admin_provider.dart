@@ -11,24 +11,25 @@ class AdminProvider with ChangeNotifier {
   List<CarwashModel> _approvedList = []; 
   List<CarwashModel> _rejectedList = [];
   
-  // NEW: State for User Story 4.1 metrics [cite: 75, 83]
   Map<String, dynamic>? _adminStats;
+
+  List<dynamic> _usersList = [];
   
   bool _isLoading = false;
   String? _error;
 
+  // Getters
   List<CarwashModel> get pendingList => _pendingList;
   List<CarwashModel> get approvedList => _approvedList;
   List<CarwashModel> get rejectedList => _rejectedList;
-  
-  // NEW: Getter for the Dashboard cards [cite: 78, 83]
   Map<String, dynamic>? get adminStats => _adminStats;
+  
+  List<dynamic> get usersList => _usersList;
   
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  // --- NEW: Fetch Aggregated Metrics (User Story 4.1) ---
-  // Implements [Task-F5.9] to fetch real data for the Dashboard 
+  // --- 1. Fetch Aggregated Metrics (User Story 4.1) ---
   Future<void> fetchAdminStats() async {
     _isLoading = true;
     _error = null;
@@ -36,9 +37,7 @@ class AdminProvider with ChangeNotifier {
 
     try {
       print("AdminProvider: Fetching dashboard metrics..."); 
-      // This calls the GET /api/admin/stats/ endpoint 
       final response = await _api.get('/api/accounts/admin/stats/', auth: true);
-      
       _adminStats = response as Map<String, dynamic>;
       print("AdminProvider: Dashboard stats loaded successfully"); 
 
@@ -51,7 +50,7 @@ class AdminProvider with ChangeNotifier {
     }
   }
 
-  // --- Fetch Methods ---
+  // --- 2. Fetch Carwash Lists ---
   Future<void> fetchPendingCarwashes() async => await _fetchList(status: 'pending');
   Future<void> fetchApprovedCarwashes() async => await _fetchList(status: 'approved');
   Future<void> fetchRejectedCarwashes() async => await _fetchList(status: 'rejected');
@@ -89,7 +88,7 @@ class AdminProvider with ChangeNotifier {
     }
   }
 
-  // --- Manage Request (Approve / Reject / Suspend) ---
+  // --- 3. Manage Carwash Request (Approve / Reject) ---
   Future<bool> manageRequest(int id, String action, {String? reason}) async {
     _isLoading = true;
     _error = null;
@@ -107,7 +106,6 @@ class AdminProvider with ChangeNotifier {
       
       print("AdminProvider: $action successful. Refreshing lists..."); 
 
-      // Force refresh data and metrics to ensure Dashboard is accurate 
       await fetchPendingCarwashes();
       await fetchApprovedCarwashes();
       await fetchRejectedCarwashes();
@@ -124,7 +122,7 @@ class AdminProvider with ChangeNotifier {
     }
   }
 
-  // --- DELETE CARWASH ---
+  // --- 4. Delete Carwash ---
   Future<bool> deleteCarwash(int id) async {
     _isLoading = true;
     _error = null;
@@ -132,7 +130,6 @@ class AdminProvider with ChangeNotifier {
 
     try {
       print("AdminProvider: Deleting carwash ID $id..."); 
-      
       await _api.delete('${ApiConstants.adminDelete}$id/', auth: true);
 
       print("AdminProvider: Delete successful. Refreshing lists and stats..."); 
@@ -140,7 +137,7 @@ class AdminProvider with ChangeNotifier {
       await fetchPendingCarwashes();
       await fetchApprovedCarwashes();
       await fetchRejectedCarwashes();
-      await fetchAdminStats(); // Sync metrics after deletion 
+      await fetchAdminStats(); 
 
       return true;
     } catch (e) {
@@ -150,6 +147,51 @@ class AdminProvider with ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  // --- 5. [Sprint 5] User Management Methods ---
+  Future<void> fetchUsers({String? query}) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      String endpoint = '/api/accounts/admin/users/';
+      if (query != null && query.isNotEmpty) {
+        endpoint += '?search=$query';
+      }
+      
+      print("AdminProvider: Fetching users from $endpoint");
+      final response = await _api.get(endpoint, auth: true);
+      
+      _usersList = response as List<dynamic>;
+      
+    } catch (e) {
+      print("Error fetching users: $e");
+      _error = ErrorHandler.getErrorMessage(e);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> toggleUserBan(int userId) async {
+    try {
+      print("AdminProvider: Toggling ban for user $userId");
+      final response = await _api.post('/api/accounts/admin/users/$userId/ban/', {}, auth: true);
+      
+      final index = _usersList.indexWhere((u) => u['id'] == userId);
+      if (index != -1) {
+        _usersList[index]['is_active'] = response['is_active'];
+        notifyListeners(); 
+      }
+      return true;
+    } catch (e) {
+      print("Error banning user: $e");
+      _error = ErrorHandler.getErrorMessage(e);
+      notifyListeners();
+      return false;
     }
   }
 

@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../../widgets/custom_button.dart';
 import '../../constants/app_colors.dart';
 import '../../models/carwash_model.dart';
+import 'user_management_screen.dart';
 
 final List<String> orderedDays = [
   'Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'
@@ -35,6 +36,17 @@ class AdminDashboard extends StatelessWidget {
             backgroundColor: AppColors.adminAppBar,
             centerTitle: true,
             actions: [
+              IconButton(
+                tooltip: 'مدیریت کاربران',
+                icon: const Icon(Icons.people_alt_outlined),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const UserManagementScreen()),
+                  );
+                },
+              ),
+              
               IconButton(
                 icon: const Icon(Icons.logout),
                 onPressed: () {

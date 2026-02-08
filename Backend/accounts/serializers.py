@@ -83,3 +83,11 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     email = serializers.EmailField()
     code = serializers.CharField(max_length=5)
     new_password = serializers.CharField(write_only=True, min_length=8)
+
+class AdminUserListSerializer(serializers.ModelSerializer):
+    full_name = serializers.CharField(source='customerprofile.full_name', read_only=True)
+    phone_number = serializers.CharField(source='customerprofile.phone_number', read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'is_active', 'full_name', 'phone_number']

@@ -6,12 +6,14 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.mail import send_mail
 from django.conf import settings
+from django.db import models
 
 from .serializers import (
     CustomerRegistrationSerializer, 
     CustomTokenObtainPairSerializer, 
     PasswordResetRequestSerializer, 
-    PasswordResetConfirmSerializer
+    PasswordResetConfirmSerializer,
+    AdminUserListSerializer
 )
 from .models import User, OTPRequest
 
@@ -226,3 +228,38 @@ class AdminStatsView(views.APIView):
             "active_carwashes": active_carwashes,
             "completed_orders": completed_orders
         }, status=status.HTTP_200_OK)
+    
+
+class AdminUserListView(generics.ListAPIView):
+    serializer_class = AdminUserListSerializer
+    permission_classes = [IsAdminUser]
+
+    def get_queryset(self):
+        queryset = User.objects.filter(is_customer=True, is_superuser=False, is_staff=False)
+        
+        search_query = self.request.query_params.get('search', None)
+        if search_query:
+            queryset = queryset.filter(
+                models.Q(email__icontains=search_query) | 
+                models.Q(customerprofile__full_name__icontains=search_query) |
+                models.Q(customerprofile__phone_number__icontains=search_query)
+            )
+        return queryset
+
+# [Task-B5.11] Admin: Ban/Unban User
+class AdminUserBanView(views.APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, pk):
+        try:
+            user = User.objects.get(pk=pk)
+            user.is_active = not user.is_active
+            user.save()
+            
+            status_msg = "Activated" if user.is_active else "Banned"
+            return Response(
+                {"message": f"User {status_msg} successfully", "is_active": user.is_active},
+                status=status.HTTP_200_OK
+            )
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)

@@ -5,7 +5,9 @@ from .views import (
     VerifyOTPView, 
     RequestPasswordResetView, 
     ResetPasswordView,
-    AdminStatsView  # <--- Added this import
+    AdminStatsView,
+    AdminUserListView,
+    AdminUserBanView
 )
 
 urlpatterns = [
@@ -13,8 +15,7 @@ urlpatterns = [
     path('auth/verify-otp/', VerifyOTPView.as_view(), name='verify-otp'), 
     path('auth/password-reset/request/', RequestPasswordResetView.as_view(), name='password-reset-request'),
     path('auth/password-reset/confirm/', ResetPasswordView.as_view(), name='password-reset-confirm'),
-    
-    # [Task-B5.10] Admin Dashboard Metrics Route
-    # Full URL will be: /api/accounts/admin/stats/
     path('admin/stats/', AdminStatsView.as_view(), name='admin-stats'),
+    path('admin/users/', AdminUserListView.as_view(), name='admin-user-list'),
+    path('admin/users/<int:pk>/ban/', AdminUserBanView.as_view(), name='admin-user-ban'),
 ]
