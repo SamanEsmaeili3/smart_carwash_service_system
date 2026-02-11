@@ -11,7 +11,8 @@ from .views import (
     CarwashProfileDetailView,
     DriverListCreateView,  
     DriverDetailView,
-    AdminCarwashDeleteView
+    AdminCarwashDeleteView,
+    CarwashReviewsListView
 )
 
 urlpatterns = [
@@ -54,4 +55,6 @@ urlpatterns = [
     
     # /api/carwash/drivers/<pk>/ (GET, PUT, DELETE)
     path('drivers/<int:pk>/', DriverDetailView.as_view(), name='driver-detail'),
+
+    path('reviews/', CarwashReviewsListView.as_view(), name='carwash-reviews-list'),
 ]

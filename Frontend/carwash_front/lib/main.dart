@@ -11,6 +11,7 @@ import 'providers/admin_provider.dart';
 import 'package:carwash_front/providers/carwash_profile_provider.dart';
 import 'package:carwash_front/providers/carwash_service_provider.dart';
 import 'providers/customer_provider.dart';
+import 'providers/carwash_review_provider.dart';
 
 import 'screens/landing_page.dart';
 import 'screens/auth/login_screen.dart';
@@ -40,6 +41,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => BookingProvider()),
         ChangeNotifierProvider(create: (_) => SearchProvider()),
         ChangeNotifierProvider(create: (_) => OrderOwnerProvider()),
+        ChangeNotifierProvider(create: (_) => CarwashReviewProvider()),
       ],
       child: const MyApp(),
     ),

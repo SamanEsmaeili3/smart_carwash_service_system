@@ -8,6 +8,7 @@ import '../../providers/carwash_profile_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/driver_provider.dart';
 import '../../providers/order_owner_provider.dart';
+import '../../providers/carwash_review_provider.dart';
 import '../../models/carwash_service_model.dart';
 import '../../models/driver_model.dart';
 import '../../models/order_owner_model.dart';
@@ -91,6 +92,7 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
       "مدیریت رانندگان",
       "پروفایل و تنظیمات",
       "سفارش‌های ورودی",
+      "نظرات مشتریان",
     ];
     return titles[_selectedIndex.clamp(0, titles.length - 1)];
   }
@@ -159,15 +161,10 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
         },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.list), label: "سرویس‌ها"),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.drive_eta),
-            label: "رانندگان",
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.drive_eta), label: "رانندگان"),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "پروفایل"),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.shopping_cart),
-            label: "سفارش‌ها",
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "سفارش‌ها"),
+          BottomNavigationBarItem(icon: Icon(Icons.star), label: "نظرات"), 
         ],
       ),
     );
@@ -183,6 +180,8 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
         return const _ProfileTab();
       case 3:
         return const _OrdersTab();
+      case 4:
+        return const _ReviewsTab();
       default:
         return _ServicesTab(onEdit: _showAddServiceSheet);
     }
@@ -2236,6 +2235,55 @@ class _DriverSelectionDialog extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+
+class _ReviewsTab extends StatefulWidget {
+  const _ReviewsTab();
+  @override
+  State<_ReviewsTab> createState() => _ReviewsTabState();
+}
+
+class _ReviewsTabState extends State<_ReviewsTab> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<CarwashReviewProvider>(context, listen: false).fetchReviews();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<CarwashReviewProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading) return const Center(child: CircularProgressIndicator());
+        if (provider.reviews.isEmpty) return const Center(child: Text("هنوز نظری ثبت نشده است."));
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: provider.reviews.length,
+          itemBuilder: (ctx, index) {
+            final review = provider.reviews[index];
+            return Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: ListTile(
+                title: Text(review.customerName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text(review.comment),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.star, color: Colors.amber, size: 20),
+                    Text(review.rating.toString()),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

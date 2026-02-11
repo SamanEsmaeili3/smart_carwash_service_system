@@ -11,6 +11,7 @@ from django.conf import settings
 from accounts.models import User, OTPRequest
 from .models import CarwashProfile, CarwashService, Driver
 from orders.models import Rating
+from .serializers import CarwashReviewSerializer
 
 # Import all serializers
 from .serializers import (
@@ -454,3 +455,13 @@ class AdminCarwashDeleteView(views.APIView):
             return Response({"error": "Carwash not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        
+class CarwashReviewsListView(generics.ListAPIView):
+    serializer_class = CarwashReviewSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Rating.objects.filter(
+            order__carwash__user=self.request.user
+        ).order_by('-created_at')

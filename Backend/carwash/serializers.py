@@ -201,18 +201,23 @@ class DriverSelectionSerializer(serializers.ModelSerializer):
 class DriverSerializer(serializers.ModelSerializer):
     class Meta:
         model = Driver
-        fields = [
-            'id', 
-            'full_name', 
-            'national_id', 
-            'phone_number', 
-            'address', 
-            'personnel_photo', 
-            'status', 
-            'average_rating', # For Task-F5.6 Rating Badge 
-            'review_count',   # For Task-F5.6 Rating Badge 
-            'created_at'
-        ]
-        # 'status' is read-only during creation (defaults to AVAILABLE)
-        # 'created_at' is always read-only
-        read_only_fields = ['id', 'created_at', 'status', 'average_rating', 'review_count']
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at', 'status', 'average_rating', 'review_count', 'carwash']
+
+
+# Sprint 5 Serializer for Reviews 
+class CarwashReviewSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='order.id', read_only=True)
+    customer_name = serializers.CharField(source='order.customer.full_name', read_only=True)
+    service_names = serializers.SerializerMethodField()
+    date = serializers.DateTimeField(source='created_at', format="%Y-%m-%d")
+
+    class Meta:
+        model = Rating
+        fields = ['id', 'customer_name', 'service_names', 'carwash_rating', 'carwash_comment', 'driver_rating', 'date']
+
+    def get_service_names(self, obj):
+        try:
+            return [os.service.service_name for os in obj.order.order_services.all()]
+        except:
+            return []
