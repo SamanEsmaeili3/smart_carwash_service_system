@@ -61,6 +61,8 @@ class CarwashProfileAdminSerializer(serializers.ModelSerializer):
 # Sprint 2 Task-B2.2: Carwash Owner Profile Update (Address, Hours, Password)
 class CarwashProfileUpdateSerializer(serializers.ModelSerializer):
     new_password = serializers.CharField(write_only=True, required=False, style={'input_type': 'password'})
+    average_rating = serializers.FloatField(read_only=True)
+    review_count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = CarwashProfile
@@ -74,7 +76,11 @@ class CarwashProfileUpdateSerializer(serializers.ModelSerializer):
             'license_image',
             'gallery_photos',
             'new_password', 
+            'average_rating',
+            'review_count',
         ]
+        
+        read_only_fields = ['user', 'status', 'average_rating', 'review_count']
 
     def update(self, instance, validated_data):
         password = validated_data.pop('new_password', None)
@@ -199,6 +205,9 @@ class DriverSelectionSerializer(serializers.ModelSerializer):
 # ---------------------------------------------------------
 
 class DriverSerializer(serializers.ModelSerializer):
+    average_rating = serializers.FloatField(read_only=True)
+    review_count = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = Driver
         fields = '__all__'

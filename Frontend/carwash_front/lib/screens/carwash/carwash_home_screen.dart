@@ -902,7 +902,6 @@ class _AddServiceFormState extends State<_AddServiceForm> {
 // ==========================================
 class _DriversTab extends StatefulWidget {
   const _DriversTab();
-
   @override
   State<_DriversTab> createState() => _DriversTabState();
 }
@@ -934,27 +933,54 @@ class _DriversTabState extends State<_DriversTab> {
             final driver = provider.drivers[index];
             return Card(
               margin: const EdgeInsets.only(bottom: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               child: ListTile(
                 leading: CircleAvatar(
                   backgroundColor: AppColors.secondary.withOpacity(0.1),
-                  backgroundImage:
-                      driver.personnelPhotoUrl != null
-                          ? NetworkImage(driver.personnelPhotoUrl!)
-                          : null,
-                  child:
-                      driver.personnelPhotoUrl == null
-                          ? const Icon(Icons.person, color: AppColors.secondary)
-                          : null,
+                  backgroundImage: driver.personnelPhotoUrl != null
+                      ? NetworkImage(driver.personnelPhotoUrl!)
+                      : null,
+                  child: driver.personnelPhotoUrl == null
+                      ? const Icon(Icons.person, color: AppColors.secondary)
+                      : null,
                 ),
-                title: Text(
-                  driver.fullName,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                title: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(driver.fullName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    if (driver.reviewCount > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.amber.withOpacity(0.5)),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              driver.averageRating.toStringAsFixed(1),
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amber),
+                            ),
+                            const Icon(Icons.star, size: 12, color: Colors.amber),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
-                subtitle: Text(
-                  "کدملی: ${driver.nationalId}\nتماس: ${driver.phoneNumber}",
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("کدملی: ${driver.nationalId}"),
+                    Text("تماس: ${driver.phoneNumber}"),
+                    const SizedBox(height: 4),
+                    Text(
+                      driver.reviewCount > 0 
+                        ? "${driver.reviewCount} نظر ثبت شده" 
+                        : "هنوز امتیازی ندارد",
+                      style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                    ),
+                  ],
                 ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -962,21 +988,13 @@ class _DriversTabState extends State<_DriversTab> {
                     IconButton(
                       icon: const Icon(Icons.edit, color: Colors.blue),
                       onPressed: () {
-                        final state =
-                            context
-                                .findAncestorStateOfType<
-                                  _CarwashHomeScreenState
-                                >();
-                        state?._showAddDriverSheet(
-                          context,
-                          driverToEdit: driver,
-                        );
+                        final state = context.findAncestorStateOfType<_CarwashHomeScreenState>();
+                        state?._showAddDriverSheet(context, driverToEdit: driver);
                       },
                     ),
                     IconButton(
                       icon: const Icon(Icons.delete_outline, color: Colors.red),
-                      onPressed:
-                          () => _confirmDelete(context, provider, driver.id!),
+                      onPressed: () => _confirmDelete(context, provider, driver.id!),
                     ),
                   ],
                 ),
@@ -989,29 +1007,22 @@ class _DriversTabState extends State<_DriversTab> {
   }
 
   void _confirmDelete(BuildContext context, DriverProvider provider, int id) {
-    showDialog(
+     showDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text("حذف راننده"),
-            content: const Text("آیا مطمئن هستید؟"),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text("خیر"),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  provider.deleteDriver(id);
-                },
-                child: const Text(
-                  "بله، حذف شود",
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
-            ],
+      builder: (ctx) => AlertDialog(
+        title: const Text("حذف راننده"),
+        content: const Text("آیا مطمئن هستید؟"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("خیر")),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              provider.deleteDriver(id);
+            },
+            child: const Text("بله، حذف شود", style: TextStyle(color: Colors.red)),
           ),
+        ],
+      ),
     );
   }
 }
@@ -2252,36 +2263,116 @@ class _ReviewsTabState extends State<_ReviewsTab> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<CarwashReviewProvider>(context, listen: false).fetchReviews();
+      Provider.of<CarwashProfileProvider>(context, listen: false).fetchProfile();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final profileProvider = Provider.of<CarwashProfileProvider>(context);
+    final carwashProfile = profileProvider.currentProfile;
+    
+    final double overallRating = double.tryParse((carwashProfile?['average_rating'] ?? 0).toString()) ?? 0.0;
+    final int totalReviews = int.tryParse((carwashProfile?['review_count'] ?? 0).toString()) ?? 0;
+
     return Consumer<CarwashReviewProvider>(
       builder: (context, provider, child) {
         if (provider.isLoading) return const Center(child: CircularProgressIndicator());
-        if (provider.reviews.isEmpty) return const Center(child: Text("هنوز نظری ثبت نشده است."));
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: provider.reviews.length,
-          itemBuilder: (ctx, index) {
-            final review = provider.reviews[index];
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: ListTile(
-                title: Text(review.customerName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text(review.comment),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.star, color: Colors.amber, size: 20),
-                    Text(review.rating.toString()),
-                  ],
+        
+        return Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              margin: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.primary.withOpacity(0.1), Colors.white],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                boxShadow: [
+                  BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4))
+                ]
               ),
-            );
-          },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Column(
+                    children: [
+                      const Text("امتیاز کلی شما", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      const SizedBox(height: 8),
+                      Text("$totalReviews نظر", style: const TextStyle(color: Colors.grey)),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Text(
+                        overallRating.toStringAsFixed(1),
+                        style: TextStyle(
+                          fontSize: 36, 
+                          fontWeight: FontWeight.bold, 
+                          color: AppColors.primary
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.star_rounded, size: 48, color: Colors.amber),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            
+            Expanded(
+              child: provider.reviews.isEmpty 
+                ? const Center(child: Text("هنوز نظری ثبت نشده است."))
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: provider.reviews.length,
+                    itemBuilder: (ctx, index) {
+                      final review = provider.reviews[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.all(16),
+                          title: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(review.customerName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Text(review.rating.toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.star, color: Colors.amber, size: 14),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const SizedBox(height: 8),
+                              Text(review.comment),
+                              const SizedBox(height: 8),
+                              Text(review.date, style: TextStyle(fontSize: 10, color: Colors.grey[400])),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+            ),
+          ],
         );
       },
     );
