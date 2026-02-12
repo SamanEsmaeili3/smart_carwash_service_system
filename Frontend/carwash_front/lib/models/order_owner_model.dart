@@ -45,6 +45,13 @@ class OrderOwnerModel {
       return []; // Return an empty list if it's not a list
     }
 
+    String? cleanText(dynamic value) {
+      if (value == null) return null;
+      final text = value.toString().trim();
+      if (text.isEmpty || text.toLowerCase() == 'null') return null;
+      return text;
+    }
+
     // Prefer nested `customer` object when available (added in backend)
     String name = 'مشتری';
     String phone = 'نامشخص';
@@ -61,13 +68,51 @@ class OrderOwnerModel {
       email = (json['customer_email'])?.toString();
     }
 
+    Map<String, dynamic>? vehicleObj;
+    final rawVehicle = json['vehicle'];
+    if (rawVehicle is Map) {
+      vehicleObj = Map<String, dynamic>.from(rawVehicle);
+    }
+
+    final vehiclePlate =
+        cleanText(json['vehicle_plate']) ??
+        cleanText(vehicleObj?['license_plate']) ??
+        cleanText(json['license_plate']);
+
+    String? vehicleInfo = cleanText(json['vehicle_info']);
+    if (vehicleInfo == null) {
+      final vehicleMake =
+          cleanText(json['vehicle_make']) ??
+          cleanText(vehicleObj?['make']) ??
+          cleanText(json['make']);
+      final vehicleModel =
+          cleanText(json['vehicle_model']) ??
+          cleanText(vehicleObj?['model']) ??
+          cleanText(json['model']);
+      final vehicleColor =
+          cleanText(json['vehicle_color']) ??
+          cleanText(vehicleObj?['color']) ??
+          cleanText(json['color']);
+
+      final nameParts =
+          [vehicleMake, vehicleModel].whereType<String>().toList();
+      final vehicleName = nameParts.join(' ').trim();
+      if (vehicleName.isNotEmpty && vehicleColor != null) {
+        vehicleInfo = '$vehicleName ($vehicleColor)';
+      } else if (vehicleName.isNotEmpty) {
+        vehicleInfo = vehicleName;
+      } else {
+        vehicleInfo = vehicleColor;
+      }
+    }
+
     return OrderOwnerModel(
       id: json['id'] ?? 0,
       customerName: name,
       customerPhone: phone,
       customerEmail: email,
-      vehiclePlate: json['vehicle_plate'],
-      vehicleInfo: json['vehicle_info'],
+      vehiclePlate: vehiclePlate,
+      vehicleInfo: vehicleInfo,
       scheduledTime: parseDate(json['scheduled_time']),
       // اصلاح این خط برای تبدیل رشته به عدد:
       totalPrice: double.tryParse(json['total_price'].toString()) ?? 0.0,
