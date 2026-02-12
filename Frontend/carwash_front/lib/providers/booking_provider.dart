@@ -102,7 +102,7 @@ class BookingProvider with ChangeNotifier {
       return draft.orderId;
     } catch (e) {
       print("Error preparing order: ${ErrorHandler.getErrorMessage(e)}");
-      rethrow; 
+      rethrow;
     } finally {
       _isSubmittingOrder = false;
       notifyListeners();
@@ -110,16 +110,22 @@ class BookingProvider with ChangeNotifier {
   }
 
   // NEW: Finalize Order (Sprint 4)
-  Future<bool> finalizeOrder(int orderId, String isoTime) async {
+  Future<bool> finalizeOrder(
+    int orderId,
+    String isoTime, {
+    int? vehicleId,
+  }) async {
     _isSubmittingOrder = true;
     notifyListeners();
 
     try {
-      await _api.post('/api/order/$orderId/finalize/', {
-        "scheduled_time": isoTime,
-      }, auth: true);
+      final Map<String, dynamic> body = {"scheduled_time": isoTime};
+      if (vehicleId != null) body['vehicle_id'] = vehicleId;
+
+      await _api.post('/api/order/$orderId/finalize/', body, auth: true);
       return true;
     } catch (e) {
+      print(e.toString());
       print("Finalize Error: ${ErrorHandler.getErrorMessage(e)}");
       rethrow;
     } finally {
@@ -170,7 +176,7 @@ class BookingProvider with ChangeNotifier {
       };
 
       await _api.post('/api/order/reviews/submit/', body, auth: true);
-      
+
       // Crucial: Re-fetch history so the local state's 'hasRating' updates to true
       await fetchOrderHistory();
     } catch (e) {

@@ -13,9 +13,14 @@ from .serializers import (
     CustomTokenObtainPairSerializer, 
     PasswordResetRequestSerializer, 
     PasswordResetConfirmSerializer,
-    AdminUserListSerializer
+    AdminUserListSerializer,
+    VehicleSerializer,
+    CustomerProfileSerializer
 )
 from .models import User, OTPRequest
+from .models import Vehicle, CustomerProfile
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
 
 # Sprint 5 imports for Admin Stats
 from carwash.models import CarwashProfile
@@ -65,6 +70,7 @@ class CustomerRegistrationView(generics.CreateAPIView):
             }, 
             status=status.HTTP_201_CREATED
         )
+
 
 # View to Verify OTP 
 class VerifyOTPView(views.APIView):
@@ -118,9 +124,11 @@ class VerifyOTPView(views.APIView):
         except User.DoesNotExist:
             return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
 
+
 # Login View
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
 
 # ---------------------------------------------------------
 # SECTION 2: PASSWORD RESET
@@ -194,6 +202,7 @@ class ResetPasswordView(generics.GenericAPIView):
         except User.DoesNotExist:
             return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
 
+
 # ---------------------------------------------------------
 # SECTION 3: ADMIN DASHBOARD (Sprint 5)
 # ---------------------------------------------------------
@@ -206,7 +215,7 @@ class AdminStatsView(views.APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request):
-        # Count only standard customers, not owners or admins [cite: 76, 78]
+        # Count only standard customers, not owners or admins
         total_customers = User.objects.filter(
             is_carwash_owner=False, 
             is_staff=False, 
@@ -246,7 +255,7 @@ class AdminUserListView(generics.ListAPIView):
             )
         return queryset
 
-# [Task-B5.11] Admin: Ban/Unban User
+
 class AdminUserBanView(views.APIView):
     permission_classes = [IsAdminUser]
 
@@ -263,3 +272,78 @@ class AdminUserBanView(views.APIView):
             )
         except User.DoesNotExist:
             return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+# ---------------------------------------------------------
+# SECTION 4: CUSTOMER VEHICLES CRUD
+# ---------------------------------------------------------
+
+class CustomerVehicleViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing customer vehicles.
+    
+    Provides CRUD operations for vehicles belonging to the authenticated customer.
+    """
+    serializer_class = VehicleSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """
+        Filter vehicles to only show those belonging to the current customer.
+        """
+        try:
+            customer = self.request.user.customerprofile
+        except (AttributeError, CustomerProfile.DoesNotExist):
+            return Vehicle.objects.none()
+        return Vehicle.objects.filter(customer=customer)
+
+    def perform_create(self, serializer):
+        """
+        Create a new vehicle and associate it with the current customer.
+        """
+        try:
+            customer = self.request.user.customerprofile
+        except (AttributeError, CustomerProfile.DoesNotExist):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('فقط مشتریان می‌توانند خودرو اضافه کنند.')
+
+        # Ensure license_plate uniqueness is handled by model validator/migration
+        serializer.save(customer=customer)
+
+    def create(self, request, *args, **kwargs):
+        """
+        Create a new vehicle with error handling.
+        """
+        serializer = self.get_serializer(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+# ---------------------------------------------------------
+# SECTION 5: CUSTOMER PROFILE VIEWS
+# ---------------------------------------------------------
+
+class CustomerProfileView(generics.RetrieveUpdateAPIView):
+    """
+    View for retrieving and updating customer profile.
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = CustomerProfileSerializer
+    
+    def get_object(self):
+        try:
+            return self.request.user.customerprofile
+        except CustomerProfile.DoesNotExist:
+            return None
+
+
+# ---------------------------------------------------------
+# SECTION 6: ADDITIONAL AUTH VIEWS (If needed)
+# ---------------------------------------------------------
+
+# Note: Add any additional views below as needed

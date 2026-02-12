@@ -322,13 +322,6 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                       ).pushNamedAndRemoveUntil('/login', (route) => false);
                     },
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.history, color: Colors.white),
-                    tooltip: "سفارش‌های من",
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/customer/history');
-                    },
-                  ),
                 ],
               ),
               // Right: User Info
@@ -355,9 +348,15 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen> {
                     ],
                   ),
                   const SizedBox(width: 12),
-                  const CircleAvatar(
-                    backgroundColor: Colors.white,
-                    child: Icon(Icons.person, color: AppColors.primary),
+                  InkWell(
+                    onTap: () {
+                      Navigator.pushNamed(context, '/customer/profile');
+                    },
+                    borderRadius: BorderRadius.circular(20),
+                    child: const CircleAvatar(
+                      backgroundColor: Colors.white,
+                      child: Icon(Icons.person, color: AppColors.primary),
+                    ),
                   ),
                 ],
               ),

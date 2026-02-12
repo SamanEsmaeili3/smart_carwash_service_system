@@ -25,6 +25,8 @@ import 'screens/carwash/drivers_management_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/customer/time_selection_screen.dart';
 import 'screens/customer/order_history_screen.dart';
+import 'screens/customer/my_vehicles_screen.dart';
+import 'screens/customer/customer_profile_screen.dart';
 import 'providers/driver_provider.dart';
 import 'providers/order_owner_provider.dart';
 
@@ -97,7 +99,7 @@ class MyApp extends StatelessWidget {
           }
           // Fallback if no ID passed (should not happen in normal flow)
           return const Scaffold(
-            body: Center(child: Text("Error: No Order ID provided")),
+            body: Center(child: Text("خطا: شناسه سفارش ارسال نشد")),
           );
         },
 
@@ -148,6 +150,8 @@ class MyApp extends StatelessWidget {
               ),
             ),
         '/customer/history': (context) => const OrderHistoryScreen(),
+        '/customer/vehicles': (context) => const MyVehiclesScreen(),
+        '/customer/profile': (context) => const CustomerProfileScreen(),
       },
     );
   }

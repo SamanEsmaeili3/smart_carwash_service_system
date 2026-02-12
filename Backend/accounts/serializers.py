@@ -3,6 +3,37 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import authenticate
 from django.utils.translation import gettext_lazy as _
 from .models import User, CustomerProfile
+from .models import Vehicle
+
+
+class VehicleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Vehicle
+        fields = ['id', 'make', 'model', 'color', 'license_plate']
+        extra_kwargs = {
+            'make': {'error_messages': {'required': 'وارد کردن برند خودرو الزامی است.'}},
+            'model': {'error_messages': {'required': 'وارد کردن مدل خودرو الزامی است.'}},
+            'color': {'error_messages': {'required': 'وارد کردن رنگ خودرو الزامی است.'}},
+            'license_plate': {'error_messages': {'required': 'وارد کردن پلاک خودرو الزامی است.'}},
+        }
+
+    def validate_license_plate(self, value):
+        user = self.context.get('request').user if self.context.get('request') else None
+        if user:
+            try:
+                customer = user.customerprofile
+            except Exception:
+                customer = None
+
+            qs = Vehicle.objects.filter(license_plate__iexact=value)
+            # If updating, exclude self.instance
+            if getattr(self, 'instance', None):
+                qs = qs.exclude(pk=self.instance.pk)
+
+            if qs.exists():
+                raise serializers.ValidationError('پلاک وارد شده قبلاً ثبت شده است.')
+
+        return value
 
 class CustomerRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})

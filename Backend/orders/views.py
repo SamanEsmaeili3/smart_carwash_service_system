@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404
 from .models import Order, OrderService
 from .serializers import OrderDraftSerializer, OrderOwnerSerializer, OrderHistorySerializer, RatingSerializer
 from carwash.models import CarwashProfile, CarwashService, Driver
+from accounts.models import Vehicle
 from carwash.serializers import DriverSelectionSerializer 
 
 from django.utils.dateparse import parse_datetime
@@ -80,17 +81,26 @@ def finalize_order(request, pk):
 
     # 1. Get the raw ISO string (e.g., "2023-12-25T14:30:00")
     time_str = request.data.get('scheduled_time')
+    vehicle_id = request.data.get('vehicle_id')
     
     if not time_str:
-        return Response({"error": "Scheduled time is required."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "زمان رزرو الزامی است."}, status=status.HTTP_400_BAD_REQUEST)
 
     # 2. Parse into Python datetime object
     scheduled_dt = parse_datetime(time_str)
     
     if scheduled_dt is None:
-        return Response({"error": "Invalid date format. Use ISO 8601."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "فرمت تاریخ نامعتبر است. از فرمت ISO استفاده کنید."}, status=status.HTTP_400_BAD_REQUEST)
 
-    # 3. Update Order
+    # 3. Optionally attach vehicle (ensure the vehicle belongs to this customer)
+    if vehicle_id:
+        try:
+            vehicle = Vehicle.objects.get(pk=vehicle_id, customer=request.user.customerprofile)
+            order.vehicle = vehicle
+        except Vehicle.DoesNotExist:
+            return Response({"error": "خودرو یافت نشد یا به این مشتری تعلق ندارد."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # 4. Update Order
     order.scheduled_time = scheduled_dt
     order.status = Order.Status.SUBMITTED # Move from PENDING to SUBMITTED
     order.save()
