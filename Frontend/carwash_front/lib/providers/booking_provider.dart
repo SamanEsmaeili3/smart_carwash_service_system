@@ -34,6 +34,8 @@ class BookingProvider with ChangeNotifier {
   String get orderDetails => _orderDetails;
   List<OrderHistoryModel> get history => _history;
   bool get isLoadingHistory => _isLoadingHistory;
+  bool _isProcessingPayment = false;
+  bool get isProcessingPayment => _isProcessingPayment;
 
   void setOrderDetails(String details) {
     _orderDetails = details;
@@ -157,5 +159,46 @@ class BookingProvider with ChangeNotifier {
   void clearProfileError() {
     _profileError = null;
     notifyListeners();
+  }
+
+  // --- Payment Methods ---
+  Future<int?> initiatePayment(int orderId) async {
+    _isProcessingPayment = true;
+    notifyListeners();
+
+    try {
+      final response = await _api.post(
+        '/api/order/payment/initiate/$orderId/',
+        {},
+        auth: true,
+      );
+      return response['payment_id'];
+    } catch (e) {
+      print("Error initiating payment: ${ErrorHandler.getErrorMessage(e)}");
+      rethrow;
+    } finally {
+      _isProcessingPayment = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> verifyPayment(int orderId, int paymentId) async {
+    _isProcessingPayment = true;
+    notifyListeners();
+
+    try {
+      await _api.post(
+        '/api/order/payment/verify/$orderId/$paymentId/',
+        {},
+        auth: true,
+      );
+      return true;
+    } catch (e) {
+      print("Error verifying payment: ${ErrorHandler.getErrorMessage(e)}");
+      rethrow;
+    } finally {
+      _isProcessingPayment = false;
+      notifyListeners();
+    }
   }
 }

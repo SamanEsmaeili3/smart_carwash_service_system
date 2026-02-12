@@ -23,8 +23,7 @@ import 'screens/carwash/carwash_home_screen.dart';
 import 'screens/carwash/drivers_management_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/customer/time_selection_screen.dart';
-import 'screens/customer/order_history_screen.dart';
-import 'screens/customer/order_history_screen.dart';
+import 'package:carwash_front/screens/customer/order_history_screen.dart';
 import 'providers/driver_provider.dart';
 import 'providers/order_owner_provider.dart';
 
@@ -86,6 +85,7 @@ class MyApp extends StatelessWidget {
         '/customer': (context) => const CustomerHomeScreen(),
         '/carwash': (context) => const CarwashHomeScreen(),
         '/drivers': (context) => const DriversManagementScreen(),
+        '/customer/home': (context) => const CustomerHomeScreen(),
 
         // --- NEW SPRINT 4 ROUTES ---
         '/select_time': (context) {

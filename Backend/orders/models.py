@@ -12,6 +12,7 @@ class Order(models.Model):
         EN_ROUTE = 'EN_ROUTE', 'En Route'
         IN_SERVICE = 'IN_SERVICE', 'In Service'
         COMPLETE = 'COMPLETE', 'Complete'
+        PAID = 'PAID', 'Paid'
         CANCELLED = 'CANCELLED', 'Cancelled'
 
     customer = models.ForeignKey(CustomerProfile, on_delete=models.SET_NULL, null=True, related_name='orders')

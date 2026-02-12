@@ -4,11 +4,12 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 
-from .models import Order, OrderService
+from .models import Order, OrderService, Payment
 from .serializers import OrderDraftSerializer, OrderOwnerSerializer, OrderHistorySerializer
 from carwash.models import CarwashProfile, CarwashService, Driver
 from carwash.serializers import DriverSelectionSerializer 
 
+from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 # Task-B2.18: Prepare Order (Calculate Price & Create Draft)
@@ -239,3 +240,55 @@ def assign_driver_to_order(request, order_id):
         "message": f"Driver {driver.full_name} assigned to Order #{order.id}",
         "order_status": order.status
     })
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def initiate_payment(request, order_id):
+    try:
+        order = Order.objects.get(pk=order_id, customer=request.user.customerprofile)
+    except Order.DoesNotExist:
+        return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    if order.status != Order.Status.COMPLETE:
+        return Response({"error": "Payment can only be initiated for completed orders."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Create a new payment record
+    payment = Payment.objects.create(
+        order=order,
+        amount=order.total_price,
+        status=Payment.Status.PENDING
+    )
+
+    return Response({
+        "message": "Payment initiated successfully.",
+        "payment_id": payment.id,
+        "total_price": order.total_price
+    }, status=status.HTTP_201_CREATED)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def verify_payment(request, order_id, payment_id):
+    try:
+        order = Order.objects.get(pk=order_id, customer=request.user.customerprofile)
+        payment = Payment.objects.get(pk=payment_id, order=order)
+    except Order.DoesNotExist:
+        return Response({"error": "Order not found."}, status=status.HTTP_404_NOT_FOUND)
+    except Payment.DoesNotExist:
+        return Response({"error": "Payment record not found."}, status=status.HTTP_404_NOT_FOUND)
+
+    # In a real scenario, you'd verify with a payment gateway here.
+    # For this MVP, we'll just simulate a successful payment.
+
+    payment.status = Payment.Status.SUCCESSFUL
+    payment.transaction_id = f'txn_{payment.id}_{order.id}' # Mock transaction ID
+    payment.paid_at = timezone.now()
+    payment.save()
+
+    order.status = Order.Status.PAID
+    order.save()
+
+    return Response({
+        "message": "Payment successful!",
+        "order_status": order.status,
+        "payment_status": payment.status
+    }, status=status.HTTP_200_OK)
