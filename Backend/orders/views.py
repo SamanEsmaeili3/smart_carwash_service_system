@@ -5,12 +5,15 @@ from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 
 from .models import Order, OrderService, Payment
-from .serializers import OrderDraftSerializer, OrderOwnerSerializer, OrderHistorySerializer
+from .serializers import OrderDraftSerializer, OrderOwnerSerializer, OrderHistorySerializer, RatingSerializer
 from carwash.models import CarwashProfile, CarwashService, Driver
+from accounts.models import Vehicle
 from carwash.serializers import DriverSelectionSerializer 
 
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+
+
 
 # Task-B2.18: Prepare Order (Calculate Price & Create Draft)
 class OrderPrepareView(generics.CreateAPIView):
@@ -79,17 +82,26 @@ def finalize_order(request, pk):
 
     # 1. Get the raw ISO string (e.g., "2023-12-25T14:30:00")
     time_str = request.data.get('scheduled_time')
+    vehicle_id = request.data.get('vehicle_id')
     
     if not time_str:
-        return Response({"error": "Scheduled time is required."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "زمان رزرو الزامی است."}, status=status.HTTP_400_BAD_REQUEST)
 
     # 2. Parse into Python datetime object
     scheduled_dt = parse_datetime(time_str)
     
     if scheduled_dt is None:
-        return Response({"error": "Invalid date format. Use ISO 8601."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "فرمت تاریخ نامعتبر است. از فرمت ISO استفاده کنید."}, status=status.HTTP_400_BAD_REQUEST)
 
-    # 3. Update Order
+    # 3. Optionally attach vehicle (ensure the vehicle belongs to this customer)
+    if vehicle_id:
+        try:
+            vehicle = Vehicle.objects.get(pk=vehicle_id, customer=request.user.customerprofile)
+            order.vehicle = vehicle
+        except Vehicle.DoesNotExist:
+            return Response({"error": "خودرو یافت نشد یا به این مشتری تعلق ندارد."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # 4. Update Order
     order.scheduled_time = scheduled_dt
     order.status = Order.Status.SUBMITTED # Move from PENDING to SUBMITTED
     order.save()
@@ -292,3 +304,16 @@ def verify_payment(request, order_id, payment_id):
         "order_status": order.status,
         "payment_status": payment.status
     }, status=status.HTTP_200_OK)
+    
+# Task-B5.5: Submit Review API
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def submit_review(request):
+    serializer = RatingSerializer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        serializer.save()
+        return Response({
+            "message": "امتیاز شما با موفقیت ثبت شد.",
+            "data": serializer.data
+        }, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

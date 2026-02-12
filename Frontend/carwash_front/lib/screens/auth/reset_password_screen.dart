@@ -102,168 +102,214 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 20),
-              // Icon
-              Center(
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    shape: BoxShape.circle,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final bool isWeb = constraints.maxWidth >= 600;
+
+          return SingleChildScrollView(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: isWeb ? 420 : double.infinity,
+                ),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isWeb ? 32 : 24,
+                    vertical: 24,
                   ),
-                  child: Icon(
-                    Icons.check_circle_outline,
-                    size: 50,
-                    color: AppColors.primary,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 20),
+
+                      // Icon
+                      Center(
+                        child: Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.check_circle_outline,
+                            size: 50,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      // Title
+                      const Center(
+                        child: Text(
+                          'رمز جدید را تعیین کنید',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      // Code Input
+                      const Text(
+                        'کد تأیید',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _codeController,
+                        keyboardType: TextInputType.number,
+                        maxLength: 5,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 8,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: '00000',
+                          hintStyle: TextStyle(
+                            color: Colors.grey[300],
+                            letterSpacing: 8,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: AppColors.primary,
+                              width: 2,
+                            ),
+                          ),
+                          counterText: '',
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 16,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Password Input
+                      const Text(
+                        'رمز عبور جدید',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _passwordController,
+                        obscureText: !_showPassword,
+                        decoration: InputDecoration(
+                          hintText: 'رمز عبور جدید را وارد کنید',
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _showPassword
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                            ),
+                            onPressed: () {
+                              setState(() => _showPassword = !_showPassword);
+                            },
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: AppColors.primary,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // Confirm Password Input
+                      const Text(
+                        'تأیید رمز عبور',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _confirmPasswordController,
+                        obscureText: !_showConfirmPassword,
+                        decoration: InputDecoration(
+                          hintText: 'رمز عبور را دوباره وارد کنید',
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _showConfirmPassword
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                            ),
+                            onPressed: () {
+                              setState(
+                                () =>
+                                    _showConfirmPassword =
+                                        !_showConfirmPassword,
+                              );
+                            },
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey[300]!),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: AppColors.primary,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 40),
+
+                      // Submit Button
+                      CustomButton(
+                        text: 'بازنشانی رمز عبور',
+                        onPressed: _isLoading ? null : _handleResetPassword,
+                        isLoading: _isLoading,
+                      ),
+
+                      const SizedBox(height: 20),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(height: 30),
-              // Title
-              const Center(
-                child: Text(
-                  'رمز جدید را تعیین کنید',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(height: 30),
-              // Code Input
-              const Text(
-                'کد تأیید',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _codeController,
-                keyboardType: TextInputType.number,
-                maxLength: 5,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 8,
-                ),
-                decoration: InputDecoration(
-                  hintText: '00000',
-                  hintStyle: TextStyle(
-                    color: Colors.grey[300],
-                    letterSpacing: 8,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: AppColors.primary,
-                      width: 2,
-                    ),
-                  ),
-                  counterText: '',
-                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-              const SizedBox(height: 20),
-              // Password Input
-              const Text(
-                'رمز عبور جدید',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _passwordController,
-                obscureText: !_showPassword,
-                decoration: InputDecoration(
-                  hintText: 'رمز عبور جدید را وارد کنید',
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _showPassword ? Icons.visibility : Icons.visibility_off,
-                    ),
-                    onPressed: () {
-                      setState(() => _showPassword = !_showPassword);
-                    },
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: AppColors.primary,
-                      width: 2,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              // Confirm Password Input
-              const Text(
-                'تأیید رمز عبور',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _confirmPasswordController,
-                obscureText: !_showConfirmPassword,
-                decoration: InputDecoration(
-                  hintText: 'رمز عبور را دوباره وارد کنید',
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _showConfirmPassword
-                          ? Icons.visibility
-                          : Icons.visibility_off,
-                    ),
-                    onPressed: () {
-                      setState(
-                        () => _showConfirmPassword = !_showConfirmPassword,
-                      );
-                    },
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                      color: AppColors.primary,
-                      width: 2,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 40),
-              // Submit Button
-              CustomButton(
-                text: 'بازنشانی رمز عبور',
-                onPressed: _isLoading ? null : _handleResetPassword,
-                isLoading: _isLoading,
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }

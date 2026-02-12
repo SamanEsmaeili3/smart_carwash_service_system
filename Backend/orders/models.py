@@ -1,7 +1,10 @@
 from django.db import models
 from django.conf import settings
-from accounts.models import CustomerProfile, Vehicle # Import models from other apps
-from carwash.models import CarwashProfile, Driver, CarwashService # Import models from other apps
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.db.models import Avg
+from accounts.models import CustomerProfile, Vehicle
+from carwash.models import CarwashProfile, Driver, CarwashService
 
 # --- 8. Order Model (Table 7: Order) ---
 class Order(models.Model):
@@ -30,7 +33,7 @@ class Order(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Order {self.id} for {self.customer.full_name}"
+        return f"Order {self.id} for {self.customer.full_name if self.customer else 'Unknown'}"
 
 # --- 9. OrderService Model (Table 8: OrderService - Junction Table) ---
 class OrderService(models.Model):
@@ -82,3 +85,39 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"Payment for Order {self.order.id} - {self.status}"
+
+
+# =========================================================
+# SIGNALS: Auto-update Averages for Speed (Task-B5.6)
+# =========================================================
+
+@receiver(post_save, sender=Rating)
+def update_averages(sender, instance, created, **kwargs):
+    """
+    Automatically recalculates average ratings for Carwash and Driver 
+    whenever a new Rating is saved.
+    """
+    if created:
+        # 1. Update Carwash Profile Statistics
+        carwash = instance.order.carwash
+        if carwash:
+            # Get all ratings for this specific carwash
+            carwash_ratings = Rating.objects.filter(order__carwash=carwash)
+            carwash.review_count = carwash_ratings.count()
+            
+            # Calculate average of carwash_rating field
+            avg_val = carwash_ratings.aggregate(Avg('carwash_rating'))['carwash_rating__avg']
+            carwash.average_rating = avg_val or 0
+            carwash.save()
+
+        # 2. Update Driver Statistics
+        driver = instance.order.driver
+        if driver:
+            # Get all ratings for this specific driver
+            driver_ratings = Rating.objects.filter(order__driver=driver)
+            driver.review_count = driver_ratings.count()
+            
+            # Calculate average of driver_rating field
+            d_avg_val = driver_ratings.aggregate(Avg('driver_rating'))['driver_rating__avg']
+            driver.average_rating = d_avg_val or 0
+            driver.save()

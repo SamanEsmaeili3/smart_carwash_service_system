@@ -11,6 +11,7 @@ import 'providers/admin_provider.dart';
 import 'package:carwash_front/providers/carwash_profile_provider.dart';
 import 'package:carwash_front/providers/carwash_service_provider.dart';
 import 'providers/customer_provider.dart';
+import 'providers/carwash_review_provider.dart';
 
 import 'screens/landing_page.dart';
 import 'screens/auth/login_screen.dart';
@@ -23,7 +24,9 @@ import 'screens/carwash/carwash_home_screen.dart';
 import 'screens/carwash/drivers_management_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/customer/time_selection_screen.dart';
-import 'package:carwash_front/screens/customer/order_history_screen.dart';
+import 'screens/customer/order_history_screen.dart';
+import 'screens/customer/my_vehicles_screen.dart';
+import 'screens/customer/customer_profile_screen.dart';
 import 'providers/driver_provider.dart';
 import 'providers/order_owner_provider.dart';
 
@@ -40,6 +43,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => BookingProvider()),
         ChangeNotifierProvider(create: (_) => SearchProvider()),
         ChangeNotifierProvider(create: (_) => OrderOwnerProvider()),
+        ChangeNotifierProvider(create: (_) => CarwashReviewProvider()),
       ],
       child: const MyApp(),
     ),
@@ -96,7 +100,7 @@ class MyApp extends StatelessWidget {
           }
           // Fallback if no ID passed (should not happen in normal flow)
           return const Scaffold(
-            body: Center(child: Text("Error: No Order ID provided")),
+            body: Center(child: Text("خطا: شناسه سفارش ارسال نشد")),
           );
         },
 
@@ -147,6 +151,8 @@ class MyApp extends StatelessWidget {
               ),
             ),
         '/customer/history': (context) => const OrderHistoryScreen(),
+        '/customer/vehicles': (context) => const MyVehiclesScreen(),
+        '/customer/profile': (context) => const CustomerProfileScreen(),
       },
     );
   }

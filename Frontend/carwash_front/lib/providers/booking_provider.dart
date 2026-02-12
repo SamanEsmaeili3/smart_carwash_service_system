@@ -24,6 +24,9 @@ class BookingProvider with ChangeNotifier {
   List<OrderHistoryModel> _history = [];
   bool _isLoadingHistory = false;
 
+  // Review State (Sprint 5)
+  bool _isSubmittingReview = false;
+
   // Getters
   CarwashModel? get profile => _profile;
   bool get isLoadingProfile => _isLoadingProfile;
@@ -36,6 +39,7 @@ class BookingProvider with ChangeNotifier {
   bool get isLoadingHistory => _isLoadingHistory;
   bool _isProcessingPayment = false;
   bool get isProcessingPayment => _isProcessingPayment;
+  bool get isSubmittingReview => _isSubmittingReview;
 
   void setOrderDetails(String details) {
     _orderDetails = details;
@@ -100,7 +104,7 @@ class BookingProvider with ChangeNotifier {
       return draft.orderId;
     } catch (e) {
       print("Error preparing order: ${ErrorHandler.getErrorMessage(e)}");
-      rethrow; // پرتاب خطا برای مدیریت در UI
+      rethrow;
     } finally {
       _isSubmittingOrder = false;
       notifyListeners();
@@ -108,16 +112,22 @@ class BookingProvider with ChangeNotifier {
   }
 
   // NEW: Finalize Order (Sprint 4)
-  Future<bool> finalizeOrder(int orderId, String isoTime) async {
+  Future<bool> finalizeOrder(
+    int orderId,
+    String isoTime, {
+    int? vehicleId,
+  }) async {
     _isSubmittingOrder = true;
     notifyListeners();
 
     try {
-      await _api.post('/api/order/$orderId/finalize/', {
-        "scheduled_time": isoTime,
-      }, auth: true);
+      final Map<String, dynamic> body = {"scheduled_time": isoTime};
+      if (vehicleId != null) body['vehicle_id'] = vehicleId;
+
+      await _api.post('/api/order/$orderId/finalize/', body, auth: true);
       return true;
     } catch (e) {
+      print(e.toString());
       print("Finalize Error: ${ErrorHandler.getErrorMessage(e)}");
       rethrow;
     } finally {
@@ -144,6 +154,38 @@ class BookingProvider with ChangeNotifier {
       rethrow;
     } finally {
       _isLoadingHistory = false;
+      notifyListeners();
+    }
+  }
+
+  // --- NEW: Submit Review (Sprint 5 Task-B5.5) ---
+  Future<void> submitReview({
+    required int orderId,
+    required int carwashRating,
+    required int driverRating,
+    String? comment,
+  }) async {
+    _isSubmittingReview = true;
+    notifyListeners();
+
+    try {
+      final body = {
+        "order": orderId,
+        "carwash_rating": carwashRating,
+        "carwash_comment": comment ?? "",
+        "driver_rating": driverRating,
+        "driver_comment": "",
+      };
+
+      await _api.post('/api/order/reviews/submit/', body, auth: true);
+
+      // Crucial: Re-fetch history so the local state's 'hasRating' updates to true
+      await fetchOrderHistory();
+    } catch (e) {
+      print("Error submitting review: ${ErrorHandler.getErrorMessage(e)}");
+      rethrow;
+    } finally {
+      _isSubmittingReview = false;
       notifyListeners();
     }
   }

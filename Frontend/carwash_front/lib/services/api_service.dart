@@ -4,6 +4,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/api_constants.dart';
 import 'package:carwash_front/services/error_handler.dart';
 
+
+class ApiException implements Exception {
+  final String message;
+  final dynamic raw;
+
+  ApiException(this.message, {this.raw});
+
+  @override
+  String toString() => message;
+}
+
 class ApiService {
   // تنظیمات اولیه Dio (جایگزین http Client)
   final Dio _dio = Dio(BaseOptions(
@@ -61,12 +72,12 @@ class ApiService {
     } on DioException catch (e) {
       // اگر ارور از سمت سرور یا شبکه بود
       if (CancelToken.isCancel(e)) {
-        throw Exception('درخواست لغو شد');
+        throw ApiException('درخواست لغو شد');
       }
-      throw Exception(ErrorHandler.getErrorMessage(e));
+      throw ApiException(ErrorHandler.getErrorMessage(e), raw: e.response?.data);
     } catch (e) {
       // سایر ارورها
-      throw Exception(ErrorHandler.getErrorMessage(e));
+      throw ApiException(ErrorHandler.getErrorMessage(e));
     } finally {
       // پاکسازی توکن
       if (requestId != null) {

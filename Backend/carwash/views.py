@@ -1,7 +1,8 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from rest_framework import generics, status, views, permissions
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import NotFound
 from django.db.models import Avg, Min, Q 
 import math
@@ -10,6 +11,7 @@ from django.conf import settings
 from accounts.models import User, OTPRequest
 from .models import CarwashProfile, CarwashService, Driver
 from orders.models import Rating
+from .serializers import CarwashReviewSerializer
 
 # Import all serializers
 from .serializers import (
@@ -20,7 +22,8 @@ from .serializers import (
     CarwashListSerializer,
     CarwashSearchSerializer,     
     CarwashFullProfileSerializer,
-    DriverSerializer
+    DriverSerializer,
+    DriverSelectionSerializer
 )
 
 # ---------------------------------------------------------
@@ -158,7 +161,7 @@ class AdminCarwashApprovalView(views.APIView):
             )
 
         elif action == "reject":
-            # --- UPDATED LOGIC: Allow Rejecting/Suspending ANY status (except already rejected) ---
+            # Allow Rejecting/Suspending ANY status (except already rejected)
             if profile.status == CarwashProfile.Status.REJECTED:
                 return Response({"error": "Profile is already rejected."}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -200,7 +203,7 @@ class AdminCarwashApprovalView(views.APIView):
 
 
 # ---------------------------------------------------------
-# SECTION 3: CARWASH OWNER PANEL (Sprint 2)
+# SECTION 3: CARWASH OWNER PANEL (Sprint 2 & 5)
 # ---------------------------------------------------------
 
 # User Story 2.1: Carwash Owner updates profile
@@ -243,6 +246,50 @@ class CarwashServiceDetailView(generics.RetrieveUpdateDestroyAPIView):
         except AttributeError:
             return CarwashService.objects.none()
 
+# User Story 5.4 & 5.5: Owner Reputation Management [cite: 42, 54]
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def carwash_reviews_list(request):
+    """
+    Task-B5.7: Returns a list of text reviews for the owner panel[cite: 54].
+    """
+    try:
+        carwash_profile = request.user.carwashprofile
+    except Exception:
+        return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+
+    # Fetch all ratings linked to orders for this carwash
+    reviews = Rating.objects.filter(order__carwash=carwash_profile).order_by('-created_at')
+    
+    # Import locally to avoid potential circular dependencies
+    from orders.serializers import RatingSerializer
+    serializer = RatingSerializer(reviews, many=True)
+    return Response(serializer.data)
+
+# Task-B5.8: Driver performance stats [cite: 55]
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def carwash_driver_stats(request):
+    """
+    Returns average ratings and review counts for each driver in this carwash[cite: 55].
+    """
+    try:
+        carwash_profile = request.user.carwashprofile
+    except Exception:
+        return Response({"error": "Unauthorized"}, status=status.HTTP_403_FORBIDDEN)
+
+    drivers = Driver.objects.filter(carwash=carwash_profile)
+    
+    # Efficiently use denormalized model fields for fast response
+    data = [{
+        "id": d.id,
+        "name": d.full_name,
+        "avg_rating": float(d.average_rating), # Uses the pre-calculated field
+        "total_reviews": d.review_count         # Uses the pre-calculated field
+    } for d in drivers]
+    
+    return Response(data)
+
 # ---------------------------------------------------------
 # SECTION 4: CUSTOMER & SEARCH (Sprint 3)
 # ---------------------------------------------------------
@@ -261,73 +308,58 @@ class CustomerCarwashListView(generics.ListAPIView):
 # Sprint 3 Task-B2.5 & B2.10 (Advanced Search with Filters & Distance)
 class CarwashSearchView(generics.ListAPIView):
     """
-    Advanced search for carwashes.
-    Features:
-    1. Search by Business Name or Service Name.
-    2. Filter by Price Range (min/max).
-    3. Filter by Minimum Average Rating.
-    4. Calculate distance and sort by Proximity or Rating.
+    Advanced search optimized for speed. Uses denormalized average_rating
+    on the profile model instead of recalculating on every request.
     """
     serializer_class = CarwashSearchSerializer
     permission_classes = [AllowAny]
 
     def get_queryset(self):
-        # 1. Extract query parameters from the URL
+        # 1. Extract query parameters
         search_query = self.request.query_params.get('search')
         lat_param = self.request.query_params.get('lat')
         lon_param = self.request.query_params.get('lon')
-        radius_param = self.request.query_params.get('radius') # NEW: Radius in KM
+        radius_param = self.request.query_params.get('radius')
         min_price = self.request.query_params.get('min_price')
         max_price = self.request.query_params.get('max_price')
         min_rating = self.request.query_params.get('min_rating')
-        service_name = self.request.query_params.get('service_name') 
 
-        # 2. Start with all approved carwash profiles
+        # 2. Base Filter
         queryset = CarwashProfile.objects.filter(status=CarwashProfile.Status.APPROVED)
 
-        # 2. Apply Filters (Price & Service Name)
-        # 3. Apply Combined Search (Business Name OR Service Name)
+        # 3. Apply Search and Price Filters
         if search_query:
             queryset = queryset.filter(
                 Q(business_name__icontains=search_query) | 
-                # ✅ FIX: Changed 'name' to 'service_name' to match your Model
                 Q(services__service_name__icontains=search_query)
             ).distinct()
 
-        # 4. Apply Price Filters
         if min_price:
             queryset = queryset.filter(services__price__gte=min_price).distinct()
         
         if max_price:
             queryset = queryset.filter(services__price__lte=max_price).distinct()
 
-        # 5. Process results for Rating and Distance calculations
+        # 4. Filter by pre-calculated average_rating (The FAST way)
+        if min_rating:
+            queryset = queryset.filter(average_rating__gte=min_rating)
+
+        # 5. Distance and Sorting Logic
         carwashes = list(queryset)
         final_results = []
 
         user_lat = float(lat_param) if lat_param else None
         user_lon = float(lon_param) if lon_param else None
-
-        # Set default radius to 15.0 KM if not provided, or use user input
         search_radius = float(radius_param) if radius_param else 15.0
 
         for carwash in carwashes:
-            # A) Calculate Real-time Average Rating from Rating table
-            avg = Rating.objects.filter(order__carwash=carwash).aggregate(Avg('carwash_rating'))['carwash_rating__avg']
-            carwash.rating_val = avg if avg else 0 
-            
-            # B) Filter based on Min Rating (if provided)
-            if min_rating and carwash.rating_val < float(min_rating):
-                continue
-
-            # C) Calculate Distance (Haversine Formula)
+            # Distance Calculation
             if user_lat and user_lon:
                 dist = self.calculate_distance(
                     user_lat, user_lon, 
                     float(carwash.latitude), float(carwash.longitude)
                 )
 
-                # [NEW] Radius Filter: Skip carwashes that are too far
                 if dist > search_radius:
                     continue
                 
@@ -339,19 +371,14 @@ class CarwashSearchView(generics.ListAPIView):
 
         # 6. Sorting Logic
         if user_lat and user_lon:
-            # Sort by proximity: Closest first
             final_results.sort(key=lambda x: x.distance_km)
         else:
-            # Sort by rating: Highest first
-            final_results.sort(key=lambda x: x.rating_val, reverse=True)
+            # Sort by highest rating first using the fast model field
+            final_results.sort(key=lambda x: x.average_rating, reverse=True)
 
         return final_results
 
     def calculate_distance(self, lat1, lon1, lat2, lon2):
-        """
-        Calculates the great-circle distance between two points 
-        on the Earth's surface using the Haversine formula.
-        """
         R = 6371 # Earth's radius in kilometers
         dLat = math.radians(lat2 - lat1)
         dLon = math.radians(lon2 - lon1)
@@ -383,14 +410,12 @@ class DriverListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsCarwashOwnerUser]
 
     def get_queryset(self):
-        # Return only drivers belonging to the current user's carwash
         try:
             return Driver.objects.filter(carwash=self.request.user.carwashprofile)
         except Exception:
             return Driver.objects.none()
 
     def perform_create(self, serializer):
-        # Automatically link the new driver to the current user's carwash
         serializer.save(carwash=self.request.user.carwashprofile)
 
 # API: Retrieve, Update, or Delete a specific driver
@@ -399,7 +424,6 @@ class DriverDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsCarwashOwnerUser]
 
     def get_queryset(self):
-        # Ensure owner can only edit/delete their OWN drivers
         try:
             return Driver.objects.filter(carwash=self.request.user.carwashprofile)
         except Exception:
@@ -431,3 +455,13 @@ class AdminCarwashDeleteView(views.APIView):
             return Response({"error": "Carwash not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        
+class CarwashReviewsListView(generics.ListAPIView):
+    serializer_class = CarwashReviewSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Rating.objects.filter(
+            order__carwash__user=self.request.user
+        ).order_by('-created_at')

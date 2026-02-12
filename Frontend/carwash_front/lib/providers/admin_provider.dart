@@ -11,17 +11,46 @@ class AdminProvider with ChangeNotifier {
   List<CarwashModel> _approvedList = []; 
   List<CarwashModel> _rejectedList = [];
   
+  Map<String, dynamic>? _adminStats;
+
+  List<dynamic> _usersList = [];
+  
   bool _isLoading = false;
   String? _error;
 
+  // Getters
   List<CarwashModel> get pendingList => _pendingList;
   List<CarwashModel> get approvedList => _approvedList;
   List<CarwashModel> get rejectedList => _rejectedList;
+  Map<String, dynamic>? get adminStats => _adminStats;
+  
+  List<dynamic> get usersList => _usersList;
   
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  // --- Fetch Methods ---
+  // --- 1. Fetch Aggregated Metrics (User Story 4.1) ---
+  Future<void> fetchAdminStats() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      print("AdminProvider: Fetching dashboard metrics..."); 
+      final response = await _api.get('/api/accounts/admin/stats/', auth: true);
+      _adminStats = response as Map<String, dynamic>;
+      print("AdminProvider: Dashboard stats loaded successfully"); 
+
+    } catch (e) {
+      print("AdminProvider Metrics Error: $e"); 
+      _error = ErrorHandler.getErrorMessage(e);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // --- 2. Fetch Carwash Lists ---
   Future<void> fetchPendingCarwashes() async => await _fetchList(status: 'pending');
   Future<void> fetchApprovedCarwashes() async => await _fetchList(status: 'approved');
   Future<void> fetchRejectedCarwashes() async => await _fetchList(status: 'rejected');
@@ -33,7 +62,7 @@ class AdminProvider with ChangeNotifier {
 
     try {
       final String endpoint = '${ApiConstants.adminPending}?status=$status';
-      print("AdminProvider: Fetching $status list from $endpoint"); // DEBUG LOG
+      print("AdminProvider: Fetching $status list from $endpoint"); 
 
       final response = await _api.get(endpoint, auth: true);
       
@@ -48,10 +77,10 @@ class AdminProvider with ChangeNotifier {
       } else {
         _pendingList = data;
       }
-      print("AdminProvider: Loaded ${data.length} items for $status"); // DEBUG LOG
+      print("AdminProvider: Loaded ${data.length} items for $status"); 
 
     } catch (e) {
-      print("AdminProvider Error: $e"); // DEBUG LOG
+      print("AdminProvider Error: $e"); 
       _error = ErrorHandler.getErrorMessage(e);
     } finally {
       _isLoading = false;
@@ -59,14 +88,14 @@ class AdminProvider with ChangeNotifier {
     }
   }
 
-  // --- Manage Request (Approve / Reject / Suspend) ---
+  // --- 3. Manage Carwash Request (Approve / Reject) ---
   Future<bool> manageRequest(int id, String action, {String? reason}) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      print("AdminProvider: Sending $action request for ID $id..."); // DEBUG LOG
+      print("AdminProvider: Sending $action request for ID $id..."); 
       
       final Map<String, dynamic> body = { "action": action };
       if (reason != null && reason.isNotEmpty) {
@@ -75,16 +104,16 @@ class AdminProvider with ChangeNotifier {
 
       await _api.post('${ApiConstants.adminManage}$id/', body, auth: true);
       
-      print("AdminProvider: $action successful. Refreshing lists..."); // DEBUG LOG
+      print("AdminProvider: $action successful. Refreshing lists..."); 
 
-      // ✅ FORCE REFRESH: Reload data from server to ensure it actually changed
       await fetchPendingCarwashes();
       await fetchApprovedCarwashes();
       await fetchRejectedCarwashes();
+      await fetchAdminStats(); 
 
       return true;
     } catch (e) {
-      print("AdminProvider Error ($action): $e"); // DEBUG LOG
+      print("AdminProvider Error ($action): $e"); 
       _error = ErrorHandler.getErrorMessage(e);
       return false;
     } finally {
@@ -93,34 +122,76 @@ class AdminProvider with ChangeNotifier {
     }
   }
 
-  // --- DELETE CARWASH ---
+  // --- 4. Delete Carwash ---
   Future<bool> deleteCarwash(int id) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      print("AdminProvider: Deleting carwash ID $id..."); // DEBUG LOG
-      
-      // Call Delete API
+      print("AdminProvider: Deleting carwash ID $id..."); 
       await _api.delete('${ApiConstants.adminDelete}$id/', auth: true);
 
-      print("AdminProvider: Delete successful. Refreshing lists..."); // DEBUG LOG
+      print("AdminProvider: Delete successful. Refreshing lists and stats..."); 
 
-      // ✅ FORCE REFRESH: Reload data from server to ensure it is GONE
-      // We purposefully reload ALL lists to ensure it's removed from everywhere
       await fetchPendingCarwashes();
       await fetchApprovedCarwashes();
       await fetchRejectedCarwashes();
+      await fetchAdminStats(); 
 
       return true;
     } catch (e) {
-      print("AdminProvider Delete Error: $e"); // DEBUG LOG
+      print("AdminProvider Delete Error: $e"); 
       _error = ErrorHandler.getErrorMessage(e);
       return false;
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  // --- 5. [Sprint 5] User Management Methods ---
+  Future<void> fetchUsers({String? query}) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      String endpoint = '/api/accounts/admin/users/';
+      if (query != null && query.isNotEmpty) {
+        endpoint += '?search=$query';
+      }
+      
+      print("AdminProvider: Fetching users from $endpoint");
+      final response = await _api.get(endpoint, auth: true);
+      
+      _usersList = response as List<dynamic>;
+      
+    } catch (e) {
+      print("Error fetching users: $e");
+      _error = ErrorHandler.getErrorMessage(e);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> toggleUserBan(int userId) async {
+    try {
+      print("AdminProvider: Toggling ban for user $userId");
+      final response = await _api.post('/api/accounts/admin/users/$userId/ban/', {}, auth: true);
+      
+      final index = _usersList.indexWhere((u) => u['id'] == userId);
+      if (index != -1) {
+        _usersList[index]['is_active'] = response['is_active'];
+        notifyListeners(); 
+      }
+      return true;
+    } catch (e) {
+      print("Error banning user: $e");
+      _error = ErrorHandler.getErrorMessage(e);
+      notifyListeners();
+      return false;
     }
   }
 

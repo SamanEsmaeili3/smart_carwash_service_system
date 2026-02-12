@@ -5,6 +5,7 @@ import '../../providers/auth_provider.dart';
 import '../../widgets/custom_button.dart';
 import '../../constants/app_colors.dart';
 import '../../models/carwash_model.dart';
+import 'user_management_screen.dart';
 
 final List<String> orderedDays = [
   'Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'
@@ -28,13 +29,24 @@ class AdminDashboard extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => AdminProvider(),
       child: DefaultTabController(
-        length: 3, // 3 Tabs: Pending, Active, Rejected
+        length: 4, // 4 Tabs: Metrics, Pending, Active, Rejected
         child: Scaffold(
           appBar: AppBar(
             title: const Text('داشبورد ادمین'),
             backgroundColor: AppColors.adminAppBar,
             centerTitle: true,
             actions: [
+              IconButton(
+                tooltip: 'مدیریت کاربران',
+                icon: const Icon(Icons.people_alt_outlined),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const UserManagementScreen()),
+                  );
+                },
+              ),
+              
               IconButton(
                 icon: const Icon(Icons.logout),
                 onPressed: () {
@@ -47,10 +59,14 @@ class AdminDashboard extends StatelessWidget {
               labelColor: Colors.white,
               unselectedLabelColor: Colors.white60,
               indicatorColor: Colors.white,
+              // FIX: isScrollable is false so tabs space out evenly across the screen width
+              isScrollable: false, 
               tabs: [
-                Tab(text: "جدید", icon: Icon(Icons.hourglass_empty)),
-                Tab(text: "فعال", icon: Icon(Icons.check_circle_outline)),
-                Tab(text: "رد شده", icon: Icon(Icons.cancel_outlined)),
+                // Fulfilling User Story 4.1: Admin Dashboard Metrics [cite: 76]
+                Tab(text: "آمار", icon: Text("📊", style: TextStyle(fontSize: 18))), 
+                Tab(text: "جدید", icon: Text("⏳", style: TextStyle(fontSize: 18))),
+                Tab(text: "فعال", icon: Text("✅", style: TextStyle(fontSize: 18))),
+                Tab(text: "رد شده", icon: Text("❌", style: TextStyle(fontSize: 18))),
               ],
             ),
           ),
@@ -59,6 +75,7 @@ class AdminDashboard extends StatelessWidget {
               constraints: const BoxConstraints(maxWidth: 800),
               child: const TabBarView(
                 children: [
+                  _DashboardMetricsTab(), // Real data metrics 
                   _PendingListTab(),
                   _ApprovedListTab(),
                   _RejectedListTab(),
@@ -66,6 +83,116 @@ class AdminDashboard extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// TAB 0: Dashboard Metrics Overview (User Story 4.1) [cite: 75]
+// -----------------------------------------------------------------------------
+class _DashboardMetricsTab extends StatefulWidget {
+  const _DashboardMetricsTab();
+
+  @override
+  State<_DashboardMetricsTab> createState() => _DashboardMetricsTabState();
+}
+
+class _DashboardMetricsTabState extends State<_DashboardMetricsTab> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Calls Task-B5.10 backend logic via the provider [cite: 81]
+      Provider.of<AdminProvider>(context, listen: false).fetchAdminStats(); 
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AdminProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading && provider.adminStats == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final stats = provider.adminStats ?? {
+          "total_users": 0,
+          "active_carwashes": 0,
+          "completed_orders": 0
+        };
+
+        return RefreshIndicator(
+          onRefresh: () => provider.fetchAdminStats(),
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              const Text(
+                "خلاصه وضعیت پلتفرم",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.right,
+              ),
+              const SizedBox(height: 20),
+              
+              // Metric Cards for Total Users, Active Carwashes, Total Orders Completed [cite: 78]
+              _buildStatCard(
+                "کل کاربران", 
+                stats["total_users"].toString(), 
+                "👥", 
+                Colors.blue
+              ),
+              _buildStatCard(
+                "کارواش‌های فعال", 
+                stats["active_carwashes"].toString(), 
+                "🚿", 
+                Colors.green
+              ),
+              _buildStatCard(
+                "سفارش‌های تکمیل شده", 
+                stats["completed_orders"].toString(), 
+                "🛍️", 
+                Colors.orange
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStatCard(String label, String value, String iconChar, Color color) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              // Use text emoji to ensure visibility despite Chrome CSP issues
+              child: Text(iconChar, style: const TextStyle(fontSize: 32)),
+            ),
+            const SizedBox(width: 24),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                  Text(
+                    value, 
+                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -178,7 +305,6 @@ class _ApprovedListTabState extends State<_ApprovedListTab> {
             itemCount: provider.approvedList.length,
             itemBuilder: (context, index) {
               final carwash = provider.approvedList[index];
-              // UPDATED: Pass isActiveTab: true
               return CarwashApplicationCard(
                 carwash: carwash, 
                 isPending: false, 
@@ -230,7 +356,6 @@ class _RejectedListTabState extends State<_RejectedListTab> {
             itemCount: provider.rejectedList.length,
             itemBuilder: (context, index) {
               final carwash = provider.rejectedList[index];
-              // UPDATED: Use Full Card UI with isRejectedTab: true
               return CarwashApplicationCard(
                 carwash: carwash,
                 isPending: false,
@@ -316,9 +441,9 @@ class CarwashApplicationCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            _buildInfoRow(Icons.location_on_outlined, carwash.address),
+            _buildInfoRow(Icons.location_on, carwash.address),
             const SizedBox(height: 4),
-            _buildInfoRow(Icons.phone_outlined, carwash.phoneNumber),
+            _buildInfoRow(Icons.phone, carwash.phoneNumber),
 
             const SizedBox(height: 12),
             const Divider(),
@@ -326,7 +451,6 @@ class CarwashApplicationCard extends StatelessWidget {
 
             Row(
               children: [
-                // INFO BUTTON (Always Visible)
                 Expanded(
                   child: CustomButton(
                     onPressed: () => _showDetailsDialog(context),
@@ -346,7 +470,6 @@ class CarwashApplicationCard extends StatelessWidget {
 
                 const SizedBox(width: 8),
 
-                // PENDING ACTIONS
                 if (isPending) ...[
                   Expanded(
                     child: CustomButton(
@@ -370,7 +493,6 @@ class CarwashApplicationCard extends StatelessWidget {
                   ),
                 ],
 
-                // ACTIVE ACTIONS
                 if (isActiveTab) ...[
                   IconButton(
                     tooltip: "تعلیق (رد کردن)",
@@ -384,7 +506,6 @@ class CarwashApplicationCard extends StatelessWidget {
                   ),
                 ],
 
-                // REJECTED ACTIONS
                 if (isRejectedTab) ...[
                    IconButton(
                     tooltip: "حذف کامل",
@@ -530,7 +651,6 @@ class CarwashApplicationCard extends StatelessWidget {
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () {
               Navigator.pop(ctx);
-              // Ensure you have this method in AdminProvider!
               provider.deleteCarwash(carwash.id!); 
             },
             child: const Text("حذف", style: TextStyle(color: Colors.white)),

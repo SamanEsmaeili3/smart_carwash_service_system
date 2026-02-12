@@ -3,21 +3,62 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import authenticate
 from django.utils.translation import gettext_lazy as _
 from .models import User, CustomerProfile
+from .models import Vehicle
+
+
+class VehicleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Vehicle
+        fields = ['id', 'make', 'model', 'color', 'license_plate']
+        extra_kwargs = {
+            'make': {'error_messages': {'required': 'وارد کردن برند خودرو الزامی است.'}},
+            'model': {'error_messages': {'required': 'وارد کردن مدل خودرو الزامی است.'}},
+            'color': {'error_messages': {'required': 'وارد کردن رنگ خودرو الزامی است.'}},
+            'license_plate': {'error_messages': {'required': 'وارد کردن پلاک خودرو الزامی است.'}},
+        }
+
+    def validate_license_plate(self, value):
+        user = self.context.get('request').user if self.context.get('request') else None
+        if user:
+            try:
+                customer = user.customerprofile
+            except Exception:
+                customer = None
+
+            qs = Vehicle.objects.filter(license_plate__iexact=value)
+            # If updating, exclude self.instance
+            if getattr(self, 'instance', None):
+                qs = qs.exclude(pk=self.instance.pk)
+
+            if qs.exists():
+                raise serializers.ValidationError('پلاک وارد شده قبلاً ثبت شده است.')
+
+        return value
 
 class CustomerRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    full_name = serializers.CharField(required=False, allow_blank=True)
+    phone_number = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = User
-        fields = ['email', 'password'] 
+        fields = ['email', 'password', 'full_name', 'phone_number'] 
 
     def create(self, validated_data):
+        # Extract customer profile fields
+        full_name = validated_data.pop('full_name', '')
+        phone_number = validated_data.pop('phone_number', '')
+        
         user = User.objects.create_user(
             email=validated_data['email'],
             password=validated_data['password'],
             is_customer=True  
         )
-        CustomerProfile.objects.create(user=user)
+        CustomerProfile.objects.create(
+            user=user,
+            full_name=full_name,
+            phone_number=phone_number
+        )
         return user
     
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -73,3 +114,11 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     email = serializers.EmailField()
     code = serializers.CharField(max_length=5)
     new_password = serializers.CharField(write_only=True, min_length=8)
+
+class AdminUserListSerializer(serializers.ModelSerializer):
+    full_name = serializers.CharField(source='customerprofile.full_name', read_only=True)
+    phone_number = serializers.CharField(source='customerprofile.phone_number', read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'is_active', 'full_name', 'phone_number']

@@ -8,6 +8,9 @@ class Driver {
   final String status; // AVAILABLE, BUSY, INACTIVE
   final DateTime? createdAt;
 
+  final double averageRating;
+  final int reviewCount;
+
   Driver({
     this.id,
     required this.fullName,
@@ -17,9 +20,10 @@ class Driver {
     this.personnelPhotoUrl,
     this.status = 'AVAILABLE',
     this.createdAt,
+    this.averageRating = 0.0,
+    this.reviewCount = 0,
   });
 
-  // Convert from JSON
   factory Driver.fromJson(Map<String, dynamic> json) {
     return Driver(
       id: json['id'],
@@ -29,14 +33,14 @@ class Driver {
       address: json['address'],
       personnelPhotoUrl: json['personnel_photo'],
       status: json['status'] ?? 'AVAILABLE',
-      createdAt:
-          json['created_at'] != null
-              ? DateTime.parse(json['created_at'])
-              : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : null,
+      averageRating: (json['average_rating'] ?? 0).toDouble(),
+      reviewCount: json['review_count'] ?? 0,
     );
   }
 
-  // Convert to JSON for requests
   Map<String, dynamic> toJson() {
     return {
       'full_name': fullName,
@@ -46,7 +50,6 @@ class Driver {
     };
   }
 
-  // Copy with updated fields
   Driver copyWith({
     int? id,
     String? fullName,
@@ -56,6 +59,8 @@ class Driver {
     String? personnelPhotoUrl,
     String? status,
     DateTime? createdAt,
+    double? averageRating,
+    int? reviewCount,
   }) {
     return Driver(
       id: id ?? this.id,
@@ -66,6 +71,8 @@ class Driver {
       personnelPhotoUrl: personnelPhotoUrl ?? this.personnelPhotoUrl,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
+      averageRating: averageRating ?? this.averageRating,
+      reviewCount: reviewCount ?? this.reviewCount,
     );
   }
 }

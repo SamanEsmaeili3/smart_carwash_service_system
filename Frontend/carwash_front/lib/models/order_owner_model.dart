@@ -45,15 +45,32 @@ class OrderOwnerModel {
       return []; // Return an empty list if it's not a list
     }
 
+    // Prefer nested `customer` object when available (added in backend)
+    String name = 'مشتری';
+    String phone = 'نامشخص';
+    String? email;
+
+    final customerObj = json['customer'];
+    if (customerObj is Map<String, dynamic>) {
+      name = (customerObj['full_name'] ?? name).toString();
+      phone = (customerObj['phone_number'] ?? phone).toString();
+      email = (customerObj['email'] ?? json['customer_email'])?.toString();
+    } else {
+      name = (json['customer_name'] ?? name).toString();
+      phone = (json['customer_phone'] ?? phone).toString();
+      email = (json['customer_email'])?.toString();
+    }
+
     return OrderOwnerModel(
       id: json['id'] ?? 0,
-      customerName: json['customer_name'] ?? 'مشتری',
-      customerPhone: json['customer_phone'] ?? 'نامشخص',
-      customerEmail: json['customer_email'],
+      customerName: name,
+      customerPhone: phone,
+      customerEmail: email,
       vehiclePlate: json['vehicle_plate'],
       vehicleInfo: json['vehicle_info'],
       scheduledTime: parseDate(json['scheduled_time']),
-      totalPrice: (json['total_price'] as num?)?.toDouble() ?? 0.0,
+      // اصلاح این خط برای تبدیل رشته به عدد:
+      totalPrice: double.tryParse(json['total_price'].toString()) ?? 0.0,
       status: json['status'] ?? 'UNKNOWN',
       servicesList: parseServices(json['services_list']),
       createdAt: parseDate(json['created_at']),

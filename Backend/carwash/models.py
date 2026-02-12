@@ -12,6 +12,9 @@ class CarwashProfile(models.Model):
     business_name = models.CharField(max_length=255)
     address = models.CharField(max_length=255)
     
+    average_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.00)
+    review_count = models.PositiveIntegerField(default=0)
+
     # --- FIX: Increased digits to handle high-precision GPS coordinates ---
     latitude = models.DecimalField(max_digits=20, decimal_places=15)
     longitude = models.DecimalField(max_digits=20, decimal_places=15)
@@ -42,6 +45,9 @@ class Driver(models.Model):
 
     carwash = models.ForeignKey(CarwashProfile, on_delete=models.CASCADE, related_name='drivers')
     
+    average_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.00)
+    review_count = models.PositiveIntegerField(default=0)
+
     # Personal Information
     full_name = models.CharField(max_length=255)
     national_id = models.CharField(max_length=10, unique=True, help_text="National Identity Number")

@@ -24,15 +24,18 @@ class DriverProvider with ChangeNotifier {
     _setLoading(true);
     try {
       final response = await _api.get(ApiConstants.drivers, auth: true);
-
-      if (response is List) {
-        _drivers = response.map((json) => Driver.fromJson(json)).toList();
-        _status = DriverStatus.success;
-        _errorMessage = null;
+      List<dynamic> listData = [];
+      
+      if (response is Map<String, dynamic> && response.containsKey('results')) {
+        listData = response['results'];
+      } else if (response is List) {
+        listData = response;
       }
+
+      _drivers = listData.map((json) => Driver.fromJson(json)).toList();
+      _status = DriverStatus.success;
     } catch (e) {
-      final errorMsg = ErrorHandler.getErrorMessage(e);
-      _setError(errorMsg);
+      _setError(ErrorHandler.getErrorMessage(e));
     }
   }
 

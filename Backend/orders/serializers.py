@@ -1,7 +1,7 @@
 from rest_framework import serializers
-from .models import Order, OrderService
+from .models import Order, OrderService, Rating
 from carwash.models import CarwashService
-from accounts.serializers import CustomerProfileSerializer 
+from accounts.serializers import CustomerProfileSerializer
 
 class OrderServiceSerializer(serializers.ModelSerializer):
     service_name = serializers.CharField(source='service.service_name', read_only=True)
@@ -30,15 +30,15 @@ class OrderOwnerSerializer(serializers.ModelSerializer):
     customer_name = serializers.CharField(source='customer.full_name', read_only=True)
     customer_phone = serializers.CharField(source='customer.phone_number', read_only=True)
     customer_email = serializers.CharField(source='customer.user.email', read_only=True)
+    customer = CustomerProfileSerializer(read_only=True)
     vehicle_plate = serializers.SerializerMethodField()
     vehicle_info = serializers.SerializerMethodField()
-    
     services_list = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
         fields = [
-            'id', 'customer_name', 'customer_phone', 'customer_email', 'vehicle_plate', 'vehicle_info',
+            'id', 'customer_name', 'customer_phone', 'customer_email', 'customer', 'vehicle_plate', 'vehicle_info',
             'scheduled_time', 'total_price', 'status', 
             'services_list', 'created_at', 'details'
         ]
@@ -54,31 +54,58 @@ class OrderOwnerSerializer(serializers.ModelSerializer):
         return None
 
     def get_services_list(self, obj):
-        # Return a list of strings like ["Basic Wash (x1)", "Wax (x1)"]
         return [f"{os.service.service_name}" for os in obj.order_services.all()]
     
 class OrderHistorySerializer(serializers.ModelSerializer):
-    # Flatten Carwash details directly from the related model
     carwash_name = serializers.CharField(source='carwash.business_name', read_only=True)
-    # Note: Using 'license_photo_url' to match your Carwash model
     carwash_image = serializers.CharField(source='carwash.license_photo_url', read_only=True) 
-    
     services_text = serializers.SerializerMethodField()
+    has_rating = serializers.SerializerMethodField()
+    
+    # NEW: Include the actual rating data
+    rating_details = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
         fields = [
-            'id', 
-            'carwash_name', 
-            'carwash_image',
-            'scheduled_time', 
-            'total_price', 
-            'status', 
-            'services_text',
-            'created_at'
+            'id', 'carwash_name', 'carwash_image', 'scheduled_time', 
+            'total_price', 'status', 'services_text', 'has_rating', 
+            'rating_details', 'created_at'
         ]
 
     def get_services_text(self, obj):
-        # Returns string like: "Basic Wash, Wax, Interior Cleaning"
         services = [os.service.service_name for os in obj.order_services.all()]
         return ", ".join(services)
+
+    def get_has_rating(self, obj):
+        return hasattr(obj, 'rating')
+
+    def get_rating_details(self, obj):
+        # Returns the rating data if it exists, otherwise null
+        if hasattr(obj, 'rating'):
+            return {
+                "carwash_rating": obj.rating.carwash_rating,
+                "carwash_comment": obj.rating.carwash_comment,
+                "driver_rating": obj.rating.driver_rating,
+            }
+        return None
+        
+class RatingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Rating
+        fields = ['order', 'carwash_rating', 'carwash_comment', 'driver_rating', 'driver_comment']
+
+    def validate_order(self, value):
+        # Check if the order is already rated (OneToOneField protection)
+        if Rating.objects.filter(order=value).exists():
+            raise serializers.ValidationError("این سفارش قبلاً امتیازدهی شده است.")
+        
+        request = self.context.get('request')
+        if value.customer.user != request.user:
+            raise serializers.ValidationError("شما اجازه ثبت امتیاز برای این سفارش را ندارید.")
+            
+        # Ensure status is COMPLETE as per Sprint 5 AC
+        if value.status != 'COMPLETE':
+             raise serializers.ValidationError("فقط برای سفارش‌های تکمیل شده می‌توانید نظر ثبت کنید.")
+             
+        return value
