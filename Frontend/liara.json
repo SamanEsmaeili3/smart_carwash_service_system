@@ -1,0 +1,5 @@
+{
+  "app": "carwash-pro", 
+  "platform": "docker",
+  "port": 80
+}

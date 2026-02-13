@@ -108,39 +108,6 @@ if database_url:
         ssl_require=False
     )
 
-# #LOCAL POSTGRESQL
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'smart_carwash_db',  # نام دیتابیسی که ساختید
-#         'USER': 'smart_carwash_user',  # نام کاربری مد نظر شما
-#         'PASSWORD': '123456', # رمز عبور مد نظر شما
-#         'HOST': '127.0.0.1', # چون داکر روی سیستم شما اجرا شده است
-#         'PORT': '5432', # پورت پیش فرض PostgreSQL
-#     }
-# }
-
-# import dj_database_url
-# db_from_env = dj_database_url.config(conn_max_age=600)
-# DATABASES['default'].update(db_from_env)
-
-# DATABASES = {
-#     'default': dj_database_url.config(
-#         default='postgres://postgres:123456@localhost:5432/smart_carwash_db',
-#         conn_max_age=600
-#     )
-# }
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'smart_carwash_db',
-#         'USER': 'smart_carwash_user',
-#         'PASSWORD': '123456', # پسورد خودت رو چک کن
-#         'HOST': 'localhost',
-#         'PORT': '5432',
-#     }
-# }
-# ---------------------------------------------
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -208,7 +175,16 @@ AUTH_USER_MODEL = 'accounts.User'
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
-CSRF_TRUSTED_ORIGINS = ['https://my-project-api.liara.run']
+CORS_ALLOWED_ORIGINS = [
+    "https://my-project-web.liara.run",    
+    "https://carwash-pro.liara.run",   
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://my-project-api.liara.run",
+    "https://my-project-web.liara.run",    
+    "https://carwash-pro.liara.run",   
+]
 
 # Email Configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
