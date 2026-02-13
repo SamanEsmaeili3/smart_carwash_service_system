@@ -1,18 +1,19 @@
 from django.urls import path
 from .views import (
-    CarwashApplicationView, 
-    AdminCarwashListView,      
+    CarwashApplicationView,
+    AdminCarwashListView,
     AdminCarwashApprovalView,
     CarwashProfileUpdateView,
     CarwashServiceListCreateView,
-    CarwashServiceDetailView, 
+    CarwashServiceDetailView,
     CustomerCarwashListView,
     CarwashSearchView,
     CarwashProfileDetailView,
-    DriverListCreateView,  
+    DriverListCreateView,
     DriverDetailView,
     AdminCarwashDeleteView,
-    CarwashReviewsListView
+    CarwashReviewsListView,
+    FinancialsView
 )
 
 urlpatterns = [
@@ -20,7 +21,7 @@ urlpatterns = [
     # /api/carwash/apply/ (POST)
     path('apply/', CarwashApplicationView.as_view(), name='carwash-apply'),
     
-    # /api/carwash/list/ (GET - For Customers) 
+    # /api/carwash/list/ (GET - For Customers)
     path('list/', CustomerCarwashListView.as_view(), name='carwash-list-public'),
 
     # --- Admin ---
@@ -28,12 +29,13 @@ urlpatterns = [
     path('admin/list/', AdminCarwashListView.as_view(), name='admin-carwash-list'),
     
     # /api/carwash/admin/manage/<pk>/ (POST)
-    path('admin/manage/<int:pk>/', AdminCarwashApprovalView.as_view(), name='admin-manage-carwash'), 
+    path('admin/manage/<int:pk>/', AdminCarwashApprovalView.as_view(), name='admin-manage-carwash'),
     path('admin/delete/<int:pk>/', AdminCarwashDeleteView.as_view(), name='admin-delete-carwash'),
 
     # --- Carwash Owner ---
     # /api/carwash/profile/me/ (PUT)
     path('profile/me/', CarwashProfileUpdateView.as_view(), name='carwash-profile-update'),
+    path('financials/', FinancialsView.as_view(), name='carwash-financials'),
 
     # --- Services (Menu) ---
     # /api/carwash/services/ (GET list, POST create)
@@ -46,7 +48,7 @@ urlpatterns = [
     path('search/', CarwashSearchView.as_view(), name='carwash-search'),
 
     # Sprint 3 Task-B2.15 ---
-    # /api/carwash/profile/5/ 
+    # /api/carwash/profile/5/
     path('profile/<int:pk>/', CarwashProfileDetailView.as_view(), name='carwash-profile-detail-public'),
 
     # --- Driver Management ---

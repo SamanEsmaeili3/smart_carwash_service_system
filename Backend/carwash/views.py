@@ -4,26 +4,27 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import NotFound
-from django.db.models import Avg, Min, Q 
+from django.db.models import Avg, Min, Q, Sum
 import math
-from django.core.mail import send_mail  
-from django.conf import settings        
+from django.core.mail import send_mail
+from django.conf import settings
 from accounts.models import User, OTPRequest
 from .models import CarwashProfile, CarwashService, Driver
-from orders.models import Rating
+from orders.models import Rating, Order
 from .serializers import CarwashReviewSerializer
 
 # Import all serializers
 from .serializers import (
-    CarwashApplicationSerializer, 
-    CarwashProfileAdminSerializer, 
+    CarwashApplicationSerializer,
+    CarwashProfileAdminSerializer,
     CarwashProfileUpdateSerializer,
     CarwashServiceSerializer,
     CarwashListSerializer,
-    CarwashSearchSerializer,     
+    CarwashSearchSerializer,
     CarwashFullProfileSerializer,
     DriverSerializer,
-    DriverSelectionSerializer
+    DriverSelectionSerializer,
+    FinancialSummarySerializer,
 )
 
 # ---------------------------------------------------------
@@ -33,7 +34,7 @@ from .serializers import (
 # User Story 1.2: Carwash Registration Application (Updated with OTP)
 class CarwashApplicationView(generics.CreateAPIView):
     serializer_class = CarwashApplicationSerializer
-    permission_classes = [AllowAny] 
+    permission_classes = [AllowAny]
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -41,7 +42,7 @@ class CarwashApplicationView(generics.CreateAPIView):
         
         # 1. Creating Profiles and Users (by Serializer)
         carwash_profile = serializer.save()
-        user = carwash_profile.user 
+        user = carwash_profile.user
 
         # 2. Generate OTP code for user
         otp = OTPRequest(email=user.email)
@@ -57,9 +58,9 @@ class CarwashApplicationView(generics.CreateAPIView):
                 fail_silently=False,
             )
         except Exception as e:
-            user.delete() 
+            user.delete()
             return Response(
-                {"error": "Failed to send email. Please try again."}, 
+                {"error": "Failed to send email. Please try again."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -69,9 +70,9 @@ class CarwashApplicationView(generics.CreateAPIView):
             {
                 "message": "Application submitted. Verification code sent to your email.",
                 "email": user.email,
-                "role": "carwash_owner" 
-            }, 
-            status=status.HTTP_201_CREATED, 
+                "role": "carwash_owner"
+            },
+            status=status.HTTP_201_CREATED,
             headers=headers
         )
 
@@ -156,7 +157,7 @@ class AdminCarwashApprovalView(views.APIView):
                 {
                     "message": f"Carwash {profile.business_name} approved, user activated, and email sent.",
                     "created_user_email": user.email
-                }, 
+                },
                 status=status.HTTP_200_OK
             )
 
@@ -290,6 +291,37 @@ def carwash_driver_stats(request):
     
     return Response(data)
 
+# Task-B5.9: Get Financials for Carwash Owner
+class FinancialsView(views.APIView):
+    """
+    API view for Carwash Owners to see their financial summary.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        try:
+            carwash_profile = request.user.carwashprofile
+        except CarwashProfile.DoesNotExist:
+            return Response({"error": "Carwash profile not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 1. Get all PAID orders for this carwash
+        paid_orders = Order.objects.filter(
+            carwash=carwash_profile,
+            status=Order.Status.PAID
+        ).order_by('-updated_at')
+
+        # 2. Calculate total earnings
+        total_earnings = paid_orders.aggregate(total=Sum('total_price'))['total'] or 0
+
+        # 3. Serialize the data
+        serializer = FinancialSummarySerializer({
+            'total_earnings': total_earnings,
+            'transactions': paid_orders
+        })
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 # ---------------------------------------------------------
 # SECTION 4: CUSTOMER & SEARCH (Sprint 3)
 # ---------------------------------------------------------
@@ -300,7 +332,7 @@ class CustomerCarwashListView(generics.ListAPIView):
     API view for Customers to see a list of ALL Approved carwashes (Simple view).
     """
     serializer_class = CarwashListSerializer
-    permission_classes = [IsAuthenticated] 
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         return CarwashProfile.objects.filter(status=CarwashProfile.Status.APPROVED)
@@ -330,7 +362,7 @@ class CarwashSearchView(generics.ListAPIView):
         # 3. Apply Search and Price Filters
         if search_query:
             queryset = queryset.filter(
-                Q(business_name__icontains=search_query) | 
+                Q(business_name__icontains=search_query) |
                 Q(services__service_name__icontains=search_query)
             ).distinct()
 
@@ -356,7 +388,7 @@ class CarwashSearchView(generics.ListAPIView):
             # Distance Calculation
             if user_lat and user_lon:
                 dist = self.calculate_distance(
-                    user_lat, user_lon, 
+                    user_lat, user_lon,
                     float(carwash.latitude), float(carwash.longitude)
                 )
 
@@ -365,7 +397,7 @@ class CarwashSearchView(generics.ListAPIView):
                 
                 carwash.distance_km = dist
             else:
-                carwash.distance_km = 0 
+                carwash.distance_km = 0
 
             final_results.append(carwash)
 
@@ -395,7 +427,7 @@ class CarwashProfileDetailView(generics.RetrieveAPIView):
     Returns FULL details including Service Menu (for Booking).
     """
     serializer_class = CarwashFullProfileSerializer
-    permission_classes = [AllowAny] 
+    permission_classes = [AllowAny]
     queryset = CarwashProfile.objects.filter(status=CarwashProfile.Status.APPROVED)
     lookup_field = 'pk'
 

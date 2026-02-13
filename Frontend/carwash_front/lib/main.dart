@@ -1,4 +1,5 @@
 import 'package:carwash_front/providers/booking_provider.dart';
+import 'package:carwash_front/providers/financials_provider.dart';
 import 'package:carwash_front/providers/search_provider.dart';
 import 'package:carwash_front/screens/customer/customer_home_screen.dart';
 import 'package:flutter/material.dart';
@@ -44,6 +45,7 @@ void main() {
         ChangeNotifierProvider(create: (_) => SearchProvider()),
         ChangeNotifierProvider(create: (_) => OrderOwnerProvider()),
         ChangeNotifierProvider(create: (_) => CarwashReviewProvider()),
+        ChangeNotifierProvider(create: (_) => FinancialsProvider()),
       ],
       child: const MyApp(),
     ),
