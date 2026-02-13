@@ -36,6 +36,7 @@ class ApiConstants {
 
   // Carwash Endpoints
   static const String apply = '/api/carwash/apply/';
+  static const String financials = '/api/carwash/financials/';
   // Sprint 2: Carwash Services (Owner Panel)
   static const String services = '/api/carwash/services/';
   // Sprint 2: Carwash edit info

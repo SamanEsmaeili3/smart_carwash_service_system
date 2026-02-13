@@ -230,3 +230,21 @@ class CarwashReviewSerializer(serializers.ModelSerializer):
             return [os.service.service_name for os in obj.order.order_services.all()]
         except:
             return []
+
+# ---------------------------------------------------------
+# SECTION 5: FINANCIALS (Sprint 5)
+# ---------------------------------------------------------
+
+# Task-B5.9: Serializer for a single transaction
+class FinancialTransactionSerializer(serializers.ModelSerializer):
+    customer_name = serializers.CharField(source='customer.full_name', read_only=True)
+    completed_at = serializers.DateTimeField(source='updated_at', format="%Y-%m-%d %H:%M", read_only=True)
+    
+    class Meta:
+        model = Order
+        fields = ['id', 'customer_name', 'total_price', 'completed_at']
+
+# Task-B5.9: Serializer for the financial summary
+class FinancialSummarySerializer(serializers.Serializer):
+    total_earnings = serializers.DecimalField(max_digits=12, decimal_places=2)
+    transactions = FinancialTransactionSerializer(many=True, read_only=True)

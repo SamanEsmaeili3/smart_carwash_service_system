@@ -1,3 +1,4 @@
+import 'package:carwash_front/screens/carwash/financials_screen.dart';
 import 'package:carwash_front/services/utiles.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -9,6 +10,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/driver_provider.dart';
 import '../../providers/order_owner_provider.dart';
 import '../../providers/carwash_review_provider.dart';
+import '../../providers/financials_provider.dart';
 import '../../models/carwash_service_model.dart';
 import '../../models/driver_model.dart';
 import '../../models/order_owner_model.dart';
@@ -93,6 +95,7 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
       "پروفایل و تنظیمات",
       "سفارش‌های ورودی",
       "نظرات مشتریان",
+      "درآمد",
     ];
     return titles[_selectedIndex.clamp(0, titles.length - 1)];
   }
@@ -157,6 +160,13 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
                 listen: false,
               ).fetchProfile();
             }
+            // Fetch financials when switching to financials tab
+            if (index == 5) {
+              Provider.of<FinancialsProvider>(
+                context,
+                listen: false,
+              ).fetchFinancials();
+            }
           });
         },
         items: const [
@@ -164,7 +174,8 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.drive_eta), label: "رانندگان"),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "پروفایل"),
           BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: "سفارش‌ها"),
-          BottomNavigationBarItem(icon: Icon(Icons.star), label: "نظرات"), 
+          BottomNavigationBarItem(icon: Icon(Icons.star), label: "نظرات"),
+          BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet), label: "درآمد"),
         ],
       ),
     );
@@ -182,6 +193,8 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
         return const _OrdersTab();
       case 4:
         return const _ReviewsTab();
+      case 5:
+        return const FinancialsScreen();
       default:
         return _ServicesTab(onEdit: _showAddServiceSheet);
     }
@@ -237,6 +250,7 @@ class _CarwashHomeScreenState extends State<CarwashHomeScreen> {
     );
   }
 }
+
 
 // ==========================================
 // TAB 1: SERVICES LIST
