@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'dart:io';
 import '../../models/driver_model.dart';
 import '../../services/api_service.dart';
+import '../../services/error_handler.dart';
 import '../../constants/api_constants.dart';
 import '../../constants/app_colors.dart';
 import 'package:provider/provider.dart';
@@ -45,7 +46,9 @@ class _DriversManagementScreenState extends State<DriversManagementScreen> {
         });
       }
     } catch (e) {
-      _showError('خطا در بارگذاری راننده‌ها: ${e.toString()}');
+      _showError(
+        'خطا در بارگذاری راننده‌ها: ${ErrorHandler.getErrorMessage(e)}',
+      );
     } finally {
       setState(() => _isLoading = false);
     }
@@ -411,7 +414,7 @@ class _AddDriverDialogState extends State<AddDriverDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('خطا: ${e.toString()}'),
+            content: Text(ErrorHandler.getErrorMessage(e)),
             backgroundColor: AppColors.error,
           ),
         );
@@ -664,7 +667,7 @@ class _EditDriverDialogState extends State<EditDriverDialog> {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('خطا: ${e.toString()}'),
+            content: Text(ErrorHandler.getErrorMessage(e)),
             backgroundColor: AppColors.error,
           ),
         );

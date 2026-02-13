@@ -15,13 +15,13 @@ class ErrorHandler {
           if (data is Map<String, dynamic>) {
             // Try to extract error message from common fields
             if (data.containsKey('error')) {
-              return data['error'].toString();
+              return _parseErrorMessage(data['error'].toString());
             }
             if (data.containsKey('message')) {
-              return data['message'].toString();
+              return _parseErrorMessage(data['message'].toString());
             }
             if (data.containsKey('detail')) {
-              return data['detail'].toString();
+              return _parseErrorMessage(data['detail'].toString());
             }
           } else if (data is String) {
             return _parseErrorMessage(data);
@@ -141,8 +141,25 @@ class ErrorHandler {
       cleanError = '${cleanError.substring(0, 100)}...';
     }
 
-    return cleanError.isNotEmpty ? cleanError : 'خطای ناشناخته‌ای رخ داده است.';
+    if (cleanError.isEmpty) {
+      return 'خطای ناشناخته‌ای رخ داده است.';
+    }
+
+    if (_hasPersian(cleanError)) {
+      return cleanError;
+    }
+
+    if (!_hasLatin(cleanError)) {
+      return 'خطا: $cleanError';
+    }
+
+    return 'خطایی رخ داده است. لطفاً دوباره تلاش کنید.';
   }
+
+  static bool _hasPersian(String text) =>
+      RegExp(r'[\u0600-\u06FF]').hasMatch(text);
+
+  static bool _hasLatin(String text) => RegExp(r'[A-Za-z]').hasMatch(text);
 
   /// مدیریت پاسخ HTTP با کد خطا
   static String _handleHttpResponse(http.Response response) {
@@ -168,7 +185,7 @@ class ErrorHandler {
           if (body.containsKey('errors')) {
             final errors = body['errors'];
             if (errors is Map && errors.isNotEmpty) {
-              return errors.values.first.toString();
+              return _parseErrorMessage(errors.values.first.toString());
             }
           }
 
@@ -176,7 +193,9 @@ class ErrorHandler {
           if (body.containsKey('non_field_errors') &&
               body['non_field_errors'] is List &&
               (body['non_field_errors'] as List).isNotEmpty) {
-            return (body['non_field_errors'] as List).first.toString();
+            return _parseErrorMessage(
+              (body['non_field_errors'] as List).first.toString(),
+            );
           }
 
           // برای خطاهای احراز هویت خاص
@@ -234,13 +253,13 @@ class ErrorHandler {
         if (response.data is Map<String, dynamic>) {
           final data = response.data as Map<String, dynamic>;
           if (data.containsKey('error')) {
-            return data['error'].toString();
+            return _parseErrorMessage(data['error'].toString());
           }
           if (data.containsKey('message')) {
-            return data['message'].toString();
+            return _parseErrorMessage(data['message'].toString());
           }
           if (data.containsKey('detail')) {
-            return data['detail'].toString();
+            return _parseErrorMessage(data['detail'].toString());
           }
         }
       } catch (_) {

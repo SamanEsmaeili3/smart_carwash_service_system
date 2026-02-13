@@ -23,6 +23,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
     final auth = Provider.of<AuthProvider>(context, listen: false);
     bool isLoggedIn = await auth.tryAutoLogin();
+    if (!mounted) return;
 
     if (isLoggedIn) {
       switch (auth.user?.role) {
@@ -44,14 +45,25 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.blue, // Your brand color
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Icon(Icons.local_car_wash, size: 80, color: Colors.white), // Or your logo image
-            const SizedBox(height: 20),
-            const CircularProgressIndicator(color: Colors.white),
-          ],
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      SizedBox(height: 20),
+                      CircularProgressIndicator(color: Colors.white),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );

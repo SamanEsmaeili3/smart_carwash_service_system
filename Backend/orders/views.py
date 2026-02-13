@@ -182,6 +182,14 @@ def manage_order_status(request, pk):
     if new_status in Order.Status.values:
         order.status = new_status
         order.save()
+
+        # When the order reaches COMPLETE ("return car to customer"),
+        # the assigned driver becomes available for new incoming orders.
+        if new_status == Order.Status.COMPLETE and order.driver:
+            if order.driver.status != Driver.Status.AVAILABLE:
+                order.driver.status = Driver.Status.AVAILABLE
+                order.driver.save(update_fields=["status"])
+
         return Response({"message": f"Order updated to {new_status}"})
     else:
         return Response({"error": "Invalid Status"}, status=400)

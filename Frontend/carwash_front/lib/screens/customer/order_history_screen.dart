@@ -2,7 +2,6 @@ import 'package:carwash_front/screens/customer/payment_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shamsi_date/shamsi_date.dart';
-import 'package:intl/intl.dart';
 import '../../providers/booking_provider.dart';
 import '../../constants/app_colors.dart';
 import '../../models/order_history_model.dart';
@@ -37,22 +36,35 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.black),
       ),
-      body: Consumer<BookingProvider>(
-        builder: (context, provider, child) {
-          if (provider.isLoadingHistory) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWebLike = constraints.maxWidth >= 900;
+          final maxContentWidth = isWebLike ? 980.0 : double.infinity;
+          return Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxContentWidth),
+              child: Consumer<BookingProvider>(
+                builder: (context, provider, child) {
+                  if (provider.isLoadingHistory) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-          if (provider.history.isEmpty) {
-            return const Center(child: Text("شما هنوز سفارشی ثبت نکرده‌اید."));
-          }
+                  if (provider.history.isEmpty) {
+                    return const Center(
+                      child: Text("شما هنوز سفارشی ثبت نکرده‌اید."),
+                    );
+                  }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: provider.history.length,
-            itemBuilder: (ctx, index) {
-              return _OrderHistoryCard(order: provider.history[index]);
-            },
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: provider.history.length,
+                    itemBuilder: (ctx, index) {
+                      return _OrderHistoryCard(order: provider.history[index]);
+                    },
+                  );
+                },
+              ),
+            ),
           );
         },
       ),
@@ -237,37 +249,6 @@ class _OrderHistoryCard extends StatelessWidget {
                   ),
               ],
             ),
-            if (order.status.toUpperCase() == 'COMPLETE' ||
-                order.status.toUpperCase() == 'COMPLETED')
-              Padding(
-                padding: const EdgeInsets.only(top: 16.0),
-                child: Center(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (_) => PaymentScreen(
-                                orderId: order.id,
-                                totalPrice: order.totalPrice,
-                              ),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text(
-                      "Pay Now",
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-              ),
             // --- Show Customer Review if already rated ---
             if (order.hasRating)
               Container(

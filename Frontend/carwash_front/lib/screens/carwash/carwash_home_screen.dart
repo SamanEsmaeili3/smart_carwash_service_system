@@ -1891,18 +1891,17 @@ class _OrderActionsState extends State<_OrderActions> {
 
   @override
   Widget build(BuildContext context) {
-    final canAccept = widget.order.status.toUpperCase() == 'SUBMITTED';
-    final canAssignDriver = [
-      'ACCEPTED',
-      'EN_ROUTE',
-    ].contains(widget.order.status.toUpperCase());
+    final status = widget.order.status.toUpperCase();
+    final showAcceptReject = status == 'SUBMITTED';
+    final showAssignDriver = status == 'ACCEPTED';
+    final showChangeStatus = status == 'EN_ROUTE' || status == 'IN_SERVICE';
 
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       alignment: WrapAlignment.end,
       children: [
-        if (canAccept) ...[
+        if (showAcceptReject) ...[
           ElevatedButton.icon(
             onPressed: _isProcessing ? null : () => _updateStatus('ACCEPTED'),
             icon: const Icon(Icons.check, size: 18),
@@ -1914,7 +1913,7 @@ class _OrderActionsState extends State<_OrderActions> {
             ),
           ),
           OutlinedButton.icon(
-            onPressed: _isProcessing ? null : () => _updateStatus('REJECTED'),
+            onPressed: _isProcessing ? null : () => _updateStatus('CANCELLED'),
             icon: const Icon(Icons.close, size: 18),
             label: const Text('رد'),
             style: OutlinedButton.styleFrom(
@@ -1924,7 +1923,7 @@ class _OrderActionsState extends State<_OrderActions> {
             ),
           ),
         ],
-        if (canAssignDriver)
+        if (showAssignDriver)
           ElevatedButton.icon(
             onPressed: _isProcessing ? null : _assignDriver,
             icon: const Icon(Icons.person_add, size: 18),
@@ -1935,7 +1934,7 @@ class _OrderActionsState extends State<_OrderActions> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
           ),
-        if (widget.order.status.toUpperCase() == 'ACCEPTED')
+        if (status == 'ACCEPTED' && !showAssignDriver)
           OutlinedButton.icon(
             onPressed: _isProcessing ? null : () => _updateStatus('IN_SERVICE'),
             icon: const Icon(Icons.build, size: 18),
@@ -1946,7 +1945,7 @@ class _OrderActionsState extends State<_OrderActions> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
           ),
-        if (widget.order.status.toUpperCase() == 'IN_SERVICE')
+        if (status == 'IN_SERVICE' && !showChangeStatus)
           ElevatedButton.icon(
             onPressed: _isProcessing ? null : () => _updateStatus('COMPLETE'),
             icon: const Icon(Icons.check_circle, size: 18),
@@ -1957,8 +1956,8 @@ class _OrderActionsState extends State<_OrderActions> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
           ),
-        // Change Status Button - Always available
-        OutlinedButton.icon(
+        if (showChangeStatus)
+          OutlinedButton.icon(
           onPressed: _isProcessing ? null : _showStatusChangeDialog,
           icon: const Icon(Icons.edit, size: 18),
           label: const Text('تغییر وضعیت'),

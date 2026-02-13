@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/booking_provider.dart';
 import '../../constants/app_colors.dart';
+import '../../services/error_handler.dart';
 import 'rating_screen.dart'; // Assuming a rating screen exists
 
 class PaymentScreen extends StatefulWidget {
@@ -20,21 +21,29 @@ class PaymentScreen extends StatefulWidget {
 
 class _PaymentScreenState extends State<PaymentScreen> {
   Future<void> _processPayment() async {
-    final bookingProvider = Provider.of<BookingProvider>(context, listen: false);
+    final bookingProvider = Provider.of<BookingProvider>(
+      context,
+      listen: false,
+    );
 
     try {
       // 1. Initiate Payment
       final paymentId = await bookingProvider.initiatePayment(widget.orderId);
+      if (!mounted) return;
 
       if (paymentId != null) {
         // 2. Verify Payment (mocking success)
-        final success = await bookingProvider.verifyPayment(widget.orderId, paymentId);
+        final success = await bookingProvider.verifyPayment(
+          widget.orderId,
+          paymentId,
+        );
+        if (!mounted) return;
 
         if (success) {
           // 3. Navigate to Rating Screen on Success
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Payment Successful!'),
+              content: Text('پرداخت با موفقیت انجام شد'),
               backgroundColor: Colors.green,
             ),
           );
@@ -44,18 +53,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
           );
         } else {
-          throw Exception('Payment verification failed.');
+          throw Exception('تایید پرداخت ناموفق بود.');
         }
       } else {
-        throw Exception('Could not initiate payment.');
+        throw Exception('شروع فرآیند پرداخت انجام نشد.');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Payment Failed: ${e.toString()}'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (!mounted) return;
+      final msg = ErrorHandler.getErrorMessage(e);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
     }
   }
 
@@ -65,53 +73,68 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Complete Payment'),
+        title: const Text('تکمیل پرداخت'),
         backgroundColor: AppColors.primary,
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Icon(
-                Icons.credit_card,
-                size: 80,
-                color: AppColors.primary,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Total Amount:',
-                style: Theme.of(context).textTheme.titleLarge,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '\$${widget.totalPrice.toStringAsFixed(2)}',
-                style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 40),
-              bookingProvider.isProcessingPayment
-                  ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton(
-                      onPressed: _processPayment,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        textStyle: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth >= 700;
+            return Center(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(isWide ? 32 : 20),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: isWide ? 520 : 420),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Icon(
+                        Icons.credit_card,
+                        size: 80,
+                        color: AppColors.primary,
                       ),
-                      child: const Text('Pay Now', style: TextStyle(color: Colors.white)),
-                    ),
-            ],
-          ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'مبلغ قابل پرداخت',
+                        style: Theme.of(context).textTheme.titleLarge,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${widget.totalPrice.toStringAsFixed(0)} تومان',
+                        style: Theme.of(
+                          context,
+                        ).textTheme.displaySmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 40),
+                      bookingProvider.isProcessingPayment
+                          ? const Center(child: CircularProgressIndicator())
+                          : ElevatedButton(
+                            onPressed: _processPayment,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              textStyle: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            child: const Text(
+                              'پرداخت',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
