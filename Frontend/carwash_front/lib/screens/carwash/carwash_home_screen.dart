@@ -1496,6 +1496,16 @@ class _OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final statusColor = _OrderStatusUtils.getStatusColor(order.status);
+    final vehiclePlate = order.vehiclePlate?.trim();
+    final vehicleInfo = order.vehicleInfo?.trim();
+    final hasVehiclePlate =
+        vehiclePlate != null &&
+        vehiclePlate.isNotEmpty &&
+        vehiclePlate.toLowerCase() != 'null';
+    final hasVehicleInfo =
+        vehicleInfo != null &&
+        vehicleInfo.isNotEmpty &&
+        vehicleInfo.toLowerCase() != 'null';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -1635,8 +1645,7 @@ class _OrderCard extends StatelessWidget {
                       ],
                     ),
                   ],
-                  if (order.vehiclePlate != null &&
-                      order.vehiclePlate!.isNotEmpty) ...[
+                  if (hasVehiclePlate) ...[
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -1658,15 +1667,30 @@ class _OrderCard extends StatelessWidget {
                       ],
                     ),
                   ],
-                  if (order.vehicleInfo != null &&
-                      order.vehicleInfo!.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 24),
-                      child: Text(
-                        order.vehicleInfo!,
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                      ),
+                  if (hasVehicleInfo) ...[
+                    SizedBox(height: hasVehiclePlate ? 4 : 8),
+                    Row(
+                      children: [
+                        if (hasVehiclePlate)
+                          const SizedBox(width: 24)
+                        else ...[
+                          Icon(
+                            Icons.directions_car_filled_outlined,
+                            size: 16,
+                            color: Colors.grey[600],
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        Expanded(
+                          child: Text(
+                            vehicleInfo,
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ],
