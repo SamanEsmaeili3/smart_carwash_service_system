@@ -34,11 +34,11 @@ class _FinancialsScreenState extends State<FinancialsScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('Error: ${provider.error}'),
+                Text('با ارور مواجه شدیم: ${provider.error}'),
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () => provider.fetchFinancials(),
-                  child: const Text('Retry'),
+                  child: const Text('تلاش مجدد'),
                 ),
               ],
             ),
@@ -46,7 +46,7 @@ class _FinancialsScreenState extends State<FinancialsScreen> {
         }
 
         if (provider.financialSummary == null) {
-          return const Center(child: Text('No financial data available.'));
+          return const Center(child: Text('هیچ داده مالی در دسترس نیست'));
         }
 
         final summary = provider.financialSummary!;
@@ -59,7 +59,7 @@ class _FinancialsScreenState extends State<FinancialsScreen> {
               _TotalEarningsCard(totalEarnings: summary.totalEarnings),
               const SizedBox(height: 24),
               Text(
-                'Transaction History',
+                'تاریخچه تراکنش ها',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
@@ -88,7 +88,7 @@ class _TotalEarningsCard extends StatelessWidget {
         child: Column(
           children: [
             const Text(
-              'Total Earnings',
+              'کل درآمد',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -97,7 +97,7 @@ class _TotalEarningsCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              '${formatMoney(totalEarnings)} Toman',
+              '${formatMoney(totalEarnings)} تومان',
               style: const TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
@@ -119,7 +119,7 @@ class _TransactionList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (transactions.isEmpty) {
-      return const Center(child: Text('No transactions yet.'));
+      return const Center(child: Text('هیچ تراکنشی وجود ندارد'));
     }
 
     return ListView.builder(
@@ -136,16 +136,16 @@ class _TransactionList extends StatelessWidget {
           child: ListTile(
             contentPadding: const EdgeInsets.all(16),
             title: Text(
-              'Order #${transaction.id}',
+              'سفارش #${transaction.id}',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            subtitle: Text('Customer: ${transaction.customerName}'),
+            subtitle: Text('مشتری: ${transaction.customerName}'),
             trailing: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  '${formatMoney(transaction.totalPrice)} Toman',
+                  '${formatMoney(transaction.totalPrice)} تومان',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     color: AppColors.success,
@@ -164,4 +164,3 @@ class _TransactionList extends StatelessWidget {
     );
   }
 }
-
