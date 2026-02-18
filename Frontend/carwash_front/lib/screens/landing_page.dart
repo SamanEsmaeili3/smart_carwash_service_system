@@ -1,184 +1,228 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
+import '../widgets/custom_button.dart';
+import '../providers/admin_provider.dart';
 
-class LandingPage extends StatelessWidget {
+class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
 
   @override
+  State<LandingPage> createState() => _LandingPageState();
+}
+
+class _LandingPageState extends State<LandingPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fetch stats to show in the Trust Bar
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<AdminProvider>(context, listen: false).fetchAdminStats();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // Check screen size for responsiveness
     final size = MediaQuery.of(context).size;
-    final isDesktop = size.width > 800;
+    final isDesktop = size.width > 900;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // --- 1. HERO SECTION (Top Banner) ---
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.symmetric(
-                vertical: isDesktop ? 80 : 50,
-                horizontal: 20,
-              ),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    AppColors.primary,
-                    AppColors.primaryDark,
-                  ],
-                ),
-              ),
+            _buildModernHero(context, isDesktop),
+            _buildTrustBar(context),
+            _buildProcessSection(isDesktop),
+            _buildFeaturesGrid(isDesktop),
+            _buildBusinessBanner(isDesktop),
+            _buildFooter(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- 1. HERO SECTION (Layered & Glassmorphic) ---
+  Widget _buildModernHero(BuildContext context, bool isDesktop) {
+    return Container(
+      width: double.infinity,
+      height: isDesktop ? 600 : 500,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.heroGradientStart, AppColors.heroGradientEnd],
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Background Aesthetic (Water Pattern)
+          Positioned(
+            right: -100,
+            top: -50,
+            child: Icon(Icons.water_drop, size: 400, color: Colors.white.withOpacity(0.05)),
+          ),
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  // Brand Logo Container
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withOpacity(0.1),
                       shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white24),
                     ),
-                    child: const Icon(
-                      Icons.water_drop_rounded,
-                      size: 80,
-                      color: Colors.white,
-                    ),
+                    child: const Icon(Icons.auto_awesome, size: 60, color: AppColors.accentCyan),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
                   const Text(
                     "کارواش پرو",
                     style: TextStyle(
-                      fontSize: 40,
+                      fontSize: 52,
                       fontWeight: FontWeight.w900,
                       color: Colors.white,
-                      letterSpacing: -1,
+                      letterSpacing: -1.5,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   const Text(
                     "تجربه درخشش خودرو، بدون دردسر ترافیک",
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.white70,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: TextStyle(fontSize: 20, color: Colors.white70, fontWeight: FontWeight.w300),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 48),
                   
-                  // Action Buttons (Hero)
+                  // Primary Actions
                   Wrap(
                     spacing: 20,
                     runSpacing: 20,
-                    alignment: WrapAlignment.center,
                     children: [
-                      ElevatedButton(
+                      CustomButton(
+                        text: "ورود به حساب",
+                        width: 200,
+                        color: Colors.white,
+                        textColor: AppColors.primary,
                         onPressed: () => Navigator.pushNamed(context, '/login'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: AppColors.primary,
-                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                        ),
-                        child: const Text(
-                          "ورود به حساب",
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
                       ),
-                      OutlinedButton(
+                      CustomButton(
+                        text: "ثبت‌نام مشتری",
+                        width: 200,
+                        isGlass: true,
                         onPressed: () => Navigator.pushNamed(context, '/signup'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.white,
-                          side: const BorderSide(color: Colors.white, width: 2),
-                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                        ),
-                        child: const Text(
-                          "ثبت‌نام مشتری",
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
                       ),
                     ],
                   ),
                 ],
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
 
-            // --- 2. FEATURES SECTION (Why us?) ---
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1000),
-                child: Wrap(
-                  spacing: 30,
-                  runSpacing: 30,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    _buildFeatureCard(
-                      icon: Icons.timer_outlined,
-                      title: "صرفه‌جویی در زمان",
-                      desc: "دیگر نیازی به ماندن در ترافیک نیست. ما به محل شما می‌آییم.",
-                      color: Colors.orange,
-                    ),
-                    _buildFeatureCard(
-                      icon: Icons.verified_user_outlined,
-                      title: "متخصصین حرفه‌ای",
-                      desc: "تمام پرسنل ما احراز هویت شده و آموزش دیده هستند.",
-                      color: Colors.green,
-                    ),
-                    _buildFeatureCard(
-                      icon: Icons.price_check_outlined,
-                      title: "قیمت شفاف",
-                      desc: "هزینه خدمات از قبل مشخص است. بدون انعام اجباری.",
-                      color: Colors.purple,
-                    ),
-                  ],
-                ),
-              ),
+  // --- 2. TRUST BAR (Real Statistics) ---
+  Widget _buildTrustBar(BuildContext context) {
+    return Consumer<AdminProvider>(
+      builder: (context, provider, child) {
+        final stats = provider.adminStats ?? {"total_users": 15, "active_carwashes": 14, "completed_orders": 9};
+        
+        return Container(
+          transform: Matrix4.translationValues(0, -40, 0), // Lifts bar into Hero
+          margin: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 20, offset: const Offset(0, 10))],
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1000),
+            child: Wrap(
+              alignment: WrapAlignment.spaceEvenly,
+              runSpacing: 20,
+              children: [
+                _buildStatItem("${stats['total_users']}+", "کاربر فعال"),
+                _buildStatItem("${stats['active_carwashes']}", "کارواش‌\u200cهای معتبر"), // FIXED ZWNJ
+                _buildStatItem("${stats['completed_orders']}", "سفارش‌\u200cهای موفق"), // FIXED ZWNJ
+              ],
             ),
+          ),
+        );
+      },
+    );
+  }
 
-            // --- 3. BUSINESS CTA (For Carwashes) ---
-            Container(
-              width: double.infinity,
-              color: Colors.grey.shade50,
-              padding: const EdgeInsets.symmetric(vertical: 50, horizontal: 20),
-              child: Column(
-                children: [
-                  const Text(
-                    "صاحب کارواش هستید؟",
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    "کسب و کار خود را آنلاین کنید و مشتریان جدید جذب کنید.",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                  const SizedBox(height: 24),
-                  TextButton.icon(
-                    onPressed: () => Navigator.pushNamed(context, '/apply'),
-                    icon: const Icon(Icons.store),
-                    label: const Text("ثبت درخواست همکاری"),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.secondary,
-                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            // Footer
-            const Padding(
-              padding: EdgeInsets.all(24.0),
-              child: Text(
-                "© 2025 Carwash Pro Team",
-                style: TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-            ),
-          ],
-        ),
+  Widget _buildStatItem(String val, String label) {
+    return Column(
+      children: [
+        Text(val, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppColors.primary)),
+        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+      ],
+    );
+  }
+
+  // --- 3. PROCESS SECTION (How it works) ---
+  Widget _buildProcessSection(bool isDesktop) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
+      child: Column(
+        children: [
+          const Text("چگونه کار می\u200cکنیم؟", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 48),
+          Flex(
+            direction: isDesktop ? Axis.horizontal : Axis.vertical,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildStep(Icons.search, "جستجو", "انتخاب نزدیک\u200cترین کارواش"),
+              _buildConnector(isDesktop),
+              _buildStep(Icons.event_available, "رزرو", "تعیین زمان دلخواه شما"),
+              _buildConnector(isDesktop),
+              _buildStep(Icons.sentiment_very_satisfied, "درخشش", "تحویل خودروی پاکیزه"),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep(IconData icon, String title, String desc) {
+    return Column(
+      children: [
+        CircleAvatar(radius: 35, backgroundColor: AppColors.primaryLight, child: Icon(icon, color: AppColors.primary)),
+        const SizedBox(height: 16),
+        Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        const SizedBox(height: 4),
+        Text(desc, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+      ],
+    );
+  }
+
+  Widget _buildConnector(bool isHorizontal) {
+    return isHorizontal 
+      ? Container(width: 80, height: 2, color: Colors.grey[200], margin: const EdgeInsets.symmetric(horizontal: 20))
+      : Container(width: 2, height: 40, color: Colors.grey[200], margin: const EdgeInsets.symmetric(vertical: 10));
+  }
+
+  // --- 4. FEATURES GRID ---
+  Widget _buildFeaturesGrid(bool isDesktop) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 80, horizontal: 24),
+      color: Colors.white,
+      child: Wrap(
+        spacing: 30,
+        runSpacing: 30,
+        alignment: WrapAlignment.center,
+        children: [
+          _buildFeatureCard(icon: Icons.timer, title: "صرفه\u200cجویی در زمان", desc: "دیگر نیازی به ماندن در ترافیک نیست. ما به محل شما می\u200cآییم.", color: Colors.orange),
+          _buildFeatureCard(icon: Icons.verified_user, title: "متخصصین حرفه\u200cای", desc: "تمام پرسنل ما احراز هویت شده و آموزش دیده هستند.", color: Colors.green),
+          _buildFeatureCard(icon: Icons.price_check, title: "قیمت شفاف", desc: "هزینه خدمات از قبل مشخص است. بدون انعام اجباری.", color: Colors.purple),
+        ],
       ),
     );
   }
@@ -186,41 +230,52 @@ class LandingPage extends StatelessWidget {
   Widget _buildFeatureCard({required IconData icon, required String title, required String desc, required Color color}) {
     return Container(
       width: 300,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          )
-        ],
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade100),
       ),
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, size: 32, color: color),
-          ),
+          Icon(icon, size: 48, color: color),
+          const SizedBox(height: 20),
+          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          Text(desc, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey, height: 1.6)),
+        ],
+      ),
+    );
+  }
+
+  // --- 5. BUSINESS CTA ---
+  Widget _buildBusinessBanner(bool isDesktop) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(60),
+      color: AppColors.secondary,
+      child: Column(
+        children: [
+          const Text("صاحب کارواش هستید؟", style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
-          Text(
-            title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            desc,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey.shade600, height: 1.5),
+          const Text("کسب و کار خود را آنلاین کنید و مشتریان جدید جذب کنید.", style: TextStyle(color: Colors.white70, fontSize: 16)),
+          const SizedBox(height: 40),
+          CustomButton(
+            text: "ثبت درخواست همکاری",
+            color: Colors.white,
+            textColor: AppColors.secondary,
+            width: 250,
+            onPressed: () => Navigator.pushNamed(context, '/apply'),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildFooter() {
+    return Container(
+      padding: const EdgeInsets.all(40),
+      child: const Text("© 2026 Carwash Pro Team - All Rights Reserved", style: TextStyle(color: Colors.grey)),
     );
   }
 }

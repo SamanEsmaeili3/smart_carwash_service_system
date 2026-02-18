@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 
 class CustomButton extends StatelessWidget {
-  final String? text; // Make text optional
+  final String? text; 
   final VoidCallback? onPressed;
   final bool isLoading;
   final Color color;
@@ -10,11 +10,12 @@ class CustomButton extends StatelessWidget {
   final double height;
   final Color? textColor;
   final Color? borderColor;
-  final Widget? child; // New parameter for child widget
+  final Widget? child; 
+  final bool isGlass; // NEW: For modern transparent look
 
   const CustomButton({
     super.key,
-    this.text, // Make text optional
+    this.text, 
     required this.onPressed,
     this.isLoading = false,
     this.color = AppColors.primary,
@@ -22,7 +23,8 @@ class CustomButton extends StatelessWidget {
     this.height = 56,
     this.textColor,
     this.borderColor,
-    this.child, // Initialize new parameter
+    this.child,
+    this.isGlass = false,
   });
 
   @override
@@ -33,18 +35,26 @@ class CustomButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: color,
+          backgroundColor: isGlass ? Colors.white.withOpacity(0.15) : color,
+          foregroundColor: textColor ?? Colors.white,
+          elevation: isGlass ? 0 : 4,
+          shadowColor: isGlass ? Colors.transparent : Colors.black26,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-            side: borderColor != null ? BorderSide(color: borderColor!) : BorderSide.none,
+            borderRadius: BorderRadius.circular(isGlass ? 30 : 16),
+            side: borderColor != null 
+                ? BorderSide(color: borderColor!, width: 2) 
+                : (isGlass ? const BorderSide(color: Colors.white30) : BorderSide.none),
           ),
-          elevation: 2,
         ),
         child: isLoading
-            ? const CircularProgressIndicator(color: Colors.white)
-            : child ?? // Render child if provided
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+              )
+            : child ?? 
                 Text(
-                  text ?? '', // Fallback to empty string if text is null
+                  text ?? '', 
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
