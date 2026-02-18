@@ -126,30 +126,44 @@ class _LandingPageState extends State<LandingPage> {
     );
   }
 
-  // --- 2. TRUST BAR (Real Statistics) ---
+
+  // --- 2. TRUST BAR (Fixed Layout) ---
   Widget _buildTrustBar(BuildContext context) {
     return Consumer<AdminProvider>(
       builder: (context, provider, child) {
-        final stats = provider.adminStats ?? {"total_users": 15, "active_carwashes": 14, "completed_orders": 9};
+        // Fallback data if provider is empty
+        final stats = provider.adminStats ?? {
+          "total_users": 15, 
+          "active_carwashes": 14, 
+          "completed_orders": 9
+        };
         
         return Container(
-          transform: Matrix4.translationValues(0, -40, 0), // Lifts bar into Hero
+          transform: Matrix4.translationValues(0, -50, 0), // Slightly deeper lift
           margin: const EdgeInsets.symmetric(horizontal: 24),
-          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 12),
+          padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
-            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 20, offset: const Offset(0, 10))],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1), 
+                blurRadius: 30, 
+                offset: const Offset(0, 15)
+              )
+            ],
           ),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1000),
-            child: Wrap(
-              alignment: WrapAlignment.spaceEvenly,
-              runSpacing: 20,
+            constraints: const BoxConstraints(maxWidth: 900),
+            child: Row( // Using Row instead of Wrap for perfect horizontal alignment
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildStatItem("${stats['total_users']}+", "کاربر فعال"),
-                _buildStatItem("${stats['active_carwashes']}", "کارواش‌\u200cهای معتبر"), // FIXED ZWNJ
-                _buildStatItem("${stats['completed_orders']}", "سفارش‌\u200cهای موفق"), // FIXED ZWNJ
+                Expanded(child: _buildStatItem("${stats['total_users']}+", "کاربر فعال")),
+                // Vertical divider for better visual separation
+                Container(width: 1, height: 40, color: Colors.grey[200]), 
+                Expanded(child: _buildStatItem("${stats['active_carwashes']}", "کارواش‌\u200cهای معتبر")),
+                Container(width: 1, height: 40, color: Colors.grey[200]),
+                Expanded(child: _buildStatItem("${stats['completed_orders']}", "سفارش‌\u200cهای موفق")),
               ],
             ),
           ),
@@ -160,9 +174,27 @@ class _LandingPageState extends State<LandingPage> {
 
   Widget _buildStatItem(String val, String label) {
     return Column(
+      mainAxisSize: MainAxisSize.min, // Prevents taking unnecessary vertical space
       children: [
-        Text(val, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppColors.primary)),
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+        Text(
+          val, 
+          style: const TextStyle(
+            fontSize: 34, // Slightly larger for emphasis
+            fontWeight: FontWeight.w900, 
+            color: AppColors.primary,
+            height: 1.1, // Tightens the line height
+          )
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label, 
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.grey[600], 
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          )
+        ),
       ],
     );
   }
