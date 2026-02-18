@@ -212,7 +212,7 @@ class AdminStatsView(views.APIView):
     """
     Returns counts for Total Users, Active Carwashes, and Completed Orders.
     """
-    permission_classes = [IsAdminUser]
+    permission_classes = [AllowAny]
 
     def get(self, request):
         # Count only standard customers, not owners or admins
