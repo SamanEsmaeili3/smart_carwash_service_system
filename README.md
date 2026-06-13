@@ -4,7 +4,7 @@ This project is a complete service system to connect customers with local carwas
 
 Read the file below for a full explanation.
 
-📄 [Project Documentation (PDF)](./Smart_Carwash_Documentation.pdf)
+📄 [Project Documentation (PDF)](./Documentation.pdf)
 
 
 ## 👥 Authors
