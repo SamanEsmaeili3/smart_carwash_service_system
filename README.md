@@ -2,7 +2,10 @@
 
 This project is a complete service system to connect customers with local carwash businesses. It manages the entire workflow, including customer orders, vehicle pickup and delivery, carwash service management, and admin validation.
 
-Documentation.pdf
+Read the file below for a full explanation.
+
+📄 [Project Documentation (PDF)](./Smart_Carwash_Documentation.pdf)
+
 
 ## 👥 Authors
 
